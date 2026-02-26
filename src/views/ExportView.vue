@@ -1,7 +1,19 @@
 <template>
   <div class="page">
-    <h1 class="page-title">{{ t('export.title') }}</h1>
-    <p class="page-subtitle">{{ t('export.subtitle') }}</p>
+    <h1 class="page-title">{{ t('settings.title') }}</h1>
+    <p class="page-subtitle">{{ t('settings.subtitle') }}</p>
+
+    <div class="card card-section">
+      <h2 class="section-title">{{ t('settings.appearance') }}</h2>
+      <div class="form-group">
+        <label>{{ t('settings.darkMode') }}</label>
+        <select :value="theme" @change="onThemeChange" class="theme-select">
+          <option value="light">{{ t('settings.themeLight') }}</option>
+          <option value="dark">{{ t('settings.themeDark') }}</option>
+          <option value="system">{{ t('settings.themeSystem') }}</option>
+        </select>
+      </div>
+    </div>
 
     <div class="card card-section">
       <h2 class="section-title">{{ t('export.language') }}</h2>
@@ -80,6 +92,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { useTheme } from '@/composables/useTheme';
 import { exportProject as doExport, importProject } from '@/db';
 import {
   PROVIDERS,
@@ -98,8 +111,13 @@ import { useI18n } from '@/composables/useI18n';
 import { LOCALES } from '@/locales';
 
 const { locale, t, setLocale } = useI18n();
+const { theme, setTheme } = useTheme();
 const localeOptions = LOCALES;
 const currentLocale = ref(locale.value);
+
+function onThemeChange(e) {
+  setTheme(e.target.value);
+}
 
 const providers = PROVIDERS;
 const provider = ref(getProvider());

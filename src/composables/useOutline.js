@@ -1,5 +1,5 @@
 import { ref, computed } from 'vue';
-import { getChapters, getScenes } from '@/db';
+import { getChapters, getScenes, getCurrentStoryId } from '@/db';
 
 const chapters = ref([]);
 const scenes = ref([]);
@@ -15,7 +15,8 @@ export function useOutline() {
 
   async function load() {
     try {
-      const [ch, sc] = await Promise.all([getChapters(), getScenes()]);
+      const storyId = getCurrentStoryId();
+      const [ch, sc] = await Promise.all([getChapters(storyId), getScenes(storyId)]);
       chapters.value = ch;
       scenes.value = sc;
     } catch (_) {

@@ -80,7 +80,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
 import { getCharacters, addCharacter, updateCharacter, deleteCharacter } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
@@ -143,7 +143,13 @@ async function removeCharacter(id) {
   await load();
 }
 
-onMounted(load);
+onMounted(() => {
+  load();
+  window.addEventListener('inkflow-story-switched', load);
+});
+onUnmounted(() => {
+  window.removeEventListener('inkflow-story-switched', load);
+});
 </script>
 
 <style scoped>

@@ -61,6 +61,7 @@ import AiExpandButton from '@/components/AiExpandButton.vue';
 const { t } = useI18n();
 
 const story = ref({
+  id: '',
   oneSentence: '',
   setup: '',
   disaster1: '',
@@ -77,6 +78,7 @@ const beforeUnloadHandler = ref(null);
 
 function storySnapshot() {
   return JSON.stringify({
+    id: story.value.id ?? '',
     oneSentence: story.value.oneSentence ?? '',
     setup: story.value.setup ?? '',
     disaster1: story.value.disaster1 ?? '',
@@ -110,6 +112,7 @@ async function load() {
     const s = await getStory();
     if (s) {
       story.value = {
+        id: s.id ?? 'story',
         oneSentence: s.oneSentence ?? '',
         setup: s.setup ?? '',
         disaster1: s.disaster1 ?? '',
@@ -132,6 +135,7 @@ async function save() {
     if (!isDirty()) clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
+    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
   } catch (e) {
     saveError.value = e?.message || t('story.saveError');
     setBeforeUnload();
@@ -154,6 +158,7 @@ async function autoSave() {
 
 onMounted(async () => {
   await load();
+  window.addEventListener('inkflow-story-switched', load);
   watch(story, () => {
     if (saveTimeout.value) clearTimeout(saveTimeout.value);
     saveTimeout.value = setTimeout(() => {
@@ -165,6 +170,7 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener('inkflow-story-switched', load);
   if (saveTimeout.value) clearTimeout(saveTimeout.value);
   clearBeforeUnload();
 });

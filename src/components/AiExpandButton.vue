@@ -51,7 +51,7 @@
 
     <p v-if="error" class="ai-expand-error">
       {{ error }}
-      <router-link to="/export" class="ai-expand-error-link">{{ t('ai.checkKey') }}</router-link>
+      <router-link to="/settings" class="ai-expand-error-link">{{ t('ai.checkKey') }}</router-link>
     </p>
   </div>
 </template>
@@ -91,7 +91,7 @@ function onClick() {
 
 function goToSetup() {
   showSetupHint.value = false;
-  router.push("/export");
+  router.push("/settings");
 }
 
 function closeResultModal() {

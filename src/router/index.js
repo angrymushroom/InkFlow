@@ -8,7 +8,8 @@ const routes = [
   { path: "/outline", name: "outline", component: () => import("@/views/OutlineView.vue"), meta: { title: "Outline" } },
   { path: "/write", name: "write", component: () => import("@/views/WriteView.vue"), meta: { title: "Write" } },
   { path: "/write/:sceneId", name: "scene", component: () => import("@/views/SceneEditorView.vue"), meta: { title: "Scene" } },
-  { path: "/export", name: "export", component: () => import("@/views/ExportView.vue"), meta: { title: "Export" } },
+  { path: "/export", redirect: "/settings" },
+  { path: "/settings", name: "settings", component: () => import("@/views/ExportView.vue"), meta: { title: "Settings" } },
 ];
 
 const router = createRouter({
