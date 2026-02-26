@@ -63,6 +63,16 @@ db.version(2)
     }
   });
 
+db.version(3).stores({
+  story: "id, updatedAt",
+  stories: "id, updatedAt, createdAt",
+  ideas: "id, storyId, type, createdAt",
+  characters: "id, storyId, createdAt",
+  chapters: "id, storyId, order, createdAt",
+  scenes: "id, chapterId, order, createdAt",
+  idea_custom_types: "id, createdAt",
+});
+
 function createStorageError(message, cause) {
   const err = new Error(message);
   err.code = "STORAGE_ERROR";
@@ -196,6 +206,33 @@ export async function createStory(overrides = {}) {
   return story;
 }
 
+/**
+ * Permanently deletes a story and all its ideas, characters, chapters, and scenes.
+ * If the deleted story was the current one, sets current story to another and returns its id.
+ * @param {string} id - Story id to delete
+ * @returns {Promise<{ switchedToId: string | null }>} - switchedToId when current was deleted and another story exists
+ */
+export async function deleteStory(id) {
+  const chapterIds = await db.chapters.where("storyId").equals(id).primaryKeys();
+  if (chapterIds.length > 0) {
+    await db.scenes.where("chapterId").anyOf(chapterIds).delete();
+  }
+  await db.chapters.where("storyId").equals(id).delete();
+  await db.ideas.where("storyId").equals(id).delete();
+  await db.characters.where("storyId").equals(id).delete();
+  await db.stories.delete(id);
+
+  let switchedToId = null;
+  if (id === getCurrentStoryId()) {
+    const remaining = await db.stories.orderBy("updatedAt").reverse().toArray();
+    if (remaining.length > 0) {
+      setCurrentStoryId(remaining[0].id);
+      switchedToId = remaining[0].id;
+    }
+  }
+  return { switchedToId };
+}
+
 // Ideas (scoped by current story)
 export async function getIdeas(storyId) {
   const sid = storyId ?? getCurrentStoryId();
@@ -217,6 +254,28 @@ export async function updateIdea(id, data) {
 
 export async function deleteIdea(id) {
   await db.ideas.delete(id);
+}
+
+// Idea custom types (user-defined type names for ideas dropdown)
+export async function getCustomIdeaTypes() {
+  try {
+    return db.idea_custom_types.orderBy("createdAt").toArray();
+  } catch (_) {
+    return [];
+  }
+}
+
+export async function addCustomIdeaType(name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return null;
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  await db.idea_custom_types.add({ id, name: trimmed, createdAt });
+  return { id, name: trimmed, createdAt };
+}
+
+export async function deleteCustomIdeaType(id) {
+  await db.idea_custom_types.delete(id);
 }
 
 // Characters (scoped by current story)
@@ -317,9 +376,13 @@ export async function deleteScene(id) {
   await db.scenes.delete(id);
 }
 
-// Export/Import (full project; v2 includes stories and storyId)
+// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes)
 export async function exportProject() {
   try {
+    let ideaCustomTypes = [];
+    try {
+      if (db.idea_custom_types) ideaCustomTypes = await db.idea_custom_types.toArray();
+    } catch (_) {}
     const [stories, ideas, characters, chapters, scenes] = await Promise.all([
       db.stories.toArray(),
       db.ideas.toArray(),
@@ -328,13 +391,14 @@ export async function exportProject() {
       db.scenes.toArray(),
     ]);
     return {
-      version: 2,
+      version: 3,
       exportedAt: new Date().toISOString(),
       stories,
       ideas,
       characters,
       chapters,
       scenes,
+      ideaCustomTypes,
     };
   } catch (e) {
     throw createStorageError(
@@ -370,18 +434,23 @@ function validateImportData(data) {
   if (data.scenes != null && !Array.isArray(data.scenes)) {
     throw createImportValidationError("Invalid backup format: scenes must be an array.");
   }
+  if (data.ideaCustomTypes != null && !Array.isArray(data.ideaCustomTypes)) {
+    throw createImportValidationError("Invalid backup format: ideaCustomTypes must be an array.");
+  }
 }
 
 export async function importProject(data) {
   validateImportData(data);
   try {
     const stores = [db.stories, db.ideas, db.characters, db.chapters, db.scenes];
+    if (db.idea_custom_types) stores.push(db.idea_custom_types);
     await db.transaction("rw", stores, async () => {
       await db.stories.clear();
       await db.ideas.clear();
       await db.characters.clear();
       await db.chapters.clear();
       await db.scenes.clear();
+      if (db.idea_custom_types) await db.idea_custom_types.clear();
       const isV2 = data.version >= 2 && Array.isArray(data.stories);
       if (isV2 && data.stories?.length) {
         for (const s of data.stories) await db.stories.add(s);
@@ -389,6 +458,9 @@ export async function importProject(data) {
         for (const c of data.characters || []) await db.characters.add(c);
         for (const ch of data.chapters || []) await db.chapters.add(ch);
         for (const s of data.scenes || []) await db.scenes.add(s);
+        if (db.idea_custom_types && Array.isArray(data.ideaCustomTypes)) {
+          for (const ct of data.ideaCustomTypes) await db.idea_custom_types.add(ct);
+        }
         if (data.stories[0]?.id) setCurrentStoryId(data.stories[0].id);
       } else {
         const legacyStory = data.story && typeof data.story === "object" ? data.story : { id: "story", oneSentence: "", setup: "", disaster1: "", disaster2: "", disaster3: "", ending: "", updatedAt: Date.now(), createdAt: Date.now() };
@@ -398,6 +470,9 @@ export async function importProject(data) {
         for (const c of data.characters || []) await db.characters.add({ ...c, storyId: c.storyId ?? storyId });
         for (const ch of data.chapters || []) await db.chapters.add({ ...ch, storyId: ch.storyId ?? storyId });
         for (const s of data.scenes || []) await db.scenes.add(s);
+        if (db.idea_custom_types && Array.isArray(data.ideaCustomTypes)) {
+          for (const ct of data.ideaCustomTypes) await db.idea_custom_types.add(ct);
+        }
         setCurrentStoryId(storyId);
       }
     });

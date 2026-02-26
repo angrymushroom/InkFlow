@@ -135,12 +135,14 @@ async function saveCharacter() {
   }
   await load();
   cancelForm();
+  window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
 }
 
 async function removeCharacter(id) {
   if (!confirm(t.value('characters.confirmDelete'))) return;
   await deleteCharacter(id);
   await load();
+  window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
 }
 
 onMounted(() => {

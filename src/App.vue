@@ -73,13 +73,13 @@
               <router-link
                 v-for="idea in ideas"
                 :key="idea.id"
-                to="/ideas"
+                :to="`/ideas?id=${idea.id}`"
                 class="sidebar-item"
-                :class="{ active: route.path === '/ideas' }"
+                :class="{ active: route.path === '/ideas' && route.query.id === idea.id }"
                 @click="sidebarOpen = false"
               >
                 <span class="sidebar-item-label">{{ idea.title || t('ideas.untitled') }}</span>
-                <span class="sidebar-item-meta">{{ idea.type || 'plot' }}</span>
+                <span class="sidebar-item-meta">{{ getIdeaTypeLabel(idea.type || 'plot', t) }}</span>
               </router-link>
             </template>
           </section>
@@ -147,14 +147,16 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
 import { getIdeas, getCharacters, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
+import { getIdeaTypeLabel } from '@/composables/useIdeaTypes';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const { chapters, load, getScenesForChapter } = useOutline();
 
 const sidebarOpen = ref(false);
@@ -199,13 +201,19 @@ async function loadIdeasAndCharacters() {
   }
 }
 
+async function onIdeasOrCharactersChanged() {
+  await loadIdeasAndCharacters();
+  await nextTick();
+}
+
 async function switchStory(storyId) {
   setCurrentStoryId(storyId);
   currentStoryId.value = storyId;
-  await load(); // always refresh outline for sidebar (loadOutline only runs on outline/write routes)
+  await load();
   await loadIdeasAndCharacters();
   await loadStories();
   sidebarOpen.value = false;
+  router.push('/story');
   window.dispatchEvent(new CustomEvent('inkflow-story-switched', { detail: { storyId } }));
 }
 
@@ -230,12 +238,28 @@ onMounted(async () => {
   checkMobile();
   window.addEventListener('resize', checkMobile);
   window.addEventListener('inkflow-story-saved', loadStories);
+  window.addEventListener('inkflow-outline-changed', load);
+  window.addEventListener('inkflow-ideas-changed', onIdeasOrCharactersChanged);
+  window.addEventListener('inkflow-characters-changed', onIdeasOrCharactersChanged);
+  window.addEventListener('inkflow-story-deleted', onStoryDeleted);
 });
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
   window.removeEventListener('inkflow-story-saved', loadStories);
+  window.removeEventListener('inkflow-outline-changed', load);
+  window.removeEventListener('inkflow-ideas-changed', onIdeasOrCharactersChanged);
+  window.removeEventListener('inkflow-characters-changed', onIdeasOrCharactersChanged);
+  window.removeEventListener('inkflow-story-deleted', onStoryDeleted);
 });
+
+async function onStoryDeleted(e) {
+  const switchedToId = e.detail?.switchedToId;
+  if (switchedToId) currentStoryId.value = switchedToId;
+  await loadStories();
+  await load();
+  await loadIdeasAndCharacters();
+}
 
 watch(
   () => route.path,

@@ -16,11 +16,14 @@
       </div>
       <div class="form-group">
         <label>{{ t('ideas.typeLabel') }}</label>
-        <select v-model="form.type">
-          <option value="plot">{{ t('ideas.plot') }}</option>
-          <option value="character">{{ t('ideas.character') }}</option>
-          <option value="world">{{ t('ideas.world') }}</option>
-          <option value="scene">{{ t('ideas.scene') }}</option>
+        <select v-model="form.type" class="idea-type-select" @change="onIdeaTypeChange">
+          <optgroup :label="t('ideas.typeGroupSuggested')">
+            <option v-for="item in builtInTypes" :key="item.slug" :value="item.slug">{{ t('ideas.' + item.slug) }}</option>
+          </optgroup>
+          <optgroup v-if="customTypes.length" :label="t('ideas.typeGroupCustom')">
+            <option v-for="ct in customTypes" :key="ct.id" :value="ct.name">{{ ct.name }}</option>
+          </optgroup>
+          <option value="__add_custom__">{{ t('ideas.addCustomType') }}</option>
         </select>
       </div>
       <div class="form-actions">
@@ -38,7 +41,7 @@
     <div v-else class="idea-list">
       <div v-for="idea in ideas" :key="idea.id" class="card idea-card">
         <div class="idea-header">
-          <span class="idea-type">{{ idea.type }}</span>
+          <span class="idea-type">{{ getIdeaTypeLabel(idea.type, t) }}</span>
           <div class="idea-actions">
             <button class="btn btn-ghost btn-sm btn-icon" @click="editIdea(idea)" :title="t('ideas.edit')">✏️</button>
             <button class="btn btn-ghost btn-sm btn-icon" @click="removeIdea(idea.id)" :title="t('ideas.delete')">🗑️</button>
@@ -55,14 +58,28 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 import { getIdeas, addIdea, updateIdea, deleteIdea } from '@/db';
 import { useI18n } from '@/composables/useI18n';
+import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 
 const { t } = useI18n();
+const { builtInTypes, customTypes, addCustomType, getIdeaTypeLabel } = useIdeaTypes();
 
 const ideas = ref([]);
 const showForm = ref(false);
 const editingId = ref(null);
 const form = ref({ title: '', body: '', type: 'plot' });
+
+async function onIdeaTypeChange() {
+  if (form.value.type !== '__add_custom__') return;
+  const name = window.prompt(t.value('ideas.addCustomType'));
+  if (!name?.trim()) {
+    form.value.type = 'plot';
+    return;
+  }
+  const newName = await addCustomType(name);
+  if (newName) form.value.type = newName;
+  else form.value.type = 'plot';
+}
 
 async function load() {
   ideas.value = await getIdeas();
@@ -86,19 +103,23 @@ function cancelForm() {
 }
 
 async function saveIdea() {
+  const type = form.value.type && form.value.type !== '__add_custom__' ? form.value.type : 'plot';
+  const payload = { ...form.value, type };
   if (editingId.value) {
-    await updateIdea(editingId.value, form.value);
+    await updateIdea(editingId.value, payload);
   } else {
-    await addIdea(form.value);
+    await addIdea(payload);
   }
   await load();
   cancelForm();
+  window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
 }
 
 async function removeIdea(id) {
   if (!confirm(t.value('ideas.confirmDelete'))) return;
   await deleteIdea(id);
   await load();
+  window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
 }
 
 onMounted(() => {

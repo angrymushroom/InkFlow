@@ -49,16 +49,48 @@
       </div>
       <p v-if="saveError" class="save-error">{{ saveError }}</p>
     </div>
+
+    <section class="story-danger-zone">
+      <h3 class="story-danger-zone-title">{{ t('story.deleteStorySection') }}</h3>
+      <p v-if="storyCount <= 1" class="story-danger-zone-hint">{{ t('story.cannotDeleteLastStory') }}</p>
+      <button
+        type="button"
+        class="btn btn-ghost btn-danger"
+        :disabled="storyCount <= 1"
+        @click="showDeleteModal = true"
+      >
+        {{ t('story.deleteStory') }}
+      </button>
+    </section>
+
+    <div v-if="showDeleteModal" class="modal-backdrop" @click.self="showDeleteModal = false">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ t('story.deleteStoryConfirmTitle') }}</h3>
+        <p class="modal-body">{{ t('story.deleteStoryConfirmBody') }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" @click="showDeleteModal = false">{{ t('ideas.cancel') }}</button>
+          <button type="button" class="btn btn-danger" :disabled="deleteInProgress" @click="confirmDeleteStory">
+            {{ t('story.deleteStoryConfirmButton') }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, watch, onMounted, onUnmounted } from 'vue';
-import { getStory, saveStory } from '@/db';
+import { useRouter } from 'vue-router';
+import { getStory, saveStory, getStories, deleteStory } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 
 const { t } = useI18n();
+const router = useRouter();
+
+const storyCount = ref(1);
+const showDeleteModal = ref(false);
+const deleteInProgress = ref(false);
 
 const story = ref({
   id: '',
@@ -109,7 +141,8 @@ function clearBeforeUnload() {
 async function load() {
   loadError.value = '';
   try {
-    const s = await getStory();
+    const [s, list] = await Promise.all([getStory(), getStories()]);
+    storyCount.value = list?.length ?? 0;
     if (s) {
       story.value = {
         id: s.id ?? 'story',
@@ -124,6 +157,23 @@ async function load() {
     lastSavedJson.value = storySnapshot();
   } catch (e) {
     loadError.value = e?.message || t('story.saveError');
+  }
+}
+
+async function confirmDeleteStory() {
+  if (deleteInProgress.value || !story.value?.id) return;
+  deleteInProgress.value = true;
+  try {
+    const { switchedToId } = await deleteStory(story.value.id);
+    showDeleteModal.value = false;
+    window.dispatchEvent(new CustomEvent('inkflow-story-deleted', { detail: { switchedToId } }));
+    if (switchedToId) {
+      router.push('/story');
+    }
+  } catch (e) {
+    saveError.value = e?.message || t('story.saveError');
+  } finally {
+    deleteInProgress.value = false;
   }
 }
 
@@ -196,5 +246,67 @@ onUnmounted(() => {
   margin-top: var(--space-2);
   font-size: 0.875rem;
   color: var(--danger);
+}
+.story-danger-zone {
+  margin-top: var(--space-6);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.story-danger-zone-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2);
+}
+.story-danger-zone-hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-2);
+}
+.btn-danger {
+  color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger);
+  color: var(--bg);
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+.modal-card {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  max-width: 28rem;
+  width: 100%;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.modal-title {
+  margin: 0 0 var(--space-2);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.modal-body {
+  margin: 0 0 var(--space-5);
+  font-size: 0.9375rem;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+.modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+  flex-wrap: wrap;
 }
 </style>
