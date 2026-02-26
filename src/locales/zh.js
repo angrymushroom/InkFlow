@@ -6,6 +6,9 @@ export default {
     outline: '大纲',
     write: '写作',
     export: '导出',
+    chapters: '章节',
+    noChapters: '暂无章节',
+    goToOutline: '去大纲',
   },
   ideas: {
     title: '灵感',
@@ -111,6 +114,7 @@ export default {
     sceneNotes: '场景备注',
     confirmChapter: '确定删除本章及其中所有场景？',
     confirmScene: '确定删除这个场景？',
+    writeScene: '写作',
   },
   write: {
     title: '写作',

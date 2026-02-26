@@ -6,6 +6,9 @@ export default {
     outline: 'Structure',
     write: 'Écrire',
     export: 'Exporter',
+    chapters: 'Chapitres',
+    noChapters: 'Pas encore de chapitres',
+    goToOutline: 'Aller à la structure',
   },
   ideas: {
     title: 'Idées',
@@ -111,6 +114,7 @@ export default {
     sceneNotes: 'Notes de la scène',
     confirmChapter: 'Supprimer ce chapitre et toutes ses scènes ?',
     confirmScene: 'Supprimer cette scène ?',
+    writeScene: 'Écrire',
   },
   write: {
     title: 'Écrire',

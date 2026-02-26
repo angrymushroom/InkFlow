@@ -28,23 +28,15 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
-import { getChapters, getScenes } from '@/db';
 import { useI18n } from '@/composables/useI18n';
+import { useOutline } from '@/composables/useOutline';
 
 const { t } = useI18n();
-
-const chapters = ref([]);
-const scenes = ref([]);
+const { chapters, scenes, getScenesForChapter } = useOutline();
 
 function scenesByChapter(chapterId) {
-  return scenes.value.filter((s) => s.chapterId === chapterId);
+  return getScenesForChapter(chapterId);
 }
-
-onMounted(async () => {
-  chapters.value = await getChapters();
-  scenes.value = await getScenes();
-});
 </script>
 
 <style scoped>

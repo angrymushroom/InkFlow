@@ -6,6 +6,9 @@ export default {
     outline: 'Outline',
     write: 'Write',
     export: 'Export',
+    chapters: 'Chapters',
+    noChapters: 'No chapters yet',
+    goToOutline: 'Go to Outline',
   },
   ideas: {
     title: 'Ideas',
@@ -111,6 +114,7 @@ export default {
     sceneNotes: 'Scene notes',
     confirmChapter: 'Delete this chapter and all its scenes?',
     confirmScene: 'Delete this scene?',
+    writeScene: 'Write',
   },
   write: {
     title: 'Write',

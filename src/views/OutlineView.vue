@@ -15,8 +15,8 @@
         <AiExpandButton :current-value="chapterForm.summary" :field-name="t('outline.chapterSummary')" @expanded="chapterForm.summary = $event" />
       </div>
       <div class="form-actions">
-        <button class="btn btn-ghost" @click="cancelChapterForm">{{ t('ideas.cancel') }}</button>
-        <button class="btn btn-primary" @click="saveChapter">{{ editingChapterId ? t('ideas.save') : t('ideas.add') }}</button>
+        <button type="button" class="btn btn-ghost" @click="cancelChapterForm">{{ t('ideas.cancel') }}</button>
+        <button type="button" class="btn btn-primary" @click="saveChapter">{{ editingChapterId ? t('ideas.save') : t('ideas.add') }}</button>
       </div>
     </div>
 
@@ -51,14 +51,14 @@
         <AiExpandButton :current-value="sceneForm.notes" :field-name="t('outline.sceneNotes')" @expanded="sceneForm.notes = $event" />
       </div>
       <div class="form-actions">
-        <button class="btn btn-ghost" @click="cancelSceneForm">{{ t('ideas.cancel') }}</button>
-        <button class="btn btn-primary" @click="saveScene">{{ editingSceneId ? t('ideas.save') : t('ideas.add') }}</button>
+        <button type="button" class="btn btn-ghost" @click="cancelSceneForm">{{ t('ideas.cancel') }}</button>
+        <button type="button" class="btn btn-primary" @click="saveScene">{{ editingSceneId ? t('ideas.save') : t('ideas.add') }}</button>
       </div>
     </div>
 
     <div class="outline-actions">
-      <button class="btn btn-primary" @click="openNewChapter">+ {{ t('outline.newChapter') }}</button>
-      <button class="btn btn-ghost" @click="openNewScene" :disabled="!chapters.length">+ {{ t('outline.newScene') }}</button>
+      <button type="button" class="btn btn-primary" @click="openNewChapter">+ {{ t('outline.newChapter') }}</button>
+      <button type="button" class="btn btn-ghost" @click="openNewScene" :disabled="!chapters.length">+ {{ t('outline.newScene') }}</button>
     </div>
 
     <div v-if="!chapters.length && !showChapterForm" class="empty-state card">
@@ -68,11 +68,13 @@
     <div v-else class="outline-list">
       <div v-for="ch in chapters" :key="ch.id" class="card chapter-card">
         <div class="chapter-header">
-          <h3 class="chapter-title">{{ ch.title || t('outline.untitledChapter') }}</h3>
+          <h3 class="chapter-title chapter-title-link" @click="goToWrite">
+            {{ ch.title || t('outline.untitledChapter') }}
+          </h3>
           <div class="chapter-actions">
-            <button class="btn btn-ghost btn-sm btn-icon" @click="editChapter(ch)" :title="t('ideas.edit')">✏️</button>
-            <button class="btn btn-ghost btn-sm btn-icon" @click="addSceneToChapter(ch.id)" :title="t('outline.addScene')">➕</button>
-            <button class="btn btn-ghost btn-sm btn-icon" @click="removeChapter(ch.id)" :title="t('ideas.delete')">🗑️</button>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="editChapter(ch)" :title="t('ideas.edit')">✏️</button>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="addSceneToChapter(ch.id)" :title="t('outline.addScene')" :disabled="addingSceneForChapter === ch.id">➕</button>
+            <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="removeChapter(ch.id)" :title="t('ideas.delete')">🗑️</button>
           </div>
         </div>
         <p v-if="ch.summary" class="chapter-summary">{{ ch.summary }}</p>
@@ -80,15 +82,17 @@
           <div
             v-for="scene in scenesByChapter(ch.id)"
             :key="scene.id"
-            class="scene-row"
+            class="scene-card"
+            @click="goToScene(scene.id)"
           >
-            <div class="scene-main">
-              <span class="scene-title">{{ scene.title || t('outline.untitledScene') }}</span>
-              <span v-if="scene.oneSentenceSummary" class="scene-summary">{{ scene.oneSentenceSummary }}</span>
+            <div class="scene-card-main">
+              <span class="scene-card-title">{{ scene.title || t('outline.untitledScene') }}</span>
+              <span v-if="scene.oneSentenceSummary" class="scene-card-summary">{{ scene.oneSentenceSummary }}</span>
             </div>
-            <div class="scene-actions">
-              <button class="btn btn-ghost btn-sm btn-icon" @click="editScene(scene)" :title="t('ideas.edit')">✏️</button>
-              <button class="btn btn-ghost btn-sm btn-icon" @click="removeScene(scene.id)" :title="t('ideas.delete')">🗑️</button>
+            <div class="scene-card-actions" @click.stop>
+              <router-link :to="`/write/${scene.id}`" class="btn btn-primary btn-sm">{{ t('outline.writeScene') }}</router-link>
+              <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="editScene(scene)" :title="t('ideas.edit')">✏️</button>
+              <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="removeScene(scene.id)" :title="t('ideas.delete')">🗑️</button>
             </div>
           </div>
         </div>
@@ -99,9 +103,8 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
 import {
-  getChapters,
-  getScenes,
   getCharacters,
   addChapter,
   updateChapter,
@@ -111,17 +114,19 @@ import {
   deleteScene,
 } from '@/db';
 import { useI18n } from '@/composables/useI18n';
+import { useOutline } from '@/composables/useOutline';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 
 const { t } = useI18n();
+const router = useRouter();
+const { chapters, scenes, load, getScenesForChapter } = useOutline();
 
-const chapters = ref([]);
-const scenes = ref([]);
 const characters = ref([]);
 const showChapterForm = ref(false);
 const showSceneForm = ref(false);
 const editingChapterId = ref(null);
 const editingSceneId = ref(null);
+const addingSceneForChapter = ref(null);
 const chapterForm = ref({ title: '', summary: '' });
 const sceneForm = ref({
   chapterId: '',
@@ -132,15 +137,16 @@ const sceneForm = ref({
 });
 
 function scenesByChapter(chapterId) {
-  return scenes.value.filter((s) => s.chapterId === chapterId);
+  return getScenesForChapter(chapterId);
 }
 
-async function load() {
-  [chapters.value, scenes.value, characters.value] = await Promise.all([
-    getChapters(),
-    getScenes(),
-    getCharacters(),
-  ]);
+async function loadCharacters() {
+  characters.value = await getCharacters();
+}
+
+async function loadAll() {
+  await load();
+  await loadCharacters();
 }
 
 function openNewChapter() {
@@ -168,14 +174,22 @@ async function saveChapter() {
   } else {
     await addChapter(chapterForm.value);
   }
-  await load();
+  await loadAll();
   cancelChapterForm();
 }
 
 async function removeChapter(id) {
   if (!confirm(t.value('outline.confirmChapter'))) return;
   await deleteChapter(id);
-  await load();
+  await loadAll();
+}
+
+function goToWrite() {
+  router.push('/write');
+}
+
+function goToScene(sceneId) {
+  router.push(`/write/${sceneId}`);
 }
 
 function openNewScene() {
@@ -191,17 +205,21 @@ function openNewScene() {
   showChapterForm.value = false;
 }
 
-function addSceneToChapter(chapterId) {
-  sceneForm.value = {
-    chapterId,
-    title: '',
-    oneSentenceSummary: '',
-    povCharacterId: '',
-    notes: '',
-  };
-  editingSceneId.value = null;
-  showSceneForm.value = true;
-  showChapterForm.value = false;
+async function addSceneToChapter(chapterId) {
+  if (!chapterId) return;
+  addingSceneForChapter.value = chapterId;
+  try {
+    await addScene({
+      chapterId,
+      title: '',
+      oneSentenceSummary: '',
+      povCharacterId: '',
+      notes: '',
+    });
+    await loadAll();
+  } finally {
+    addingSceneForChapter.value = null;
+  }
 }
 
 function editScene(scene) {
@@ -229,17 +247,17 @@ async function saveScene() {
   } else {
     await addScene(sceneForm.value);
   }
-  await load();
+  await loadAll();
   cancelSceneForm();
 }
 
 async function removeScene(id) {
   if (!confirm(t.value('outline.confirmScene'))) return;
   await deleteScene(id);
-  await load();
+  await loadAll();
 }
 
-onMounted(load);
+onMounted(loadAll);
 </script>
 
 <style scoped>
@@ -297,31 +315,53 @@ onMounted(load);
   border-top: 1px solid var(--border);
   padding-top: var(--space-3);
 }
-.scene-row {
+.chapter-title-link {
+  cursor: pointer;
+  transition: color 0.15s;
+}
+.chapter-title-link:hover {
+  color: var(--accent);
+}
+.scene-card {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-3);
+  padding: var(--space-4);
+  margin-bottom: var(--space-3);
   background: var(--bg);
-  border-radius: var(--radius-sm);
-  margin-bottom: var(--space-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
-.scene-main {
+.scene-card:hover {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+  box-shadow: var(--shadow);
+}
+.scene-card-main {
   flex: 1;
   min-width: 0;
 }
-.scene-title {
-  font-weight: 500;
-  font-size: 0.9375rem;
-}
-.scene-summary {
+.scene-card-title {
+  font-weight: 600;
+  font-size: 1rem;
   display: block;
-  font-size: 0.8125rem;
+}
+.scene-card-summary {
+  display: block;
+  font-size: 0.875rem;
   color: var(--text-muted);
   margin-top: var(--space-1);
 }
-.scene-actions {
+.scene-card-actions {
   display: flex;
+  align-items: center;
   gap: var(--space-1);
+  flex-shrink: 0;
+}
+.scene-card-actions .btn-sm {
+  white-space: nowrap;
 }
 </style>

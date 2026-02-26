@@ -114,7 +114,11 @@ export async function deleteChapter(id) {
 
 // Scenes
 export async function getScenes() {
-  return db.scenes.orderBy(["chapterId", "order"]).toArray();
+  const list = await db.scenes.toArray();
+  return list.sort((a, b) => {
+    const c = (a.chapterId || '').localeCompare(b.chapterId || '');
+    return c !== 0 ? c : (a.order ?? 0) - (b.order ?? 0);
+  });
 }
 
 export async function getScene(id) {

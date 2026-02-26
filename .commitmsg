@@ -1,0 +1,9 @@
+feat: chapters sidebar, outline UX, and getScenes storage fix
+
+- Add left navigation sidebar: chapters and scenes with links to Write
+- Outline: inline scene cards under chapters; add-scene creates scene immediately
+- Chapter/scene click navigates to Write; scene cards have Write/Edit/Delete
+- Fix getScenes() to sort in memory (avoid Dexie compound index)
+- useOutline composable for shared chapters/scenes; OutlineView/WriteView use it
+- Locales: nav.chapters, noChapters, goToOutline, outline.writeScene
+- Sidebar: responsive layout, mobile overlay with toggle
