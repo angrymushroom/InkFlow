@@ -3,27 +3,27 @@
     <nav class="nav">
       <router-link to="/ideas" class="nav-link">
         <span class="nav-icon">💡</span>
-        <span>{{ t('nav.ideas') }}</span>
+        <span class="nav-link-text">{{ t('nav.ideas') }}</span>
       </router-link>
       <router-link to="/story" class="nav-link">
         <span class="nav-icon">📖</span>
-        <span>{{ t('nav.story') }}</span>
+        <span class="nav-link-text">{{ t('nav.story') }}</span>
       </router-link>
       <router-link to="/characters" class="nav-link">
         <span class="nav-icon">👤</span>
-        <span>{{ t('nav.characters') }}</span>
+        <span class="nav-link-text">{{ t('nav.characters') }}</span>
       </router-link>
       <router-link to="/outline" class="nav-link">
         <span class="nav-icon">📋</span>
-        <span>{{ t('nav.outline') }}</span>
+        <span class="nav-link-text">{{ t('nav.outline') }}</span>
       </router-link>
       <router-link to="/write" class="nav-link">
         <span class="nav-icon">✏️</span>
-        <span>{{ t('nav.write') }}</span>
+        <span class="nav-link-text">{{ t('nav.write') }}</span>
       </router-link>
       <router-link to="/settings" class="nav-link">
         <span class="nav-icon">⚙️</span>
-        <span>{{ t('nav.settings') }}</span>
+        <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
     </nav>
     <div class="app-body">
@@ -126,6 +126,12 @@
           </section>
         </nav>
       </aside>
+      <div
+        v-if="isMobile && sidebarOpen"
+        class="sidebar-scrim"
+        aria-hidden="true"
+        @click="sidebarOpen = false"
+      />
       <button
         v-if="isMobile"
         type="button"
@@ -470,6 +476,13 @@ watch(
   color: var(--accent);
   font-weight: 500;
 }
+.sidebar-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 199;
+  background: rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+}
 .sidebar-toggle {
   position: fixed;
   bottom: calc(60px + env(safe-area-inset-bottom, 0px));
@@ -516,6 +529,7 @@ watch(
   }
   .sidebar-toggle {
     display: block;
+    bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
   }
 }
 @media (min-width: 768px) {

@@ -11,7 +11,7 @@
       </div>
       <div class="form-group">
         <label>{{ t('ideas.bodyLabel') }}</label>
-        <textarea v-model="form.body" :placeholder="t('ideas.bodyPlaceholder')" rows="4" />
+        <ResizableTextarea v-model="form.body" :placeholder="t('ideas.bodyPlaceholder')" :rows="4" />
         <AiExpandButton :current-value="form.body" :field-name="t('ideas.ideaBody')" @expanded="form.body = $event" />
       </div>
       <div class="form-group">
@@ -60,6 +60,7 @@ import { getIdeas, addIdea, updateIdea, deleteIdea } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import AiExpandButton from '@/components/AiExpandButton.vue';
+import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 const { builtInTypes, customTypes, addCustomType, getIdeaTypeLabel } = useIdeaTypes();

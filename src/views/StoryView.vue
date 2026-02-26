@@ -20,27 +20,27 @@
       </div>
       <div class="form-group">
         <label>{{ t('story.setup') }}</label>
-        <textarea v-model="story.setup" :placeholder="t('story.setupPlaceholder')" rows="3" />
+        <ResizableTextarea v-model="story.setup" :placeholder="t('story.setupPlaceholder')" :rows="3" />
         <AiExpandButton :current-value="story.setup" :field-name="t('story.fieldSetup')" @expanded="story.setup = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('story.disaster1') }}</label>
-        <textarea v-model="story.disaster1" :placeholder="t('story.disaster1Placeholder')" rows="2" />
+        <ResizableTextarea v-model="story.disaster1" :placeholder="t('story.disaster1Placeholder')" :rows="2" />
         <AiExpandButton :current-value="story.disaster1" :field-name="t('story.fieldDisaster1')" @expanded="story.disaster1 = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('story.disaster2') }}</label>
-        <textarea v-model="story.disaster2" :placeholder="t('story.disaster2Placeholder')" rows="2" />
+        <ResizableTextarea v-model="story.disaster2" :placeholder="t('story.disaster2Placeholder')" :rows="2" />
         <AiExpandButton :current-value="story.disaster2" :field-name="t('story.fieldDisaster2')" @expanded="story.disaster2 = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('story.disaster3') }}</label>
-        <textarea v-model="story.disaster3" :placeholder="t('story.disaster3Placeholder')" rows="2" />
+        <ResizableTextarea v-model="story.disaster3" :placeholder="t('story.disaster3Placeholder')" :rows="2" />
         <AiExpandButton :current-value="story.disaster3" :field-name="t('story.fieldDisaster3')" @expanded="story.disaster3 = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('story.ending') }}</label>
-        <textarea v-model="story.ending" :placeholder="t('story.endingPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="story.ending" :placeholder="t('story.endingPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="story.ending" :field-name="t('story.fieldEnding')" @expanded="story.ending = $event" />
       </div>
       <div class="story-actions">
@@ -84,6 +84,7 @@ import { useRouter } from 'vue-router';
 import { getStory, saveStory, getStories, deleteStory } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
+import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 const router = useRouter();

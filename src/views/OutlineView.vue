@@ -11,7 +11,7 @@
       </div>
       <div class="form-group">
         <label>{{ t('outline.summary') }}</label>
-        <textarea v-model="chapterForm.summary" :placeholder="t('outline.summaryPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="chapterForm.summary" :placeholder="t('outline.summaryPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="chapterForm.summary" :field-name="t('outline.chapterSummary')" @expanded="chapterForm.summary = $event" />
       </div>
       <div class="form-actions">
@@ -35,7 +35,13 @@
       </div>
       <div class="form-group">
         <label>{{ t('outline.oneSentenceSummary') }}</label>
-        <input v-model="sceneForm.oneSentenceSummary" type="text" :placeholder="t('outline.oneSentencePlaceholder')" />
+        <ResizableTextarea
+          v-model="sceneForm.oneSentenceSummary"
+          :placeholder="t('outline.oneSentencePlaceholder')"
+          :rows="1"
+          :min-height="40"
+          auto-expand
+        />
         <AiExpandButton :current-value="sceneForm.oneSentenceSummary" :field-name="t('outline.sceneOneSentence')" @expanded="sceneForm.oneSentenceSummary = $event" />
       </div>
       <div class="form-group">
@@ -47,7 +53,7 @@
       </div>
       <div class="form-group">
         <label>{{ t('outline.notes') }}</label>
-        <textarea v-model="sceneForm.notes" :placeholder="t('outline.notesPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="sceneForm.notes" :placeholder="t('outline.notesPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="sceneForm.notes" :field-name="t('outline.sceneNotes')" @expanded="sceneForm.notes = $event" />
       </div>
       <div class="form-actions">
@@ -116,6 +122,7 @@ import {
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
 import AiExpandButton from '@/components/AiExpandButton.vue';
+import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 const router = useRouter();

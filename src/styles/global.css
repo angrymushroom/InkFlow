@@ -192,7 +192,9 @@ select:focus {
 }
 textarea {
   min-height: 100px;
-  resize: vertical;
+  min-width: 120px;
+  max-width: 100%;
+  resize: both;
 }
 label {
   display: block;
@@ -251,6 +253,33 @@ label {
   justify-content: center;
   gap: var(--space-1);
   flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .nav {
+    justify-content: space-between;
+    gap: 0;
+    padding-left: calc(var(--space-3) + env(safe-area-inset-left, 0px));
+    padding-right: calc(var(--space-3) + env(safe-area-inset-right, 0px));
+  }
+  .nav-link {
+    flex: 1;
+    min-width: 44px;
+    justify-content: center;
+  }
+  .nav-link-text {
+    display: none;
+  }
+  .page {
+    padding-top: calc(var(--space-4) + env(safe-area-inset-top, 0px));
+  }
+}
+
+@media (max-width: 400px) {
+  .page {
+    padding-left: var(--space-3);
+    padding-right: var(--space-3);
+  }
 }
 
 @media (min-width: 768px) {

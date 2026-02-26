@@ -21,17 +21,17 @@
       </div>
       <div class="form-group">
         <label>{{ t('characters.motivation') }}</label>
-        <textarea v-model="form.motivation" :placeholder="t('characters.motivationPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="form.motivation" :placeholder="t('characters.motivationPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="form.motivation" :field-name="t('characters.fieldMotivation')" @expanded="form.motivation = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('characters.conflict') }}</label>
-        <textarea v-model="form.conflict" :placeholder="t('characters.conflictPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="form.conflict" :placeholder="t('characters.conflictPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="form.conflict" :field-name="t('characters.fieldConflict')" @expanded="form.conflict = $event" />
       </div>
       <div class="form-group">
         <label>{{ t('characters.epiphany') }}</label>
-        <textarea v-model="form.epiphany" :placeholder="t('characters.epiphanyPlaceholder')" rows="2" />
+        <ResizableTextarea v-model="form.epiphany" :placeholder="t('characters.epiphanyPlaceholder')" :rows="2" />
         <AiExpandButton :current-value="form.epiphany" :field-name="t('characters.fieldEpiphany')" @expanded="form.epiphany = $event" />
       </div>
       <div class="form-actions">
@@ -84,6 +84,7 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import { getCharacters, addCharacter, updateCharacter, deleteCharacter } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
+import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 

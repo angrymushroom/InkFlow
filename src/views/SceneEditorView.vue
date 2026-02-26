@@ -94,12 +94,13 @@
             <button type="button" class="btn btn-primary btn-sm" @click="saveToOutline">{{ t('ideas.add') }}</button>
           </div>
         </div>
-        <textarea
+        <ResizableTextarea
           ref="proseTextareaRef"
           v-model="content"
           :placeholder="t('scene.prosePlaceholder')"
-          rows="20"
-          class="prose-textarea"
+          :rows="20"
+          input-class="prose-textarea"
+          :min-height="400"
           @blur="save"
           @mouseup="onProseMouseUp"
         />
@@ -120,6 +121,7 @@ import { useRoute } from 'vue-router';
 import { getScene, getCharacters, getChapters, updateScene, addIdea, addCharacter, addChapter, addScene } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
+import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 const { builtInTypes, customTypes, addCustomType } = useIdeaTypes();
@@ -172,7 +174,7 @@ function clearBeforeUnload() {
 }
 
 function onProseMouseUp() {
-  const el = proseTextareaRef.value;
+  const el = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value;
   if (!el) return;
   const start = el.selectionStart;
   const end = el.selectionEnd;
@@ -193,7 +195,8 @@ function onProseMouseUp() {
 function clearSelection() {
   selection.value = { active: false, text: '', start: 0, end: 0 };
   popover.value = null;
-  proseTextareaRef.value?.focus();
+  const input = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value;
+  input?.focus();
 }
 
 function openPopover(which) {
@@ -430,6 +433,10 @@ onUnmounted(() => {
 }
 .prose-textarea {
   min-height: 400px;
+  max-height: 85vh;
+  width: 100%;
+  max-width: 100%;
+  resize: both;
   font-size: 1rem;
   line-height: 1.6;
 }

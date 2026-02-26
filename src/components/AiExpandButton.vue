@@ -242,6 +242,7 @@ async function runExpand() {
 }
 .ai-result-textarea {
   width: 100%;
+  max-width: 100%;
   min-height: 120px;
   padding: var(--space-3);
   margin-bottom: var(--space-4);
@@ -250,7 +251,7 @@ async function runExpand() {
   line-height: 1.5;
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  resize: vertical;
+  resize: both;
   background: var(--bg);
   color: var(--text);
 }
