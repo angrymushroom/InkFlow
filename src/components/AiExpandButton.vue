@@ -68,6 +68,7 @@ const { t, locale } = useI18n();
 const props = defineProps({
   currentValue: { type: String, default: "" },
   fieldName: { type: String, required: true },
+  extraContext: { type: String, default: "" },
 });
 
 const emit = defineEmits(["expanded"]);
@@ -121,6 +122,7 @@ async function fetchExpansion() {
     ideas: ideas || [],
     characters: characters || [],
     locale: locale.value,
+    extraContext: props.extraContext || "",
   });
 }
 

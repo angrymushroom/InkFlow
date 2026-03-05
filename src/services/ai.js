@@ -105,9 +105,10 @@ function getLanguageRule(locale) {
   return `CRITICAL: You must write the entire response in ${lang} only. Do not use any other language.`;
 }
 
-function buildPrompt(fieldName, storyBlurb, ideasBlurb, charsBlurb, briefText, outputLocale) {
+function buildPrompt(fieldName, storyBlurb, ideasBlurb, charsBlurb, briefText, outputLocale, extraContext) {
   const lang = LOCALE_TO_LANGUAGE[outputLocale] || "English";
   const languageRule = getLanguageRule(outputLocale);
+  const extra = extraContext && extraContext.trim() ? `\n\nExtra guidance:\n${extraContext.trim()}` : "";
   const systemPrompt = `You are a fiction writing assistant. The writer is using the Snowflake Method. Keep all output in Snowflake style: simple, clear, structural—no artistic or flowery descriptions, no purple prose. The text must relate to and stay consistent with the story spine, idea cards, and characters provided. Your expansion must be one complete, finished unit: if the field is a Setup, write a full setup; if it is a Disaster, write a full disaster beat; if it is a scene or character field, write a complete beat or description. The result must be immediately usable for story design. Never stop mid-sentence or mid-thought. ${languageRule} Output only the expanded text, no preamble, no "Here is...", no quotes around the result.`;
 
   const isEmpty = !(briefText && briefText.trim());
@@ -115,7 +116,7 @@ function buildPrompt(fieldName, storyBlurb, ideasBlurb, charsBlurb, briefText, o
     ? `The user has left this field empty. Generate content for the field "${fieldName}" based only on the story, ideas, and characters below. Your text must continue the same narrative (same characters, setting, and events already described). Do not invent a new story or generic filler. Use the same language as the existing story content when possible. ${languageRule}
 
 Story context:
-${storyBlurb || "(Not filled yet)"}
+${storyBlurb || "(Not filled yet)"}${extra}
 
 Idea cards:
 ${ideasBlurb}
@@ -156,6 +157,7 @@ export async function expandWithAi({
   ideas = [],
   characters = [],
   locale: localeParam,
+  extraContext = "",
 }) {
   const provider = getProvider();
   const apiKey = getApiKey();
@@ -210,7 +212,8 @@ export async function expandWithAi({
     ideasBlurb,
     charsBlurb,
     briefText,
-    outputLocale
+    outputLocale,
+    extraContext
   );
 
   // Quick expand is a light-tier feature (cheap, fast model). Use 1024 tokens so expansions finish as complete Setup/Disaster/Scene units.

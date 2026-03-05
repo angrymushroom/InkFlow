@@ -530,10 +530,10 @@ export async function importProject(data) {
       const isV2 = data.version >= 2 && Array.isArray(data.stories);
       if (isV2 && data.stories?.length) {
         for (const s of data.stories) await db.stories.add(s);
-        for (const i of data.ideas || []) await db.ideas.add(i);
-        for (const c of data.characters || []) await db.characters.add(c);
-        for (const ch of data.chapters || []) await db.chapters.add(ch);
-        for (const s of data.scenes || []) await db.scenes.add(s);
+      for (const i of data.ideas || []) await db.ideas.add(i);
+      for (const c of data.characters || []) await db.characters.add(c);
+      for (const ch of data.chapters || []) await db.chapters.add(ch);
+      for (const s of data.scenes || []) await db.scenes.add(s);
         if (db.idea_custom_types && Array.isArray(data.ideaCustomTypes)) {
           for (const ct of data.ideaCustomTypes) await db.idea_custom_types.add(ct);
         }

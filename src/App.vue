@@ -1,27 +1,27 @@
 <template>
   <div class="app">
     <nav class="nav">
-      <router-link to="/ideas" class="nav-link">
-        <span class="nav-icon">💡</span>
-        <span class="nav-link-text">{{ t('nav.ideas') }}</span>
+      <router-link to="/entities" class="nav-link" @click="onNavClick('/entities', $event)">
+        <span class="nav-icon">📦</span>
+        <span class="nav-link-text">{{ t('nav.entities') }}</span>
       </router-link>
-      <router-link to="/story" class="nav-link">
-        <span class="nav-icon">📖</span>
-        <span class="nav-link-text">{{ t('nav.story') }}</span>
-      </router-link>
-      <router-link to="/characters" class="nav-link">
+      <router-link to="/characters" class="nav-link" @click="onNavClick('/characters', $event)">
         <span class="nav-icon">👤</span>
         <span class="nav-link-text">{{ t('nav.characters') }}</span>
       </router-link>
-      <router-link to="/outline" class="nav-link">
+      <router-link to="/story" class="nav-link" @click="onNavClick('/story', $event)">
+        <span class="nav-icon">📖</span>
+        <span class="nav-link-text">{{ t('nav.story') }}</span>
+      </router-link>
+      <router-link to="/outline" class="nav-link" @click="onNavClick('/outline', $event)">
         <span class="nav-icon">📋</span>
         <span class="nav-link-text">{{ t('nav.outline') }}</span>
       </router-link>
-      <router-link to="/write" class="nav-link">
+      <router-link to="/write" class="nav-link" @click="onNavClick('/write', $event)">
         <span class="nav-icon">✏️</span>
         <span class="nav-link-text">{{ t('nav.write') }}</span>
       </router-link>
-      <router-link to="/settings" class="nav-link">
+      <router-link to="/settings" class="nav-link" @click="onNavClick('/settings', $event)">
         <span class="nav-icon">⚙️</span>
         <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
@@ -64,45 +64,6 @@
             </button>
           </section>
           <section class="sidebar-section">
-            <h3 class="sidebar-section-title">{{ t('sidebar.ideas') }}</h3>
-            <div v-if="!ideas.length" class="sidebar-empty-inline">
-              <span>{{ t('sidebar.noIdeas') }}</span>
-              <router-link to="/ideas" class="sidebar-link" @click="sidebarOpen = false">{{ t('sidebar.addInTab') }}</router-link>
-            </div>
-            <template v-else>
-              <router-link
-                v-for="idea in ideas"
-                :key="idea.id"
-                :to="`/ideas?id=${idea.id}`"
-                class="sidebar-item"
-                :class="{ active: route.path === '/ideas' && route.query.id === idea.id }"
-                @click="sidebarOpen = false"
-              >
-                <span class="sidebar-item-label">{{ idea.title || t('ideas.untitled') }}</span>
-                <span class="sidebar-item-meta">{{ getIdeaTypeLabel(idea.type || 'plot', t) }}</span>
-              </router-link>
-            </template>
-          </section>
-          <section class="sidebar-section">
-            <h3 class="sidebar-section-title">{{ t('sidebar.characters') }}</h3>
-            <div v-if="!characters.length" class="sidebar-empty-inline">
-              <span>{{ t('sidebar.noCharacters') }}</span>
-              <router-link to="/characters" class="sidebar-link" @click="sidebarOpen = false">{{ t('sidebar.addInTab') }}</router-link>
-            </div>
-            <template v-else>
-              <router-link
-                v-for="char in characters"
-                :key="char.id"
-                to="/characters"
-                class="sidebar-item"
-                :class="{ active: route.path === '/characters' }"
-                @click="sidebarOpen = false"
-              >
-                {{ char.name || t('characters.unnamed') }}
-              </router-link>
-            </template>
-          </section>
-          <section class="sidebar-section">
             <h3 class="sidebar-section-title">{{ t('sidebar.outline') }}</h3>
             <div v-if="!chapters.length" class="sidebar-empty-inline">
               <span>{{ t('nav.noChapters') }}</span>
@@ -142,10 +103,9 @@
         📋 {{ t('sidebar.contents') }}
       </button>
       <main class="main-content">
-        <router-view v-slot="{ Component }">
-          <transition name="fade" mode="out-in">
-            <component :is="Component" />
-          </transition>
+        <router-view :key="route.path" v-slot="{ Component }">
+          <component v-if="Component" :is="Component" />
+          <div v-else class="page"><p class="page-subtitle">Loading…</p></div>
         </router-view>
       </main>
     </div>
@@ -157,8 +117,7 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
-import { getIdeas, getCharacters, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
-import { getIdeaTypeLabel } from '@/composables/useIdeaTypes';
+import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -168,13 +127,48 @@ const { chapters, load, getScenesForChapter } = useOutline();
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
 const ideas = ref([]);
-const characters = ref([]);
 const stories = ref([]);
 const currentStoryId = ref(getCurrentStoryId());
 
 const currentSceneId = computed(() =>
   route.name === 'scene' ? route.params.sceneId : null
 );
+
+function debugLog(hypothesisId, location, message, data) {
+  // #region agent log
+  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-Debug-Session-Id': '18ab8d',
+    },
+    body: JSON.stringify({
+      sessionId: '18ab8d',
+      runId: 'nav-debug',
+      hypothesisId,
+      location,
+      message,
+      data,
+      timestamp: Date.now(),
+    }),
+  }).catch(() => {});
+  // #endregion
+}
+
+function onNavClick(toPath, e) {
+  debugLog('E', 'src/App.vue:nav', 'nav link clicked', {
+    toPath,
+    fromPath: route.fullPath,
+    isMobile: isMobile.value,
+    sidebarOpen: sidebarOpen.value,
+    defaultPrevented: !!e?.defaultPrevented,
+    button: typeof e?.button === 'number' ? e.button : null,
+    metaKey: !!e?.metaKey,
+    ctrlKey: !!e?.ctrlKey,
+    shiftKey: !!e?.shiftKey,
+    altKey: !!e?.altKey,
+  });
+}
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768;
@@ -196,19 +190,16 @@ async function loadStories() {
   }
 }
 
-async function loadIdeasAndCharacters() {
+async function loadIdeas() {
   try {
-    const [ideaList, charList] = await Promise.all([getIdeas(), getCharacters()]);
-    ideas.value = ideaList;
-    characters.value = charList;
+    ideas.value = await getIdeas();
   } catch (_) {
     ideas.value = [];
-    characters.value = [];
   }
 }
 
-async function onIdeasOrCharactersChanged() {
-  await loadIdeasAndCharacters();
+async function onIdeasChanged() {
+  await loadIdeas();
   await nextTick();
 }
 
@@ -216,7 +207,7 @@ async function switchStory(storyId) {
   setCurrentStoryId(storyId);
   currentStoryId.value = storyId;
   await load();
-  await loadIdeasAndCharacters();
+  await loadIdeas();
   await loadStories();
   sidebarOpen.value = false;
   router.push('/story');
@@ -228,25 +219,31 @@ async function addNewStory() {
   await switchStory(story.id);
 }
 
-function onRouteChange() {
-  loadOutline();
-  currentStoryId.value = getCurrentStoryId();
-  if (route.path === '/ideas' || route.path === '/characters' || route.path === '/story') {
-    loadIdeasAndCharacters();
-    if (route.path === '/story') loadStories();
+async function onRouteChange() {
+  try {
+    loadOutline();
+    currentStoryId.value = getCurrentStoryId();
+    if (route.path === '/ideas' || route.path === '/story' || route.path === '/entities') {
+      await loadIdeas();
+      if (route.path === '/story') await loadStories();
+    }
+  } catch (_) {
+    // avoid one failing load breaking navigation
   }
+  // #region agent log
+  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'18ab8d'},body:JSON.stringify({sessionId:'18ab8d',location:'App.vue:onRouteChange',message:'route changed',data:{path:route.path,chaptersLen:chapters.value?.length??-1,scenesLen:scenes.value?.length??-1,storiesLen:stories.value?.length??-1,ideasLen:ideas.value?.length??-1},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
+  // #endregion
 }
 
 onMounted(async () => {
   await loadStories();
   load();
-  loadIdeasAndCharacters();
+  loadIdeas();
   checkMobile();
   window.addEventListener('resize', checkMobile);
   window.addEventListener('inkflow-story-saved', loadStories);
   window.addEventListener('inkflow-outline-changed', load);
-  window.addEventListener('inkflow-ideas-changed', onIdeasOrCharactersChanged);
-  window.addEventListener('inkflow-characters-changed', onIdeasOrCharactersChanged);
+  window.addEventListener('inkflow-ideas-changed', onIdeasChanged);
   window.addEventListener('inkflow-story-deleted', onStoryDeleted);
 });
 
@@ -254,8 +251,7 @@ onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
   window.removeEventListener('inkflow-story-saved', loadStories);
   window.removeEventListener('inkflow-outline-changed', load);
-  window.removeEventListener('inkflow-ideas-changed', onIdeasOrCharactersChanged);
-  window.removeEventListener('inkflow-characters-changed', onIdeasOrCharactersChanged);
+  window.removeEventListener('inkflow-ideas-changed', onIdeasChanged);
   window.removeEventListener('inkflow-story-deleted', onStoryDeleted);
 });
 
@@ -264,13 +260,13 @@ async function onStoryDeleted(e) {
   if (switchedToId) currentStoryId.value = switchedToId;
   await loadStories();
   await load();
-  await loadIdeasAndCharacters();
+  await loadIdeas();
 }
 
 watch(
   () => route.path,
-  () => {
-    onRouteChange();
+  async () => {
+    await onRouteChange();
   }
 );
 </script>

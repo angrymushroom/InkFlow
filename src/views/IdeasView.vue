@@ -1,7 +1,7 @@
 <template>
   <div class="page">
-    <h1 class="page-title">{{ t('ideas.title') }}</h1>
-    <p class="page-subtitle">{{ t('ideas.subtitle') }}</p>
+    <h1 class="page-title">{{ pageTitle }}</h1>
+    <p class="page-subtitle">{{ pageSubtitle }}</p>
 
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
     <p v-if="saveError" class="save-error">{{ saveError }}</p>
@@ -17,7 +17,7 @@
         <ResizableTextarea v-model="form.body" :placeholder="t('ideas.bodyPlaceholder')" :rows="4" />
         <AiExpandButton :current-value="form.body" :field-name="t('ideas.ideaBody')" @expanded="form.body = $event" />
       </div>
-      <div class="form-group">
+      <div v-if="!typeFilter" class="form-group">
         <label>{{ t('ideas.typeLabel') }}</label>
         <select v-model="form.type" class="idea-type-select" @change="onIdeaTypeChange">
           <optgroup :label="t('ideas.typeGroupSuggested')">
@@ -37,14 +37,14 @@
 
     <button v-if="!showForm" class="btn btn-primary" @click="openNew">+ {{ t('ideas.newIdea') }}</button>
 
-    <div v-if="!ideas.length && !showForm" class="empty-state card">
-      <p>{{ t('ideas.empty') }}</p>
+    <div v-if="!displayedIdeas.length && !showForm" class="empty-state card">
+      <p>{{ typeFilter ? t('entities.emptyFilter') : t('ideas.empty') }}</p>
     </div>
 
     <div v-else class="idea-list">
-      <div v-for="idea in ideas" :key="idea.id" class="card idea-card">
+      <div v-for="idea in displayedIdeas" :key="idea.id" class="card idea-card">
         <div class="idea-header">
-          <span class="idea-type">{{ getIdeaTypeLabel(idea.type, t) }}</span>
+          <span class="idea-type">{{ getIdeaTypeLabel(idea.type, (key) => t(key)) }}</span>
           <div class="idea-actions">
             <button class="btn btn-ghost btn-sm btn-icon" @click="editIdea(idea)" :title="t('ideas.edit')">✏️</button>
             <button class="btn btn-ghost btn-sm btn-icon" @click="removeIdea(idea.id)" :title="t('ideas.delete')">🗑️</button>
@@ -72,17 +72,33 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { getIdeas, addIdea, updateIdea, deleteIdea } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
+const props = defineProps({
+  /** When set, only show ideas of this type and default new idea to this type */
+  typeFilter: { type: String, default: '' },
+});
+
 const { t } = useI18n();
-const { builtInTypes, customTypes, addCustomType, getIdeaTypeLabel } = useIdeaTypes();
+const { builtInTypes, customTypes, addCustomType, getIdeaTypeLabel, isBuiltInType } = useIdeaTypes();
 
 const ideas = ref([]);
+const displayedIdeas = computed(() => {
+  if (!props.typeFilter) return ideas.value;
+  return ideas.value.filter((i) => (i.type || 'plot') === props.typeFilter);
+});
+const pageTitle = computed(() => {
+  if (!props.typeFilter) return t.value('ideas.title');
+  return isBuiltInType(props.typeFilter) ? t.value('ideas.' + props.typeFilter) : props.typeFilter;
+});
+const pageSubtitle = computed(() => {
+  return t.value('ideas.subtitle');
+});
 const showForm = ref(false);
 const editingId = ref(null);
 const form = ref({ title: '', body: '', type: 'plot' });
@@ -138,7 +154,8 @@ async function load() {
 
 function openNew() {
   editingId.value = null;
-  form.value = { title: '', body: '', type: 'plot' };
+  const defaultType = props.typeFilter || 'plot';
+  form.value = { title: '', body: '', type: defaultType };
   showForm.value = true;
 }
 
