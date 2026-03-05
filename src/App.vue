@@ -70,17 +70,17 @@
               <router-link to="/outline" class="sidebar-link" @click="sidebarOpen = false">{{ t('nav.goToOutline') }}</router-link>
             </div>
             <template v-else>
-              <div v-for="ch in chapters" :key="ch.id" class="sidebar-chapter">
-                <div class="sidebar-chapter-title">{{ ch.title || t('outline.untitledChapter') }}</div>
+              <div v-for="(ch, chIndex) in chapters" :key="ch.id" class="sidebar-chapter">
+                <div class="sidebar-chapter-title">{{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}</div>
                 <router-link
-                  v-for="scene in getScenesForChapter(ch.id)"
+                  v-for="(scene, scIndex) in getScenesForChapter(ch.id)"
                   :key="scene.id"
                   :to="`/write/${scene.id}`"
                   class="sidebar-scene"
                   :class="{ active: currentSceneId === scene.id }"
                   @click="sidebarOpen = false"
                 >
-                  {{ scene.title || t('outline.untitledScene') }}
+                  {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}: {{ scene.title || t('outline.untitledScene') }}
                 </router-link>
               </div>
             </template>

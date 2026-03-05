@@ -23,6 +23,8 @@ export default {
     entities: 'Entities',
     characters: 'Characters',
     outline: 'Outline',
+    chapterNum: 'Chapter {n}',
+    sceneNum: 'Scene {n}',
     noIdeas: 'No ideas yet.',
     noCharacters: 'No characters yet.',
     noEntities: 'No entities yet.',

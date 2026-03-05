@@ -694,7 +694,21 @@ const chapterExtraContext = computed(() => {
   const beat = chapterForm.value.beat || 'setup';
   const label = t.value(`outline.section.${beat}`);
   const spine = spineTextForBeat(beat);
-  return `${t.value('outline.aiExtraContextChapterPrefix', { section: label })}\n${spine}`;
+  let out = `${t.value('outline.aiExtraContextChapterPrefix', { section: label })}\n${spine}`;
+  const editingChapterId = activeChapterForm.value?.mode === 'edit' ? activeChapterForm.value.chapterId : null;
+  const chapterList = (chapters.value || []).filter((c) => c.id !== editingChapterId);
+  if (chapterList.length > 0) {
+    const sectionLabel = (b) => (b ? t.value(`outline.section.${b}`) : t.value('outline.section.ungrouped'));
+    const lines = chapterList.map((c, i) => {
+      const num = i + 1;
+      const seg = sectionLabel(c.beat || '');
+      const title = (c.title || '').trim() || t.value('outline.untitledChapter');
+      const sum = (c.summary || '').trim().slice(0, 80);
+      return `${num}. [${seg}] ${title}${sum ? ` — ${sum}${c.summary?.length > 80 ? '…' : ''}` : ''}`;
+    });
+    out += `\n\nExisting chapters in this story (for consistency):\n${lines.join('\n')}`;
+  }
+  return out;
 });
 
 const sceneExtraContext = computed(() => {
@@ -703,7 +717,23 @@ const sceneExtraContext = computed(() => {
   const beat = ch?.beat || 'setup';
   const label = t.value(`outline.section.${beat}`);
   const spine = spineTextForBeat(beat);
-  return `${t.value('outline.aiExtraContextScenePrefix', { section: label })}\n${spine}`;
+  let out = `${t.value('outline.aiExtraContextScenePrefix', { section: label })}\n${spine}`;
+  if (ch?.summary?.trim()) {
+    out += `\n\nChapter summary:\n${ch.summary.trim()}`;
+  }
+  const sceneList = (scenes.value || [])
+    .filter((s) => s.chapterId === chId && s.id !== editingSceneId.value)
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  if (sceneList.length > 0) {
+    const lines = sceneList.map((s, i) => {
+      const num = i + 1;
+      const title = (s.title || '').trim() || t.value('outline.untitledScene');
+      const one = (s.oneSentenceSummary || '').trim().slice(0, 80);
+      return `${num}. ${title}${one ? ` — ${one}${s.oneSentenceSummary?.length > 80 ? '…' : ''}` : ''}`;
+    });
+    out += `\n\nOther scenes in this chapter:\n${lines.join('\n')}`;
+  }
+  return out;
 });
 
 function spineFieldKey(beat) {

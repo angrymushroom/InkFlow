@@ -22,6 +22,8 @@ export default {
     ideas: '灵感',
     characters: '角色',
     outline: '大纲',
+    chapterNum: '第 {n} 章',
+    sceneNum: '第 {n} 场',
     noIdeas: '暂无灵感。',
     noCharacters: '暂无角色。',
     addInTab: '在页面中添加',

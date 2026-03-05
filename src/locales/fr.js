@@ -22,6 +22,8 @@ export default {
     ideas: 'Idées',
     characters: 'Personnages',
     outline: 'Structure',
+    chapterNum: 'Chapitre {n}',
+    sceneNum: 'Scène {n}',
     noIdeas: 'Pas encore d’idées.',
     noCharacters: 'Pas encore de personnages.',
     addInTab: 'Ajouter dans l’onglet',

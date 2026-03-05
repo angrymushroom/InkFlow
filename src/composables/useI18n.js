@@ -14,7 +14,7 @@ function getStored() {
 const locale = ref(getStored());
 
 export function useI18n() {
-  const t = computed(() => (key) => getMessage(locale.value, key));
+  const t = computed(() => (key, params) => getMessage(locale.value, key, params));
   if (typeof document !== 'undefined') {
     document.documentElement.lang = locale.value === 'zh' ? 'zh-CN' : locale.value;
   }

@@ -12,15 +12,21 @@ export const LOCALES = [
   { id: 'fr', name: 'Français' },
 ];
 
-export function getMessage(locale, key) {
+export function getMessage(locale, key, params) {
   const m = messages[locale] || messages.en;
   const parts = key.split('.');
   let v = m;
   for (const p of parts) {
     v = v?.[p];
-    if (v === undefined) return messages.en ? getMessage('en', key) : key;
+    if (v === undefined) return messages.en ? getMessage('en', key, params) : key;
   }
-  return typeof v === 'string' ? v : key;
+  let s = typeof v === 'string' ? v : key;
+  if (params && typeof params === 'object' && !Array.isArray(params)) {
+    s = s.replace(/\{(\w+)\}/g, (_, name) =>
+      params.hasOwnProperty(name) ? String(params[name]) : `{${name}}`
+    );
+  }
+  return s;
 }
 
 export default messages;
