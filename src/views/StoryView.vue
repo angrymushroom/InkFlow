@@ -213,9 +213,6 @@ async function autoSave() {
 
 onMounted(async () => {
   await load();
-  // #region agent log
-  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'18ab8d'},body:JSON.stringify({sessionId:'18ab8d',location:'StoryView.vue:onMounted',message:'Story load done',data:{storyId:story.value?.id,storyCount:storyCount.value},timestamp:Date.now(),hypothesisId:'H3'})}).catch(()=>{});
-  // #endregion
   window.addEventListener('inkflow-story-switched', load);
   watch(story, () => {
     storyDirty.value = isDirty();

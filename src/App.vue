@@ -134,40 +134,8 @@ const currentSceneId = computed(() =>
   route.name === 'scene' ? route.params.sceneId : null
 );
 
-function debugLog(hypothesisId, location, message, data) {
-  // #region agent log
-  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '18ab8d',
-    },
-    body: JSON.stringify({
-      sessionId: '18ab8d',
-      runId: 'nav-debug',
-      hypothesisId,
-      location,
-      message,
-      data,
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-}
-
-function onNavClick(toPath, e) {
-  debugLog('E', 'src/App.vue:nav', 'nav link clicked', {
-    toPath,
-    fromPath: route.fullPath,
-    isMobile: isMobile.value,
-    sidebarOpen: sidebarOpen.value,
-    defaultPrevented: !!e?.defaultPrevented,
-    button: typeof e?.button === 'number' ? e.button : null,
-    metaKey: !!e?.metaKey,
-    ctrlKey: !!e?.ctrlKey,
-    shiftKey: !!e?.shiftKey,
-    altKey: !!e?.altKey,
-  });
+function onNavClick() {
+  // Optional: analytics or nav tracking can go here
 }
 
 function checkMobile() {
@@ -230,9 +198,6 @@ async function onRouteChange() {
   } catch (_) {
     // avoid one failing load breaking navigation
   }
-  // #region agent log
-  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a',{method:'POST',headers:{'Content-Type':'application/json','X-Debug-Session-Id':'18ab8d'},body:JSON.stringify({sessionId:'18ab8d',location:'App.vue:onRouteChange',message:'route changed',data:{path:route.path,chaptersLen:chapters.value?.length??-1,scenesLen:scenes.value?.length??-1,storiesLen:stories.value?.length??-1,ideasLen:ideas.value?.length??-1},timestamp:Date.now(),hypothesisId:'H2'})}).catch(()=>{});
-  // #endregion
 }
 
 onMounted(async () => {

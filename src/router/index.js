@@ -22,30 +22,6 @@ const router = createRouter({
 });
 
 router.beforeEach((to, from, next) => {
-  // #region agent log
-  fetch('http://127.0.0.1:7453/ingest/c807a8a1-88f8-4b0f-a487-d01b643f354a', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-Debug-Session-Id': '18ab8d',
-    },
-    body: JSON.stringify({
-      sessionId: '18ab8d',
-      runId: 'post-fix',
-      hypothesisId: 'A',
-      location: 'src/router/index.js:22',
-      message: 'router.beforeEach enter',
-      data: {
-        fromName: from.name,
-        toName: to.name,
-        storyDirty: storyDirty.value,
-        sceneDirty: sceneDirty.value,
-      },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // #endregion
-
   try {
     if (from.name === "story" && storyDirty.value) {
       const msg = getUnsavedMessage();
