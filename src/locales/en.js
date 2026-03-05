@@ -1,4 +1,9 @@
 export default {
+  common: {
+    unsavedLeave: 'You have unsaved changes. Leave anyway?',
+    loadErrorGeneric: 'Could not load. Try again or check backup in Settings.',
+    saveErrorGeneric: 'Could not save. If you\'re in private browsing or out of space, try downloading a backup in Settings.',
+  },
   nav: {
     ideas: 'Ideas',
     story: 'Story',
@@ -67,6 +72,10 @@ export default {
     empty: 'No ideas yet. Add your first idea to get started.',
     ideaBody: 'Idea body',
     confirmDelete: 'Delete this idea?',
+    customTypeModalTitle: 'New idea type',
+    customTypeModalPlaceholder: 'Type name',
+    customTypeModalSave: 'Add type',
+    customTypeModalNameRequired: 'Please enter a name.',
   },
   story: {
     title: 'Story',
@@ -161,6 +170,11 @@ export default {
     subtitle: 'Choose a scene to write or edit. Prose is saved automatically.',
     empty: 'No scenes yet. Add chapters and scenes in the Outline first.',
     goToOutline: 'Go to Outline',
+    generateFromHere: 'Generate from here',
+    generateFromHereConfirm: 'This will generate {{count}} scene(s) ({{count}} API call(s)). Continue?',
+    generatingFromHere: 'Generating…',
+    generateFromHereDone: '{{generated}} scene(s) generated.',
+    generateFromHereError: 'Some scenes failed. Check API key in Export → AI.',
   },
   writeQuick: {
     capture: 'Capture selection',
@@ -190,6 +204,15 @@ export default {
     prose: 'Prose',
     prosePlaceholder: 'Write your scene here…',
     save: 'Save',
+    generateThisScene: 'Generate this scene',
+    generatingScene: 'Generating…',
+    generateError: 'Could not generate. Add API key in Export → AI, or try again.',
+    updateFacts: 'Update story facts',
+    checkConsistency: 'Check consistency',
+    updatingFacts: 'Updating…',
+    checkingConsistency: 'Checking…',
+    consistencyResult: 'Consistency',
+    noContradictions: 'No contradictions.',
   },
   settings: {
     title: 'Settings',
@@ -210,6 +233,7 @@ export default {
     provider: 'Provider',
     apiKey: 'API key',
     apiKeyHint: 'Gemini: get a free key at Google AI Studio. OpenAI: use your OpenAI API key.',
+    apiKeyStoredLocally: 'API keys are stored only on this device.',
     show: 'Show',
     hide: 'Hide',
     saveKey: 'Save key',

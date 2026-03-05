@@ -3,6 +3,9 @@
     <h1 class="page-title">{{ t('outline.title') }}</h1>
     <p class="page-subtitle">{{ t('outline.subtitle') }}</p>
 
+    <p v-if="loadError" class="save-error">{{ loadError }}</p>
+    <p v-if="saveError" class="save-error">{{ saveError }}</p>
+
     <div v-if="showChapterForm" class="card form-card">
       <h2 class="form-title">{{ editingChapterId ? t('outline.editChapter') : t('outline.newChapter') }}</h2>
       <div class="form-group">
@@ -126,7 +129,8 @@ import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
 const router = useRouter();
-const { chapters, scenes, load, getScenesForChapter } = useOutline();
+const { chapters, scenes, load, loadError, getScenesForChapter } = useOutline();
+const saveError = ref('');
 
 const characters = ref([]);
 const showChapterForm = ref(false);
@@ -176,19 +180,29 @@ function cancelChapterForm() {
 }
 
 async function saveChapter() {
-  if (editingChapterId.value) {
-    await updateChapter(editingChapterId.value, chapterForm.value);
-  } else {
-    await addChapter(chapterForm.value);
+  saveError.value = '';
+  try {
+    if (editingChapterId.value) {
+      await updateChapter(editingChapterId.value, chapterForm.value);
+    } else {
+      await addChapter(chapterForm.value);
+    }
+    await loadAll();
+    cancelChapterForm();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
   }
-  await loadAll();
-  cancelChapterForm();
 }
 
 async function removeChapter(id) {
   if (!confirm(t.value('outline.confirmChapter'))) return;
-  await deleteChapter(id);
-  await loadAll();
+  saveError.value = '';
+  try {
+    await deleteChapter(id);
+    await loadAll();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
 }
 
 function goToWrite() {
@@ -215,6 +229,7 @@ function openNewScene() {
 async function addSceneToChapter(chapterId) {
   if (!chapterId) return;
   addingSceneForChapter.value = chapterId;
+  saveError.value = '';
   try {
     await addScene({
       chapterId,
@@ -224,6 +239,8 @@ async function addSceneToChapter(chapterId) {
       notes: '',
     });
     await loadAll();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
   } finally {
     addingSceneForChapter.value = null;
   }
@@ -249,19 +266,29 @@ function cancelSceneForm() {
 
 async function saveScene() {
   if (!sceneForm.value.chapterId) return;
-  if (editingSceneId.value) {
-    await updateScene(editingSceneId.value, sceneForm.value);
-  } else {
-    await addScene(sceneForm.value);
+  saveError.value = '';
+  try {
+    if (editingSceneId.value) {
+      await updateScene(editingSceneId.value, sceneForm.value);
+    } else {
+      await addScene(sceneForm.value);
+    }
+    await loadAll();
+    cancelSceneForm();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
   }
-  await loadAll();
-  cancelSceneForm();
 }
 
 async function removeScene(id) {
   if (!confirm(t.value('outline.confirmScene'))) return;
-  await deleteScene(id);
-  await loadAll();
+  saveError.value = '';
+  try {
+    await deleteScene(id);
+    await loadAll();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
 }
 
 onMounted(loadAll);
@@ -370,5 +397,10 @@ onMounted(loadAll);
 }
 .scene-card-actions .btn-sm {
   white-space: nowrap;
+}
+.save-error {
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--danger);
 }
 </style>

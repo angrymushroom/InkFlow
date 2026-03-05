@@ -107,7 +107,20 @@
       </div>
       <div class="scene-actions">
         <button class="btn btn-primary" @click="save">{{ t('scene.save') }}</button>
+        <button type="button" class="btn btn-ghost" :disabled="generatingScene" @click="onGenerateScene">
+          {{ generatingScene ? t('scene.generatingScene') : t('scene.generateThisScene') }}
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" :disabled="updatingFacts" @click="onUpdateFacts">
+          {{ updatingFacts ? t('scene.updatingFacts') : t('scene.updateFacts') }}
+        </button>
+        <button type="button" class="btn btn-ghost btn-sm" :disabled="checkingConsistency" @click="onCheckConsistency">
+          {{ checkingConsistency ? t('scene.checkingConsistency') : t('scene.checkConsistency') }}
+        </button>
         <span v-if="savedHint" class="saved-hint">{{ t('story.saved') }}</span>
+      </div>
+      <div v-if="consistencyMessage" class="consistency-result card">
+        <h4 class="consistency-result-title">{{ t('scene.consistencyResult') }}</h4>
+        <p class="consistency-result-text">{{ consistencyMessage }}</p>
       </div>
       <p v-if="saveError" class="save-error">{{ saveError }}</p>
       <p v-if="quickToast" class="quick-toast">{{ quickToast }}</p>
@@ -118,9 +131,12 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { getScene, getCharacters, getChapters, updateScene, addIdea, addCharacter, addChapter, addScene } from '@/db';
+import { getScene, getCharacters, getChapters, getScenes, updateScene, addIdea, addCharacter, addChapter, addScene, getCurrentStoryId } from '@/db';
+import { generateSceneProse } from '@/services/generation';
+import { updateStoryFactsFromScenes, checkConsistency } from '@/services/consistency';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
+import { sceneDirty } from '@/stores/unsaved';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
 const { t } = useI18n();
@@ -138,6 +154,10 @@ const savedHint = ref(false);
 const saveError = ref('');
 const saveTimeout = ref(null);
 const beforeUnloadHandler = ref(null);
+const generatingScene = ref(false);
+const updatingFacts = ref(false);
+const checkingConsistency = ref(false);
+const consistencyMessage = ref('');
 
 const proseTextareaRef = ref(null);
 const selection = ref({ active: false, text: '', start: 0, end: 0 });
@@ -299,7 +319,61 @@ async function load() {
   } else {
     scene.value = null;
   }
+  sceneDirty.value = isDirty();
   loading.value = false;
+}
+
+async function onGenerateScene() {
+  if (!scene.value) return;
+  saveError.value = '';
+  generatingScene.value = true;
+  try {
+    const storyId = getCurrentStoryId();
+    const prose = await generateSceneProse({ storyId, sceneId: scene.value.id });
+    content.value = prose;
+    lastSavedContent.value = prose;
+    sceneDirty.value = false;
+    clearBeforeUnload();
+    savedHint.value = true;
+    setTimeout(() => { savedHint.value = false; }, 2000);
+  } catch (e) {
+    saveError.value = e?.message || t.value('scene.generateError');
+  } finally {
+    generatingScene.value = false;
+  }
+}
+
+async function onUpdateFacts() {
+  if (!scene.value) return;
+  const storyId = getCurrentStoryId();
+  updatingFacts.value = true;
+  saveError.value = '';
+  try {
+    const scenes = await getScenes(storyId);
+    await updateStoryFactsFromScenes(storyId, scenes);
+    consistencyMessage.value = '';
+    showQuickToast(t.value('story.saved'));
+  } catch (e) {
+    saveError.value = e?.message || t.value('scene.generateError');
+  } finally {
+    updatingFacts.value = false;
+  }
+}
+
+async function onCheckConsistency() {
+  if (!scene.value) return;
+  const storyId = getCurrentStoryId();
+  checkingConsistency.value = true;
+  saveError.value = '';
+  consistencyMessage.value = '';
+  try {
+    const result = await checkConsistency({ storyId, sceneId: scene.value.id });
+    consistencyMessage.value = result || t.value('scene.noContradictions');
+  } catch (e) {
+    saveError.value = e?.message || t.value('scene.generateError');
+  } finally {
+    checkingConsistency.value = false;
+  }
 }
 
 async function save() {
@@ -308,6 +382,7 @@ async function save() {
   try {
     await updateScene(scene.value.id, { content: content.value });
     lastSavedContent.value = content.value;
+    sceneDirty.value = false;
     clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
@@ -322,6 +397,7 @@ async function autoSave() {
   try {
     await updateScene(scene.value.id, { content: content.value });
     lastSavedContent.value = content.value;
+    sceneDirty.value = false;
     clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
@@ -335,6 +411,7 @@ onMounted(() => {
   load();
   watch(content, () => {
     if (!scene.value) return;
+    sceneDirty.value = isDirty();
     if (saveTimeout.value) clearTimeout(saveTimeout.value);
     if (isDirty()) setBeforeUnload();
     saveTimeout.value = setTimeout(() => {
@@ -348,6 +425,7 @@ onMounted(() => {
 onUnmounted(() => {
   if (saveTimeout.value) clearTimeout(saveTimeout.value);
   clearBeforeUnload();
+  sceneDirty.value = false;
 });
 </script>
 
@@ -453,5 +531,18 @@ onUnmounted(() => {
   margin-top: var(--space-2);
   font-size: 0.875rem;
   color: var(--danger);
+}
+.consistency-result {
+  margin-top: var(--space-4);
+}
+.consistency-result-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+}
+.consistency-result-text {
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  margin: 0;
 }
 </style>

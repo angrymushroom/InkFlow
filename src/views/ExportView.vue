@@ -43,6 +43,7 @@
           :placeholder="providerPlaceholder"
         />
         <p class="form-hint form-hint-small">{{ t('export.apiKeyHint') }} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a></p>
+        <p class="form-hint form-hint-small">{{ t('export.apiKeyStoredLocally') }}</p>
         <div class="form-row">
           <button type="button" class="btn btn-ghost btn-sm" @click="showKey = !showKey">
             {{ showKey ? t('export.hide') : t('export.show') }}

@@ -1,4 +1,6 @@
 import { createRouter, createWebHashHistory } from "vue-router";
+import { storyDirty, sceneDirty } from "@/stores/unsaved";
+import { getUnsavedMessage } from "@/utils/i18nRouter";
 
 const routes = [
   { path: "/", redirect: "/ideas" },
@@ -15,6 +17,28 @@ const routes = [
 const router = createRouter({
   history: createWebHashHistory(),
   routes,
+});
+
+router.beforeEach((to, from, next) => {
+  if (from.name === "story" && storyDirty.value) {
+    if (window.confirm(getUnsavedMessage())) {
+      storyDirty.value = false;
+      next();
+    } else {
+      next(false);
+    }
+    return;
+  }
+  if (from.name === "scene" && sceneDirty.value) {
+    if (window.confirm(getUnsavedMessage())) {
+      sceneDirty.value = false;
+      next();
+    } else {
+      next(false);
+    }
+    return;
+  }
+  next();
 });
 
 router.afterEach((to) => {

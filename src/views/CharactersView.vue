@@ -3,6 +3,9 @@
     <h1 class="page-title">{{ t('characters.title') }}</h1>
     <p class="page-subtitle">{{ t('characters.subtitle') }}</p>
 
+    <p v-if="loadError" class="save-error">{{ loadError }}</p>
+    <p v-if="saveError" class="save-error">{{ saveError }}</p>
+
     <div v-if="showForm" class="card form-card">
       <h2 class="form-title">{{ editingId ? t('characters.editCharacter') : t('characters.newCharacter') }}</h2>
       <div class="form-group">
@@ -99,9 +102,16 @@ const form = ref({
   conflict: '',
   epiphany: '',
 });
+const loadError = ref('');
+const saveError = ref('');
 
 async function load() {
-  characters.value = await getCharacters();
+  loadError.value = '';
+  try {
+    characters.value = await getCharacters();
+  } catch (e) {
+    loadError.value = e?.message || t.value('common.loadErrorGeneric');
+  }
 }
 
 function openNew() {
@@ -129,21 +139,31 @@ function cancelForm() {
 }
 
 async function saveCharacter() {
-  if (editingId.value) {
-    await updateCharacter(editingId.value, form.value);
-  } else {
-    await addCharacter(form.value);
+  saveError.value = '';
+  try {
+    if (editingId.value) {
+      await updateCharacter(editingId.value, form.value);
+    } else {
+      await addCharacter(form.value);
+    }
+    await load();
+    cancelForm();
+    window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
   }
-  await load();
-  cancelForm();
-  window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
 }
 
 async function removeCharacter(id) {
   if (!confirm(t.value('characters.confirmDelete'))) return;
-  await deleteCharacter(id);
-  await load();
-  window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+  saveError.value = '';
+  try {
+    await deleteCharacter(id);
+    await load();
+    window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
 }
 
 onMounted(() => {
@@ -213,5 +233,10 @@ onUnmounted(() => {
 }
 .char-dl dd {
   margin: var(--space-1) 0 0;
+}
+.save-error {
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--danger);
 }
 </style>

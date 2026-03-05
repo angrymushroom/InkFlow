@@ -3,6 +3,9 @@
     <h1 class="page-title">{{ t('ideas.title') }}</h1>
     <p class="page-subtitle">{{ t('ideas.subtitle') }}</p>
 
+    <p v-if="loadError" class="save-error">{{ loadError }}</p>
+    <p v-if="saveError" class="save-error">{{ saveError }}</p>
+
     <div v-if="showForm" class="card form-card">
       <h2 class="form-title">{{ editingId ? t('ideas.editIdea') : t('ideas.newIdea') }}</h2>
       <div class="form-group">
@@ -51,6 +54,20 @@
         <p v-if="idea.body" class="idea-body">{{ idea.body }}</p>
       </div>
     </div>
+
+    <div v-if="showCustomTypeModal" class="modal-backdrop" @click.self="closeCustomTypeModal">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ t('ideas.customTypeModalTitle') }}</h3>
+        <div class="form-group">
+          <input v-model="customTypeName" type="text" :placeholder="t('ideas.customTypeModalPlaceholder')" class="modal-input" @keydown.enter="saveCustomType" />
+        </div>
+        <p v-if="customTypeError" class="save-error">{{ customTypeError }}</p>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" @click="closeCustomTypeModal">{{ t('ideas.cancel') }}</button>
+          <button type="button" class="btn btn-primary" @click="saveCustomType">{{ t('ideas.customTypeModalSave') }}</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -69,21 +86,54 @@ const ideas = ref([]);
 const showForm = ref(false);
 const editingId = ref(null);
 const form = ref({ title: '', body: '', type: 'plot' });
+const loadError = ref('');
+const saveError = ref('');
+const showCustomTypeModal = ref(false);
+const customTypeName = ref('');
+const customTypeError = ref('');
 
-async function onIdeaTypeChange() {
+function onIdeaTypeChange() {
   if (form.value.type !== '__add_custom__') return;
-  const name = window.prompt(t.value('ideas.addCustomType'));
-  if (!name?.trim()) {
-    form.value.type = 'plot';
+  customTypeName.value = '';
+  customTypeError.value = '';
+  showCustomTypeModal.value = true;
+}
+
+function closeCustomTypeModal() {
+  showCustomTypeModal.value = false;
+  form.value.type = 'plot';
+  customTypeName.value = '';
+  customTypeError.value = '';
+}
+
+async function saveCustomType() {
+  customTypeError.value = '';
+  const name = customTypeName.value?.trim();
+  if (!name) {
+    customTypeError.value = t.value('ideas.customTypeModalNameRequired');
     return;
   }
-  const newName = await addCustomType(name);
-  if (newName) form.value.type = newName;
-  else form.value.type = 'plot';
+  try {
+    const newName = await addCustomType(name);
+    if (newName) {
+      form.value.type = newName;
+      showCustomTypeModal.value = false;
+      customTypeName.value = '';
+    } else {
+      customTypeError.value = t.value('common.saveErrorGeneric');
+    }
+  } catch (e) {
+    customTypeError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
 }
 
 async function load() {
-  ideas.value = await getIdeas();
+  loadError.value = '';
+  try {
+    ideas.value = await getIdeas();
+  } catch (e) {
+    loadError.value = e?.message || t.value('common.loadErrorGeneric');
+  }
 }
 
 function openNew() {
@@ -104,23 +154,33 @@ function cancelForm() {
 }
 
 async function saveIdea() {
+  saveError.value = '';
   const type = form.value.type && form.value.type !== '__add_custom__' ? form.value.type : 'plot';
   const payload = { ...form.value, type };
-  if (editingId.value) {
-    await updateIdea(editingId.value, payload);
-  } else {
-    await addIdea(payload);
+  try {
+    if (editingId.value) {
+      await updateIdea(editingId.value, payload);
+    } else {
+      await addIdea(payload);
+    }
+    await load();
+    cancelForm();
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
   }
-  await load();
-  cancelForm();
-  window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
 }
 
 async function removeIdea(id) {
   if (!confirm(t.value('ideas.confirmDelete'))) return;
-  await deleteIdea(id);
-  await load();
-  window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+  saveError.value = '';
+  try {
+    await deleteIdea(id);
+    await load();
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
 }
 
 onMounted(() => {
@@ -185,5 +245,52 @@ onUnmounted(() => {
   color: var(--text-muted);
   margin: 0;
   white-space: pre-wrap;
+}
+.save-error {
+  margin-bottom: var(--space-2);
+  font-size: 0.875rem;
+  color: var(--danger);
+}
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  padding: var(--space-4);
+  box-sizing: border-box;
+}
+.modal-card {
+  background: var(--bg-elevated);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+  max-width: 28rem;
+  width: 100%;
+  box-shadow: var(--shadow-md), 0 0 0 1px rgba(0, 0, 0, 0.05);
+}
+.modal-title {
+  margin: 0 0 var(--space-3);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.modal-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+  box-sizing: border-box;
+}
+.modal-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-4);
 }
 </style>

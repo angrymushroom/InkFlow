@@ -1,4 +1,9 @@
 export default {
+  common: {
+    unsavedLeave: 'Tienes cambios sin guardar. ¿Salir de todos modos?',
+    loadErrorGeneric: 'No se pudo cargar. Vuelve a intentarlo o revisa el respaldo en Ajustes.',
+    saveErrorGeneric: 'No se pudo guardar. En navegación privada o sin espacio, descarga un respaldo en Ajustes.',
+  },
   nav: {
     ideas: 'Ideas',
     story: 'Historia',
@@ -67,6 +72,10 @@ export default {
     empty: 'Aún no hay ideas. Añade la primera.',
     ideaBody: 'Cuerpo de la idea',
     confirmDelete: '¿Eliminar esta idea?',
+    customTypeModalTitle: 'Nuevo tipo de idea',
+    customTypeModalPlaceholder: 'Nombre del tipo',
+    customTypeModalSave: 'Añadir tipo',
+    customTypeModalNameRequired: 'Escribe un nombre.',
   },
   story: {
     title: 'Historia',
@@ -210,6 +219,7 @@ export default {
     provider: 'Proveedor',
     apiKey: 'Clave API',
     apiKeyHint: 'Gemini: clave gratis en Google AI Studio. OpenAI: tu clave de OpenAI.',
+    apiKeyStoredLocally: 'Las claves API se guardan solo en este dispositivo.',
     show: 'Mostrar',
     hide: 'Ocultar',
     saveKey: 'Guardar clave',

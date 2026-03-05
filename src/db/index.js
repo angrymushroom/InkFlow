@@ -73,6 +73,17 @@ db.version(3).stores({
   idea_custom_types: "id, createdAt",
 });
 
+db.version(4).stores({
+  story: "id, updatedAt",
+  stories: "id, updatedAt, createdAt",
+  ideas: "id, storyId, type, createdAt",
+  characters: "id, storyId, createdAt",
+  chapters: "id, storyId, order, createdAt",
+  scenes: "id, chapterId, order, createdAt",
+  idea_custom_types: "id, createdAt",
+  story_facts: "id, storyId, factType, createdAt",
+});
+
 function createStorageError(message, cause) {
   const err = new Error(message);
   err.code = "STORAGE_ERROR";
@@ -123,6 +134,10 @@ export async function getStories() {
       e
     );
   }
+}
+
+export async function getStoryById(id) {
+  return db.stories.get(id);
 }
 
 export async function getStory() {
@@ -220,6 +235,7 @@ export async function deleteStory(id) {
   await db.chapters.where("storyId").equals(id).delete();
   await db.ideas.where("storyId").equals(id).delete();
   await db.characters.where("storyId").equals(id).delete();
+  if (db.story_facts) await db.story_facts.where("storyId").equals(id).delete();
   await db.stories.delete(id);
 
   let switchedToId = null;
@@ -274,10 +290,6 @@ export async function addCustomIdeaType(name) {
   return { id, name: trimmed, createdAt };
 }
 
-export async function deleteCustomIdeaType(id) {
-  await db.idea_custom_types.delete(id);
-}
-
 // Characters (scoped by current story)
 export async function getCharacters(storyId) {
   const sid = storyId ?? getCurrentStoryId();
@@ -295,6 +307,8 @@ export async function addCharacter(char) {
 export async function updateCharacter(id, data) {
   await db.characters.update(id, { ...data, updatedAt: Date.now() });
 }
+
+
 
 export async function deleteCharacter(id) {
   await db.characters.delete(id);
@@ -376,12 +390,68 @@ export async function deleteScene(id) {
   await db.scenes.delete(id);
 }
 
-// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes)
+// Story facts (consistency: extracted characters, locations, events)
+export async function getStoryFacts(storyId) {
+  if (!db.story_facts) return [];
+  const list = await db.story_facts.where("storyId").equals(storyId).sortBy("createdAt");
+  return list;
+}
+
+export async function addStoryFact(fact) {
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  const storyId = fact.storyId;
+  if (!storyId) throw createStorageError("storyId is required for addStoryFact", null);
+  await db.story_facts.add({
+    id,
+    storyId,
+    factType: fact.factType || "event",
+    content: fact.content ?? "",
+    sourceSceneId: fact.sourceSceneId ?? null,
+    sourceChapterId: fact.sourceChapterId ?? null,
+    createdAt,
+  });
+  return { id, ...fact, createdAt };
+}
+
+export async function deleteStoryFactsForStory(storyId) {
+  if (!db.story_facts) return;
+  await db.story_facts.where("storyId").equals(storyId).delete();
+}
+
+/**
+ * Replace facts that came from the given scene IDs with a new set of facts.
+ * Deletes existing facts whose sourceSceneId is in sceneIds, then adds newFacts.
+ * @param {string} storyId
+ * @param {string[]} sceneIds
+ * @param {{ factType: string, content: string, sourceSceneId: string, sourceChapterId?: string }[]} newFacts
+ */
+export async function replaceStoryFactsForScenes(storyId, sceneIds, newFacts) {
+  if (!db.story_facts) return;
+  const existing = await db.story_facts.where("storyId").equals(storyId).toArray();
+  const toDelete = existing.filter((f) => f.sourceSceneId && sceneIds.includes(f.sourceSceneId)).map((f) => f.id);
+  for (const id of toDelete) await db.story_facts.delete(id);
+  for (const f of newFacts) {
+    await addStoryFact({
+      storyId,
+      factType: f.factType,
+      content: typeof f.content === "string" ? f.content : JSON.stringify(f.content),
+      sourceSceneId: f.sourceSceneId ?? null,
+      sourceChapterId: f.sourceChapterId ?? null,
+    });
+  }
+}
+
+// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts)
 export async function exportProject() {
   try {
     let ideaCustomTypes = [];
+    let storyFacts = [];
     try {
       if (db.idea_custom_types) ideaCustomTypes = await db.idea_custom_types.toArray();
+    } catch (_) {}
+    try {
+      if (db.story_facts) storyFacts = await db.story_facts.toArray();
     } catch (_) {}
     const [stories, ideas, characters, chapters, scenes] = await Promise.all([
       db.stories.toArray(),
@@ -391,7 +461,7 @@ export async function exportProject() {
       db.scenes.toArray(),
     ]);
     return {
-      version: 3,
+      version: 4,
       exportedAt: new Date().toISOString(),
       stories,
       ideas,
@@ -399,6 +469,7 @@ export async function exportProject() {
       chapters,
       scenes,
       ideaCustomTypes,
+      storyFacts,
     };
   } catch (e) {
     throw createStorageError(
@@ -408,7 +479,7 @@ export async function exportProject() {
   }
 }
 
-function validateImportData(data) {
+export function validateImportData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw createImportValidationError(
       "This file doesn't look like an InkFlow backup. Use a file you exported from this app."
@@ -437,6 +508,9 @@ function validateImportData(data) {
   if (data.ideaCustomTypes != null && !Array.isArray(data.ideaCustomTypes)) {
     throw createImportValidationError("Invalid backup format: ideaCustomTypes must be an array.");
   }
+  if (data.storyFacts != null && !Array.isArray(data.storyFacts)) {
+    throw createImportValidationError("Invalid backup format: storyFacts must be an array.");
+  }
 }
 
 export async function importProject(data) {
@@ -444,6 +518,7 @@ export async function importProject(data) {
   try {
     const stores = [db.stories, db.ideas, db.characters, db.chapters, db.scenes];
     if (db.idea_custom_types) stores.push(db.idea_custom_types);
+    if (db.story_facts) stores.push(db.story_facts);
     await db.transaction("rw", stores, async () => {
       await db.stories.clear();
       await db.ideas.clear();
@@ -451,6 +526,7 @@ export async function importProject(data) {
       await db.chapters.clear();
       await db.scenes.clear();
       if (db.idea_custom_types) await db.idea_custom_types.clear();
+      if (db.story_facts) await db.story_facts.clear();
       const isV2 = data.version >= 2 && Array.isArray(data.stories);
       if (isV2 && data.stories?.length) {
         for (const s of data.stories) await db.stories.add(s);
@@ -460,6 +536,9 @@ export async function importProject(data) {
         for (const s of data.scenes || []) await db.scenes.add(s);
         if (db.idea_custom_types && Array.isArray(data.ideaCustomTypes)) {
           for (const ct of data.ideaCustomTypes) await db.idea_custom_types.add(ct);
+        }
+        if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
+          for (const f of data.storyFacts) await db.story_facts.add(f);
         }
         if (data.stories[0]?.id) setCurrentStoryId(data.stories[0].id);
       } else {
@@ -472,6 +551,9 @@ export async function importProject(data) {
         for (const s of data.scenes || []) await db.scenes.add(s);
         if (db.idea_custom_types && Array.isArray(data.ideaCustomTypes)) {
           for (const ct of data.ideaCustomTypes) await db.idea_custom_types.add(ct);
+        }
+        if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
+          for (const f of data.storyFacts) await db.story_facts.add(f);
         }
         setCurrentStoryId(storyId);
       }

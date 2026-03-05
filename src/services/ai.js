@@ -108,7 +108,7 @@ function getLanguageRule(locale) {
 function buildPrompt(fieldName, storyBlurb, ideasBlurb, charsBlurb, briefText, outputLocale) {
   const lang = LOCALE_TO_LANGUAGE[outputLocale] || "English";
   const languageRule = getLanguageRule(outputLocale);
-  const systemPrompt = `You are a fiction writing assistant. The writer is using the Snowflake Method. Keep all output in Snowflake style: simple, clear, structural—no artistic or flowery descriptions, no purple prose. The text must relate to and stay consistent with the story spine, idea cards, and characters provided. ${languageRule} Output only the expanded text, no preamble, no "Here is...", no quotes around the result.`;
+  const systemPrompt = `You are a fiction writing assistant. The writer is using the Snowflake Method. Keep all output in Snowflake style: simple, clear, structural—no artistic or flowery descriptions, no purple prose. The text must relate to and stay consistent with the story spine, idea cards, and characters provided. Your expansion must be one complete, finished unit: if the field is a Setup, write a full setup; if it is a Disaster, write a full disaster beat; if it is a scene or character field, write a complete beat or description. The result must be immediately usable for story design. Never stop mid-sentence or mid-thought. ${languageRule} Output only the expanded text, no preamble, no "Here is...", no quotes around the result.`;
 
   const isEmpty = !(briefText && briefText.trim());
   const userPrompt = isEmpty
@@ -138,7 +138,7 @@ ${charsBlurb}
 Brief text to expand:
 ${briefText}
 
-Expanded version (${languageRule} output only the text):`;
+Expanded version (one complete "${fieldName}" only; no mid-sentence cutoff; ${languageRule} output only the text):`;
 
   return { systemPrompt, userPrompt };
 }
@@ -213,16 +213,37 @@ export async function expandWithAi({
     outputLocale
   );
 
-  // Quick expand is a light-tier feature (cheap, fast model).
+  // Quick expand is a light-tier feature (cheap, fast model). Use 1024 tokens so expansions finish as complete Setup/Disaster/Scene units.
   const tier = TIERS.LIGHT;
+  const expandMaxTokens = 1024;
   if (provider === "gemini") {
-    return callGemini(apiKey.trim(), systemPrompt, userPrompt, { tier });
+    return callGemini(apiKey.trim(), systemPrompt, userPrompt, { tier, maxTokens: expandMaxTokens });
   }
-  return callOpenAI(apiKey.trim(), systemPrompt, userPrompt, { tier });
+  return callOpenAI(apiKey.trim(), systemPrompt, userPrompt, { tier, maxTokens: expandMaxTokens });
+}
+
+/**
+ * Single completion with custom prompts. Used by generation and consistency services.
+ * @param {{ systemPrompt: string, userPrompt: string, tier?: string, maxTokens?: number }} opts
+ * @returns {Promise<string>}
+ */
+export async function completeWithAi({ systemPrompt, userPrompt, tier = TIERS.LIGHT, maxTokens = 1024 }) {
+  const provider = getProvider();
+  const apiKey = getApiKey();
+  if (!apiKey?.trim()) {
+    throw new Error(
+      `Add your ${provider === "gemini" ? "Gemini" : "OpenAI"} API key in Export → AI settings to use this feature.`
+    );
+  }
+  if (provider === "gemini") {
+    return callGemini(apiKey.trim(), systemPrompt, userPrompt, { tier, maxTokens });
+  }
+  return callOpenAI(apiKey.trim(), systemPrompt, userPrompt, { tier, maxTokens });
 }
 
 async function callOpenAI(apiKey, systemPrompt, userPrompt, options = {}) {
   const tier = options.tier ?? TIERS.LIGHT;
+  const maxTokens = options.maxTokens ?? (tier === TIERS.ADVANCED ? 2048 : 500);
   const model = getModel("openai", tier);
   const res = await fetch("https://api.openai.com/v1/chat/completions", {
     method: "POST",
@@ -236,19 +257,20 @@ async function callOpenAI(apiKey, systemPrompt, userPrompt, options = {}) {
         { role: "system", content: systemPrompt },
         { role: "user", content: userPrompt },
       ],
-      max_tokens: tier === TIERS.ADVANCED ? 2048 : 500,
+      max_tokens: maxTokens,
       temperature: 0.6,
     }),
   });
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error(err.error?.message || `API error: ${res.status}`);
+    const msg = err?.error?.message || `API error: ${res.status}`;
+    throw new Error(friendlyOpenAIError(msg, res.status));
   }
 
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content?.trim();
-  if (!content) throw new Error("Empty response from AI");
+  if (!content) throw new Error("OpenAI returned an empty response.");
   return content;
 }
 
@@ -258,13 +280,14 @@ async function callGemini(apiKey, systemPrompt, userPrompt, options = {}) {
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
 
+  const maxOutputTokens = options.maxTokens ?? (tier === TIERS.ADVANCED ? 2048 : 500);
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       contents: [{ parts: [{ text: fullPrompt }] }],
       generationConfig: {
-        maxOutputTokens: tier === TIERS.ADVANCED ? 2048 : 500,
+        maxOutputTokens,
         temperature: 0.6,
       },
     }),
@@ -343,14 +366,25 @@ export async function testApiKey(key, providerId) {
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `HTTP ${res.status}`;
-    throw new Error(msg);
+    const msg = err?.error?.message || err?.message || `HTTP ${res.status}`;
+    throw new Error(friendlyOpenAIError(msg, res.status));
   }
   const data = await res.json();
   if (!data.choices?.[0]?.message?.content) {
     throw new Error("OpenAI returned an empty response.");
   }
   return true;
+}
+
+function friendlyOpenAIError(msg, status) {
+  if (status === 401 || (typeof msg === "string" && (msg.includes("invalid") || msg.includes("401") || msg.includes("Incorrect API key"))))
+    return "Invalid API key. Check your OpenAI API key in Settings.";
+  if (status === 429 || (typeof msg === "string" && (msg.includes("429") || msg.includes("rate limit"))))
+    return "Rate limit exceeded. Try again later.";
+  if (status === 403 || (typeof msg === "string" && (msg.includes("403") || msg.includes("permission"))))
+    return "Access denied. Check your API key and permissions.";
+  if (typeof msg !== "string") return "API request failed.";
+  return msg;
 }
 
 function friendlyGeminiError(msg, status) {

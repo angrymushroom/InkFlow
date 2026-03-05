@@ -1,4 +1,9 @@
 export default {
+  common: {
+    unsavedLeave: '有未保存的更改，确定离开？',
+    loadErrorGeneric: '无法加载。请重试或在设置中检查备份。',
+    saveErrorGeneric: '无法保存。若处于无痕模式或空间不足，请在设置中下载备份。',
+  },
   nav: {
     ideas: '灵感',
     story: '故事',
@@ -67,6 +72,10 @@ export default {
     empty: '还没有灵感。添加第一条吧。',
     ideaBody: '灵感内容',
     confirmDelete: '确定删除这条灵感？',
+    customTypeModalTitle: '新灵感类型',
+    customTypeModalPlaceholder: '类型名称',
+    customTypeModalSave: '添加类型',
+    customTypeModalNameRequired: '请输入名称。',
   },
   story: {
     title: '故事',
@@ -210,6 +219,7 @@ export default {
     provider: '服务',
     apiKey: 'API 密钥',
     apiKeyHint: 'Gemini：在 Google AI Studio 获取免费密钥。OpenAI：使用你的 OpenAI API 密钥。',
+    apiKeyStoredLocally: 'API 密钥仅存储在本设备。',
     show: '显示',
     hide: '隐藏',
     saveKey: '保存密钥',

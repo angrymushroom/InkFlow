@@ -3,6 +3,7 @@ import { getChapters, getScenes, getCurrentStoryId } from '@/db';
 
 const chapters = ref([]);
 const scenes = ref([]);
+const loadError = ref('');
 
 export function useOutline() {
   const scenesByChapter = computed(() => {
@@ -14,12 +15,14 @@ export function useOutline() {
   });
 
   async function load() {
+    loadError.value = '';
     try {
       const storyId = getCurrentStoryId();
       const [ch, sc] = await Promise.all([getChapters(storyId), getScenes(storyId)]);
       chapters.value = ch;
       scenes.value = sc;
-    } catch (_) {
+    } catch (e) {
+      loadError.value = e?.message || 'Failed to load outline.';
       chapters.value = [];
       scenes.value = [];
     }
@@ -34,6 +37,7 @@ export function useOutline() {
     scenes,
     scenesByChapter,
     load,
+    loadError,
     getScenesForChapter,
   };
 }

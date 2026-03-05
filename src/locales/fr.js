@@ -1,4 +1,9 @@
 export default {
+  common: {
+    unsavedLeave: 'Vous avez des modifications non enregistrées. Quitter quand même ?',
+    loadErrorGeneric: 'Impossible de charger. Réessayez ou vérifiez la sauvegarde dans Paramètres.',
+    saveErrorGeneric: 'Enregistrement impossible. En navigation privée ou sans espace, téléchargez une sauvegarde dans Paramètres.',
+  },
   nav: {
     ideas: 'Idées',
     story: 'Histoire',
@@ -67,6 +72,10 @@ export default {
     empty: 'Pas encore d’idées. Ajoutez la première.',
     ideaBody: 'Contenu de l’idée',
     confirmDelete: 'Supprimer cette idée ?',
+    customTypeModalTitle: 'Nouveau type d’idée',
+    customTypeModalPlaceholder: 'Nom du type',
+    customTypeModalSave: 'Ajouter le type',
+    customTypeModalNameRequired: 'Veuillez entrer un nom.',
   },
   story: {
     title: 'Histoire',
@@ -210,6 +219,7 @@ export default {
     provider: 'Fournisseur',
     apiKey: 'Clé API',
     apiKeyHint: 'Gemini : clé gratuite sur Google AI Studio. OpenAI : votre clé OpenAI.',
+    apiKeyStoredLocally: 'Les clés API sont enregistrées uniquement sur cet appareil.',
     show: 'Afficher',
     hide: 'Masquer',
     saveKey: 'Enregistrer la clé',

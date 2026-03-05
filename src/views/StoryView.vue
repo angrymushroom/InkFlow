@@ -83,6 +83,7 @@ import { ref, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getStory, saveStory, getStories, deleteStory } from '@/db';
 import { useI18n } from '@/composables/useI18n';
+import { storyDirty } from '@/stores/unsaved';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 
@@ -156,6 +157,7 @@ async function load() {
       };
     }
     lastSavedJson.value = storySnapshot();
+    storyDirty.value = isDirty();
   } catch (e) {
     loadError.value = e?.message || t('story.saveError');
   }
@@ -183,6 +185,7 @@ async function save() {
   try {
     await saveStory(story.value);
     lastSavedJson.value = storySnapshot();
+    storyDirty.value = false;
     if (!isDirty()) clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
@@ -198,6 +201,7 @@ async function autoSave() {
   try {
     await saveStory(story.value);
     lastSavedJson.value = storySnapshot();
+    storyDirty.value = false;
     if (!isDirty()) clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
@@ -211,6 +215,7 @@ onMounted(async () => {
   await load();
   window.addEventListener('inkflow-story-switched', load);
   watch(story, () => {
+    storyDirty.value = isDirty();
     if (saveTimeout.value) clearTimeout(saveTimeout.value);
     saveTimeout.value = setTimeout(() => {
       autoSave();
@@ -224,6 +229,7 @@ onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', load);
   if (saveTimeout.value) clearTimeout(saveTimeout.value);
   clearBeforeUnload();
+  storyDirty.value = false;
 });
 </script>
 
