@@ -1,31 +1,32 @@
 <template>
   <div class="app">
-    <nav class="nav">
-      <router-link to="/entities" class="nav-link" @click="onNavClick('/entities', $event)">
-        <span class="nav-icon">📦</span>
-        <span class="nav-link-text">{{ t('nav.entities') }}</span>
+    <nav class="nav" role="navigation" aria-label="Main navigation">
+      <router-link to="/ideas" class="nav-link" @click="onNavClick">
+        <NavIcon name="ideas" />
+        <span class="nav-link-text">{{ t('nav.ideas') }}</span>
       </router-link>
-      <router-link to="/characters" class="nav-link" @click="onNavClick('/characters', $event)">
-        <span class="nav-icon">👤</span>
+      <router-link to="/characters" class="nav-link" @click="onNavClick">
+        <NavIcon name="characters" />
         <span class="nav-link-text">{{ t('nav.characters') }}</span>
       </router-link>
-      <router-link to="/story" class="nav-link" @click="onNavClick('/story', $event)">
-        <span class="nav-icon">📖</span>
+      <router-link to="/story" class="nav-link" @click="onNavClick">
+        <NavIcon name="story" />
         <span class="nav-link-text">{{ t('nav.story') }}</span>
       </router-link>
-      <router-link to="/outline" class="nav-link" @click="onNavClick('/outline', $event)">
-        <span class="nav-icon">📋</span>
+      <router-link to="/outline" class="nav-link" @click="onNavClick">
+        <NavIcon name="outline" />
         <span class="nav-link-text">{{ t('nav.outline') }}</span>
       </router-link>
-      <router-link to="/write" class="nav-link" @click="onNavClick('/write', $event)">
-        <span class="nav-icon">✏️</span>
+      <router-link to="/write" class="nav-link" @click="onNavClick">
+        <NavIcon name="write" />
         <span class="nav-link-text">{{ t('nav.write') }}</span>
       </router-link>
-      <router-link to="/settings" class="nav-link" @click="onNavClick('/settings', $event)">
-        <span class="nav-icon">⚙️</span>
+      <router-link to="/settings" class="nav-link" @click="onNavClick">
+        <NavIcon name="settings" />
         <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
     </nav>
+
     <div class="app-body">
       <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
         <div class="sidebar-header">
@@ -87,12 +88,14 @@
           </section>
         </nav>
       </aside>
+
       <div
         v-if="isMobile && sidebarOpen"
         class="sidebar-scrim"
         aria-hidden="true"
         @click="sidebarOpen = false"
       />
+
       <button
         v-if="isMobile"
         type="button"
@@ -100,8 +103,10 @@
         aria-label="Open sidebar"
         @click="sidebarOpen = true"
       >
-        📋 {{ t('sidebar.contents') }}
+        <NavIcon name="contents" :size="16" />
+        {{ t('sidebar.contents') }}
       </button>
+
       <main class="main-content">
         <router-view :key="route.path" v-slot="{ Component }">
           <component v-if="Component" :is="Component" />
@@ -109,6 +114,8 @@
         </router-view>
       </main>
     </div>
+
+    <AppToast />
   </div>
 </template>
 
@@ -118,6 +125,8 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
 import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
+import NavIcon from '@/components/NavIcon.vue';
+import AppToast from '@/components/AppToast.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -134,9 +143,7 @@ const currentSceneId = computed(() =>
   route.name === 'scene' ? route.params.sceneId : null
 );
 
-function onNavClick() {
-  // Optional: analytics or nav tracking can go here
-}
+function onNavClick() {}
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768;
@@ -195,9 +202,7 @@ async function onRouteChange() {
       await loadIdeas();
       if (route.path === '/story') await loadStories();
     }
-  } catch (_) {
-    // avoid one failing load breaking navigation
-  }
+  } catch (_) {}
 }
 
 onMounted(async () => {
@@ -294,14 +299,6 @@ watch(
 .sidebar-close:hover {
   color: var(--text);
 }
-.sidebar-empty {
-  padding: var(--space-4);
-  font-size: 0.875rem;
-  color: var(--text-muted);
-}
-.sidebar-empty p {
-  margin: 0 0 var(--space-2);
-}
 .sidebar-link {
   font-weight: 500;
 }
@@ -353,16 +350,6 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.sidebar-item-meta {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.sidebar-item.active .sidebar-item-meta {
-  color: var(--accent);
-  opacity: 0.9;
 }
 .sidebar-item-button {
   width: 100%;
@@ -449,6 +436,9 @@ watch(
   bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   left: var(--space-3);
   z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   font-size: 0.875rem;
   background: var(--bg-elevated);
@@ -460,17 +450,6 @@ watch(
 }
 .sidebar-toggle:hover {
   background: var(--border);
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-.nav-icon {
-  font-size: 1.125rem;
 }
 
 /* Mobile: sidebar as overlay */
@@ -489,7 +468,7 @@ watch(
     transform: translateX(0);
   }
   .sidebar-toggle {
-    display: block;
+    display: flex;
     bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
   }
 }
@@ -498,9 +477,6 @@ watch(
     transform: none;
   }
   .sidebar-toggle {
-    display: none;
-  }
-  .nav-icon {
     display: none;
   }
 }

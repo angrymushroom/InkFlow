@@ -88,6 +88,10 @@ export default {
     addCharacter: 'Ajouter un personnage',
     addEntity: 'Ajouter {type}',
     emptyFilter: 'Aucune entité de ce type.',
+    selectOrAdd: 'Sélectionnez une entité pour la modifier ou ajoutez-en une nouvelle.',
+    noEntitiesYet: 'Aucune entité pour l’instant. Créez la première.',
+    noTypeYet: 'Aucun {type} pour l’instant. Ajoutez-en un.',
+    addAnotherType: 'Ajouter un autre type…',
   },
   story: {
     title: 'Histoire',
