@@ -203,6 +203,7 @@ export default {
     aiDraftAll: '根据骨架用 AI 起草整套大纲',
     aiDraftSection: '用 AI 起草本段',
     aiDraftTitle: '基于故事骨架的 AI 大纲草案',
+    aiDraftSectionTitle: '为「{section}」生成 AI 草案',
     aiDraftHint: '检查并调整这些章节与场景建议。点击「应用大纲」后，它们会被添加为真实的章节和场景。',
     aiDraftScenesLabel: '本章节中的场景',
     aiDraftEmptySection: '当前草案在该段落还没有建议。',

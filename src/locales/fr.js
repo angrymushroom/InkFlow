@@ -203,6 +203,7 @@ export default {
     aiDraftAll: 'Esquisse complète avec l’IA à partir de la colonne vertébrale',
     aiDraftSection: 'Esquisse de cette section avec l’IA',
     aiDraftTitle: 'Brouillon de structure avec l’IA à partir de la colonne vertébrale',
+    aiDraftSectionTitle: 'Brouillon IA pour {section}',
     aiDraftHint: 'Relisez et ajustez ces suggestions de chapitres et de scènes. En cliquant sur Appliquer, elles seront ajoutées comme chapitres et scènes réels dans les sections concernées.',
     aiDraftScenesLabel: 'Scènes de ce chapitre',
     aiDraftEmptySection: 'Pas de suggestions pour cette section dans le brouillon actuel.',

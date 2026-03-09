@@ -377,10 +377,10 @@
       :open="draftOpen"
       :draft="draftData"
       :beats="beats"
+      :scope="draftScope"
       @close="draftOpen = false"
       @apply="applyDraft"
     />
-    <p v-if="draftError" class="save-error">{{ draftError }}</p>
 
     <!-- Delete modals -->
     <ConfirmModal
@@ -424,8 +424,10 @@ import ResizableTextarea from '@/components/ResizableTextarea.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { draftOutlineFromSpine } from '@/services/outlineAi';
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
+import { useToast } from '@/composables/useToast';
 
 const { t } = useI18n();
+const { error: toastError } = useToast();
 const router = useRouter();
 const { chapters, scenes, load, loadError, getScenesForChapter } = useOutline();
 const saveError = ref('');
@@ -697,39 +699,38 @@ async function assignBeat(ch, evt) {
 
 const draftOpen = ref(false);
 const drafting = ref(false);
-const draftError = ref('');
 const draftData = ref(null);
+const draftScope = ref('all');
 
 async function draftForBeat(beat) {
-  draftError.value = '';
   drafting.value = true;
   try {
     const storyId = story.value?.id || getCurrentStoryId();
     draftData.value = await draftOutlineFromSpine({ storyId, scope: beat });
+    draftScope.value = beat;
     draftOpen.value = true;
   } catch (e) {
-    draftError.value = e?.message || t.value('outline.aiDraftError');
+    toastError(e?.message || t.value('outline.aiDraftError'));
   } finally {
     drafting.value = false;
   }
 }
 
 async function draftAll() {
-  draftError.value = '';
   drafting.value = true;
   try {
     const storyId = story.value?.id || getCurrentStoryId();
     draftData.value = await draftOutlineFromSpine({ storyId, scope: 'all' });
+    draftScope.value = 'all';
     draftOpen.value = true;
   } catch (e) {
-    draftError.value = e?.message || t.value('outline.aiDraftError');
+    toastError(e?.message || t.value('outline.aiDraftError'));
   } finally {
     drafting.value = false;
   }
 }
 
 async function applyDraft(payload) {
-  draftError.value = '';
   try {
     const sections = payload?.sections || {};
     for (const beat of beats) {
@@ -745,7 +746,7 @@ async function applyDraft(payload) {
     draftOpen.value = false;
     draftData.value = null;
   } catch (e) {
-    draftError.value = e?.message || t.value('outline.aiDraftError');
+    toastError(e?.message || t.value('outline.aiDraftError'));
   }
 }
 

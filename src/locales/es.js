@@ -203,6 +203,7 @@ export default {
     aiDraftAll: 'Esquema completo con IA desde el esqueleto',
     aiDraftSection: 'Esquema de esta sección con IA',
     aiDraftTitle: 'Borrador de esquema con IA a partir del esqueleto',
+    aiDraftSectionTitle: 'Borrador IA para {section}',
     aiDraftHint: 'Revisa y ajusta estas sugerencias de capítulos y escenas. Al hacer clic en Aplicar, se crearán como capítulos y escenas reales en las secciones correspondientes.',
     aiDraftScenesLabel: 'Escenas de este capítulo',
     aiDraftEmptySection: 'No hay sugerencias para esta sección en el borrador actual.',

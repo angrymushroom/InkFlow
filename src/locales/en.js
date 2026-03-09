@@ -205,6 +205,7 @@ export default {
     aiDraftAll: 'AI draft outline from spine',
     aiDraftSection: 'AI draft this section',
     aiDraftTitle: 'AI outline draft from your spine',
+    aiDraftSectionTitle: 'AI draft for {section}',
     aiDraftHint: 'Review and adjust these chapter + scene suggestions. When you click Apply, they will be added as real chapters and scenes under the chosen sections.',
     aiDraftScenesLabel: 'Scenes in this chapter',
     aiDraftEmptySection: 'No suggestions for this section in the current draft.',
