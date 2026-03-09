@@ -158,6 +158,7 @@ import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import { useToast } from '@/composables/useToast';
 import { sceneDirty } from '@/stores/unsaved';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
+import { countWords } from '@/utils/wordCount';
 
 const { t } = useI18n();
 const { builtInTypes, customTypes, addCustomType } = useIdeaTypes();
@@ -189,11 +190,7 @@ const ideaForm = ref({ title: '', body: '', type: 'scene' });
 const characterForm = ref({ name: '', existingId: '' });
 const outlineForm = ref({ title: '', summary: '' });
 
-const wordCount = computed(() => {
-  const text = (content.value || '').trim();
-  if (!text) return 0;
-  return text.split(/\s+/).length;
-});
+const wordCount = computed(() => countWords(content.value || ''));
 
 const wordCountLabel = computed(() => {
   const n = wordCount.value;

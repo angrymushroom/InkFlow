@@ -73,6 +73,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
 import { getCurrentStoryId, getScenes } from '@/db';
+import { countWords } from '@/utils/wordCount';
 import { generateFromScene } from '@/services/generation';
 
 const { t } = useI18n();
@@ -92,11 +93,8 @@ function scenesByChapter(chapterId) {
 }
 
 function sceneWordCount(scene) {
-  // Use content from allScenes (which has prose) keyed by id
   const full = allScenes.value.find((s) => s.id === scene.id);
-  const text = (full?.content || '').trim();
-  if (!text) return 0;
-  return text.split(/\s+/).length;
+  return countWords(full?.content || '');
 }
 
 function chapterWordCount(chapterId) {

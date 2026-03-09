@@ -41,6 +41,7 @@
 import { ref, watch } from 'vue';
 import { useI18n } from '@/composables/useI18n';
 import { getScenes } from '@/db';
+import { countWords } from '@/utils/wordCount';
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -58,10 +59,7 @@ async function loadWordCounts() {
   for (const s of props.stories) {
     try {
       const scenes = await getScenes(s.id);
-      counts[s.id] = scenes.reduce((sum, sc) => {
-        const text = (sc.content || '').trim();
-        return sum + (text ? text.split(/\s+/).length : 0);
-      }, 0);
+      counts[s.id] = scenes.reduce((sum, sc) => sum + countWords(sc.content || ''), 0);
     } catch {
       counts[s.id] = 0;
     }
