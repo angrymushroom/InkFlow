@@ -3,7 +3,7 @@
     <div class="outline-draft-card card">
       <header class="outline-draft-header">
         <div>
-          <h2 class="outline-draft-title">{{ t('outline.aiDraftTitle') }}</h2>
+          <h2 class="outline-draft-title">{{ title }}</h2>
           <p class="outline-draft-hint">{{ t('outline.aiDraftHint') }}</p>
         </div>
         <button type="button" class="btn btn-ghost btn-sm" @click="onClose">
@@ -12,72 +12,102 @@
       </header>
 
       <div class="outline-draft-body">
-        <section
-          v-for="beat in beats"
-          :key="beat"
-          class="outline-draft-section"
-        >
-          <h3 class="outline-draft-section-title">
-            {{ t(`outline.section.${beat}`) }}
-          </h3>
-          <div v-if="!sectionChapters(beat).length" class="outline-draft-empty">
-            {{ t('outline.aiDraftEmptySection') }}
-          </div>
-          <div v-else class="outline-draft-chapter-list">
-            <div
-              v-for="(ch, ci) in sectionChapters(beat)"
-              :key="`${beat}-${ci}`"
-              class="outline-draft-chapter"
-            >
-              <label class="outline-draft-label">
-                {{ t('outline.chapterTitle') }}
-                <input
-                  v-model="local.sections[beat][ci].chapterTitle"
-                  type="text"
-                />
-              </label>
-              <label class="outline-draft-label">
-                {{ t('outline.summary') }}
-                <textarea
-                  v-model="local.sections[beat][ci].chapterSummary"
-                  rows="2"
-                />
-              </label>
-              <div class="outline-draft-scenes">
-                <h4 class="outline-draft-scenes-title">
-                  {{ t('outline.aiDraftScenesLabel') }}
-                </h4>
-                <div
-                  v-for="(sc, si) in ch.scenes || []"
-                  :key="`${beat}-${ci}-scene-${si}`"
-                  class="outline-draft-scene"
-                >
-                  <label class="outline-draft-label">
-                    {{ t('outline.sceneTitle') }}
-                    <input
-                      v-model="local.sections[beat][ci].scenes[si].title"
-                      type="text"
-                    />
-                  </label>
-                  <label class="outline-draft-label">
-                    {{ t('outline.oneSentenceSummary') }}
-                    <textarea
-                      v-model="local.sections[beat][ci].scenes[si].oneSentence"
-                      rows="2"
-                    />
-                  </label>
-                  <label class="outline-draft-label">
-                    {{ t('outline.notes') }}
-                    <textarea
-                      v-model="local.sections[beat][ci].scenes[si].notes"
-                      rows="2"
-                    />
-                  </label>
+        <!-- Single-section mode: show only the targeted beat -->
+        <template v-if="scope !== 'all'">
+          <section class="outline-draft-section">
+            <div v-if="!sectionChapters(scope).length" class="outline-draft-empty">
+              {{ t('outline.aiDraftEmptySection') }}
+            </div>
+            <div v-else class="outline-draft-chapter-list">
+              <div
+                v-for="(ch, ci) in sectionChapters(scope)"
+                :key="`${scope}-${ci}`"
+                class="outline-draft-chapter"
+              >
+                <label class="outline-draft-label">
+                  {{ t('outline.chapterTitle') }}
+                  <input v-model="local.sections[scope][ci].chapterTitle" type="text" />
+                </label>
+                <label class="outline-draft-label">
+                  {{ t('outline.summary') }}
+                  <textarea v-model="local.sections[scope][ci].chapterSummary" rows="2" />
+                </label>
+                <div class="outline-draft-scenes">
+                  <h4 class="outline-draft-scenes-title">{{ t('outline.aiDraftScenesLabel') }}</h4>
+                  <div
+                    v-for="(sc, si) in ch.scenes || []"
+                    :key="`${scope}-${ci}-scene-${si}`"
+                    class="outline-draft-scene"
+                  >
+                    <label class="outline-draft-label">
+                      {{ t('outline.sceneTitle') }}
+                      <input v-model="local.sections[scope][ci].scenes[si].title" type="text" />
+                    </label>
+                    <label class="outline-draft-label">
+                      {{ t('outline.oneSentenceSummary') }}
+                      <textarea v-model="local.sections[scope][ci].scenes[si].oneSentence" rows="2" />
+                    </label>
+                    <label class="outline-draft-label">
+                      {{ t('outline.notes') }}
+                      <textarea v-model="local.sections[scope][ci].scenes[si].notes" rows="2" />
+                    </label>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
+        </template>
+
+        <!-- All-sections mode: show every beat -->
+        <template v-else>
+          <section
+            v-for="beat in beats"
+            :key="beat"
+            class="outline-draft-section"
+          >
+            <h3 class="outline-draft-section-title">{{ t(`outline.section.${beat}`) }}</h3>
+            <div v-if="!sectionChapters(beat).length" class="outline-draft-empty">
+              {{ t('outline.aiDraftEmptySection') }}
+            </div>
+            <div v-else class="outline-draft-chapter-list">
+              <div
+                v-for="(ch, ci) in sectionChapters(beat)"
+                :key="`${beat}-${ci}`"
+                class="outline-draft-chapter"
+              >
+                <label class="outline-draft-label">
+                  {{ t('outline.chapterTitle') }}
+                  <input v-model="local.sections[beat][ci].chapterTitle" type="text" />
+                </label>
+                <label class="outline-draft-label">
+                  {{ t('outline.summary') }}
+                  <textarea v-model="local.sections[beat][ci].chapterSummary" rows="2" />
+                </label>
+                <div class="outline-draft-scenes">
+                  <h4 class="outline-draft-scenes-title">{{ t('outline.aiDraftScenesLabel') }}</h4>
+                  <div
+                    v-for="(sc, si) in ch.scenes || []"
+                    :key="`${beat}-${ci}-scene-${si}`"
+                    class="outline-draft-scene"
+                  >
+                    <label class="outline-draft-label">
+                      {{ t('outline.sceneTitle') }}
+                      <input v-model="local.sections[beat][ci].scenes[si].title" type="text" />
+                    </label>
+                    <label class="outline-draft-label">
+                      {{ t('outline.oneSentenceSummary') }}
+                      <textarea v-model="local.sections[beat][ci].scenes[si].oneSentence" rows="2" />
+                    </label>
+                    <label class="outline-draft-label">
+                      {{ t('outline.notes') }}
+                      <textarea v-model="local.sections[beat][ci].scenes[si].notes" rows="2" />
+                    </label>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </section>
+        </template>
       </div>
 
       <footer class="outline-draft-footer">
@@ -98,22 +128,21 @@ import { useI18n } from '@/composables/useI18n';
 
 const props = defineProps({
   open: { type: Boolean, default: false },
-  draft: {
-    type: Object,
-    default: () => ({ sections: {} }),
-  },
-  beats: {
-    type: Array,
-    default: () => [],
-  },
+  draft: { type: Object, default: () => ({ sections: {} }) },
+  beats: { type: Array, default: () => [] },
+  scope: { type: String, default: 'all' },
 });
 
 const emit = defineEmits(['close', 'apply']);
 const { t } = useI18n();
 
-const local = reactive({
-  sections: {},
+const title = computed(() => {
+  if (props.scope === 'all') return t.value('outline.aiDraftTitle');
+  const sectionName = t.value(`outline.section.${props.scope}`);
+  return t.value('outline.aiDraftSectionTitle', { section: sectionName });
 });
+
+const local = reactive({ sections: {} });
 
 function resetLocal(from) {
   const src = from && typeof from === 'object' ? from : { sections: {} };
@@ -136,25 +165,14 @@ function resetLocal(from) {
   local.sections = next;
 }
 
-watch(
-  () => props.draft,
-  (val) => {
-    resetLocal(val);
-  },
-  { immediate: true, deep: false }
-);
+watch(() => props.draft, (val) => { resetLocal(val); }, { immediate: true, deep: false });
 
-const sectionChapters = (beat) =>
-  (local.sections && local.sections[beat]) || [];
+const sectionChapters = (beat) => (local.sections && local.sections[beat]) || [];
 
-function onClose() {
-  emit('close');
-}
+function onClose() { emit('close'); }
 
 function onApply() {
-  const payload = {
-    sections: {},
-  };
+  const payload = { sections: {} };
   for (const key of Object.keys(local.sections || {})) {
     payload.sections[key] = local.sections[key].map((ch) => ({
       chapterTitle: ch.chapterTitle ?? '',
@@ -274,4 +292,3 @@ function onApply() {
   margin-top: var(--space-3);
 }
 </style>
-

@@ -1,48 +1,63 @@
 <template>
   <div class="app">
-    <nav class="nav">
-      <router-link to="/entities" class="nav-link" @click="onNavClick('/entities', $event)">
-        <span class="nav-icon">📦</span>
-        <span class="nav-link-text">{{ t('nav.entities') }}</span>
+    <nav class="nav" role="navigation" aria-label="Main navigation">
+      <router-link to="/ideas" class="nav-link" @click="onNavClick">
+        <NavIcon name="ideas" />
+        <span class="nav-link-text">{{ t('nav.ideas') }}</span>
       </router-link>
-      <router-link to="/characters" class="nav-link" @click="onNavClick('/characters', $event)">
-        <span class="nav-icon">👤</span>
+      <router-link to="/characters" class="nav-link" @click="onNavClick">
+        <NavIcon name="characters" />
         <span class="nav-link-text">{{ t('nav.characters') }}</span>
       </router-link>
-      <router-link to="/story" class="nav-link" @click="onNavClick('/story', $event)">
-        <span class="nav-icon">📖</span>
+      <router-link to="/story" class="nav-link" @click="onNavClick">
+        <NavIcon name="story" />
         <span class="nav-link-text">{{ t('nav.story') }}</span>
       </router-link>
-      <router-link to="/outline" class="nav-link" @click="onNavClick('/outline', $event)">
-        <span class="nav-icon">📋</span>
+      <router-link to="/outline" class="nav-link" @click="onNavClick">
+        <NavIcon name="outline" />
         <span class="nav-link-text">{{ t('nav.outline') }}</span>
       </router-link>
-      <router-link to="/write" class="nav-link" @click="onNavClick('/write', $event)">
-        <span class="nav-icon">✏️</span>
+      <router-link to="/write" class="nav-link" @click="onNavClick">
+        <NavIcon name="write" />
         <span class="nav-link-text">{{ t('nav.write') }}</span>
       </router-link>
-      <router-link to="/settings" class="nav-link" @click="onNavClick('/settings', $event)">
-        <span class="nav-icon">⚙️</span>
+      <router-link to="/settings" class="nav-link" @click="onNavClick">
+        <NavIcon name="settings" />
         <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
     </nav>
+
     <div class="app-body">
       <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
         <div class="sidebar-header">
           <h2 class="sidebar-title">{{ t('sidebar.contents') }}</h2>
-          <button
-            v-if="isMobile"
-            type="button"
-            class="sidebar-close"
-            aria-label="Close sidebar"
-            @click="sidebarOpen = false"
-          >
-            ×
-          </button>
+          <div class="sidebar-header-actions">
+            <button
+              type="button"
+              class="sidebar-icon-btn"
+              :title="t('search.placeholder')"
+              aria-label="Search"
+              @click="searchOpen = true"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </button>
+            <button
+              v-if="isMobile"
+              type="button"
+              class="sidebar-close"
+              aria-label="Close sidebar"
+              @click="sidebarOpen = false"
+            >
+              ×
+            </button>
+          </div>
         </div>
         <nav class="sidebar-nav">
           <section class="sidebar-section">
-            <h3 class="sidebar-section-title">{{ t('sidebar.story') }}</h3>
+            <button type="button" class="sidebar-section-title sidebar-section-title-btn" @click="storySwitcherOpen = true">
+              {{ t('sidebar.story') }}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+            </button>
             <template v-if="stories.length">
               <button
                 v-for="s in stories"
@@ -87,12 +102,14 @@
           </section>
         </nav>
       </aside>
+
       <div
         v-if="isMobile && sidebarOpen"
         class="sidebar-scrim"
         aria-hidden="true"
         @click="sidebarOpen = false"
       />
+
       <button
         v-if="isMobile"
         type="button"
@@ -100,8 +117,10 @@
         aria-label="Open sidebar"
         @click="sidebarOpen = true"
       >
-        📋 {{ t('sidebar.contents') }}
+        <NavIcon name="contents" :size="16" />
+        {{ t('sidebar.contents') }}
       </button>
+
       <main class="main-content">
         <router-view :key="route.path" v-slot="{ Component }">
           <component v-if="Component" :is="Component" />
@@ -109,6 +128,16 @@
         </router-view>
       </main>
     </div>
+
+    <StorySwitcher
+      v-model="storySwitcherOpen"
+      :stories="stories"
+      :current-story-id="currentStoryId"
+      @select="switchStory"
+      @new="addNewStory"
+    />
+    <SearchModal v-model="searchOpen" />
+    <AppToast />
   </div>
 </template>
 
@@ -118,6 +147,10 @@ import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
 import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
+import NavIcon from '@/components/NavIcon.vue';
+import AppToast from '@/components/AppToast.vue';
+import StorySwitcher from '@/components/StorySwitcher.vue';
+import SearchModal from '@/components/SearchModal.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -126,6 +159,8 @@ const { chapters, load, getScenesForChapter } = useOutline();
 
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
+const storySwitcherOpen = ref(false);
+const searchOpen = ref(false);
 const ideas = ref([]);
 const stories = ref([]);
 const currentStoryId = ref(getCurrentStoryId());
@@ -134,9 +169,7 @@ const currentSceneId = computed(() =>
   route.name === 'scene' ? route.params.sceneId : null
 );
 
-function onNavClick() {
-  // Optional: analytics or nav tracking can go here
-}
+function onNavClick() {}
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768;
@@ -195,8 +228,13 @@ async function onRouteChange() {
       await loadIdeas();
       if (route.path === '/story') await loadStories();
     }
-  } catch (_) {
-    // avoid one failing load breaking navigation
+  } catch (_) {}
+}
+
+function onGlobalKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    searchOpen.value = true;
   }
 }
 
@@ -206,6 +244,7 @@ onMounted(async () => {
   loadIdeas();
   checkMobile();
   window.addEventListener('resize', checkMobile);
+  window.addEventListener('keydown', onGlobalKeydown);
   window.addEventListener('inkflow-story-saved', loadStories);
   window.addEventListener('inkflow-outline-changed', load);
   window.addEventListener('inkflow-ideas-changed', onIdeasChanged);
@@ -214,6 +253,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
+  window.removeEventListener('keydown', onGlobalKeydown);
   window.removeEventListener('inkflow-story-saved', loadStories);
   window.removeEventListener('inkflow-outline-changed', load);
   window.removeEventListener('inkflow-ideas-changed', onIdeasChanged);
@@ -282,6 +322,27 @@ watch(
   margin: 0;
   color: var(--text);
 }
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.sidebar-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.sidebar-icon-btn:hover {
+  color: var(--text);
+  background: var(--bg);
+}
 .sidebar-close {
   background: none;
   border: none;
@@ -294,13 +355,22 @@ watch(
 .sidebar-close:hover {
   color: var(--text);
 }
-.sidebar-empty {
-  padding: var(--space-4);
-  font-size: 0.875rem;
+.sidebar-section-title-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  text-align: left;
   color: var(--text-muted);
+  padding: var(--space-1) var(--space-4);
+  margin: 0 0 var(--space-1);
 }
-.sidebar-empty p {
-  margin: 0 0 var(--space-2);
+.sidebar-section-title-btn:hover {
+  color: var(--text);
 }
 .sidebar-link {
   font-weight: 500;
@@ -353,16 +423,6 @@ watch(
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-.sidebar-item-meta {
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  color: var(--text-muted);
-  flex-shrink: 0;
-}
-.sidebar-item.active .sidebar-item-meta {
-  color: var(--accent);
-  opacity: 0.9;
 }
 .sidebar-item-button {
   width: 100%;
@@ -449,6 +509,9 @@ watch(
   bottom: calc(60px + env(safe-area-inset-bottom, 0px));
   left: var(--space-3);
   z-index: 99;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
   font-size: 0.875rem;
   background: var(--bg-elevated);
@@ -460,17 +523,6 @@ watch(
 }
 .sidebar-toggle:hover {
   background: var(--border);
-}
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.15s ease;
-}
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
-}
-.nav-icon {
-  font-size: 1.125rem;
 }
 
 /* Mobile: sidebar as overlay */
@@ -489,7 +541,7 @@ watch(
     transform: translateX(0);
   }
   .sidebar-toggle {
-    display: block;
+    display: flex;
     bottom: calc(56px + env(safe-area-inset-bottom, 0px) + 8px);
   }
 }
@@ -498,9 +550,6 @@ watch(
     transform: none;
   }
   .sidebar-toggle {
-    display: none;
-  }
-  .nav-icon {
     display: none;
   }
 }

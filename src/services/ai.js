@@ -89,7 +89,7 @@ export function setModel(provider, tier, modelId) {
   else localStorage.removeItem(key);
 }
 
-const LOCALE_TO_LANGUAGE = Object.freeze({
+export const LOCALE_TO_LANGUAGE = Object.freeze({
   en: "English",
   zh: "Chinese (中文)",
   es: "Spanish (Español)",
@@ -97,7 +97,7 @@ const LOCALE_TO_LANGUAGE = Object.freeze({
 });
 
 /** Strong language instruction so the model never switches language. */
-function getLanguageRule(locale) {
+export function getLanguageRule(locale) {
   const lang = LOCALE_TO_LANGUAGE[locale] || "English";
   if (locale === "zh") {
     return `CRITICAL: You must write the entire response in Chinese only (中文). Do not use English or any other language. 请只用中文回复。`;

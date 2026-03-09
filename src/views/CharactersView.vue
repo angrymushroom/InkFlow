@@ -55,7 +55,7 @@
           <h3 class="char-name">{{ char.name || t('characters.unnamed') }}</h3>
           <div class="char-actions">
             <button class="btn btn-ghost btn-sm btn-icon" @click="editCharacter(char)" :title="t('ideas.edit')">✏️</button>
-            <button class="btn btn-ghost btn-sm btn-icon" @click="removeCharacter(char.id)" :title="t('ideas.delete')">🗑️</button>
+            <button class="btn btn-ghost btn-sm btn-icon" @click="confirmDelete(char)" :title="t('ideas.delete')">🗑️</button>
           </div>
         </div>
         <p v-if="char.oneSentence" class="char-one-sentence">{{ char.oneSentence }}</p>
@@ -79,6 +79,15 @@
         </dl>
       </div>
     </div>
+
+    <ConfirmModal
+      v-model="deleteModal.open"
+      :title="t('characters.confirmDelete')"
+      :confirm-label="t('ideas.delete')"
+      :cancel-label="t('ideas.cancel')"
+      :danger="true"
+      @confirm="doDelete"
+    />
   </div>
 </template>
 
@@ -88,6 +97,7 @@ import { getCharacters, addCharacter, updateCharacter, deleteCharacter } from '@
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
+import ConfirmModal from '@/components/ConfirmModal.vue';
 
 const { t } = useI18n();
 
@@ -104,6 +114,7 @@ const form = ref({
 });
 const loadError = ref('');
 const saveError = ref('');
+const deleteModal = ref({ open: false, character: null });
 
 async function load() {
   loadError.value = '';
@@ -154,11 +165,17 @@ async function saveCharacter() {
   }
 }
 
-async function removeCharacter(id) {
-  if (!confirm(t.value('characters.confirmDelete'))) return;
+function confirmDelete(char) {
+  deleteModal.value = { open: true, character: char };
+}
+
+async function doDelete() {
+  const char = deleteModal.value.character;
+  if (!char) return;
+  deleteModal.value.open = false;
   saveError.value = '';
   try {
-    await deleteCharacter(id);
+    await deleteCharacter(char.id);
     await load();
     window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
   } catch (e) {

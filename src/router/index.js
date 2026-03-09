@@ -4,9 +4,9 @@ import { getUnsavedMessage } from "@/utils/i18nRouter";
 import EntitiesPage from "@/views/EntitiesPage.vue";
 
 const routes = [
-  { path: "/", redirect: "/entities" },
-  { path: "/entities", name: "entities", component: EntitiesPage, meta: { title: "Entities" } },
-  { path: "/ideas", redirect: "/entities" },
+  { path: "/", redirect: "/ideas" },
+  { path: "/ideas", name: "ideas", component: EntitiesPage, meta: { title: "Ideas" } },
+  { path: "/entities", redirect: "/ideas" },
   { path: "/story", name: "story", component: () => import("@/views/StoryView.vue"), meta: { title: "Story" } },
   { path: "/characters", name: "characters", component: () => import("@/views/CharactersView.vue"), meta: { title: "Characters" } },
   { path: "/outline", name: "outline", component: () => import("@/views/OutlineView.vue"), meta: { title: "Outline" } },
@@ -47,7 +47,6 @@ router.beforeEach((to, from, next) => {
     }
     next();
   } catch (err) {
-    // Ensure navigation is never stuck if confirm/getUnsavedMessage throws (e.g. popup blocked, locale error)
     next();
   }
 });
