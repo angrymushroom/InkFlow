@@ -5,8 +5,35 @@ export const OUTLINE_BEATS = Object.freeze(['setup', 'disaster1', 'disaster2', '
 
 const STORAGE_LOCALE = 'inkflow_locale';
 
-function getOutputLocale() {
+function getSettingsLocale() {
   try { return localStorage.getItem(STORAGE_LOCALE) || 'en'; } catch { return 'en'; }
+}
+
+const CJK_RE = /[\u3040-\u30ff\u4e00-\u9fff\uac00-\ud7af]/g;
+const LATIN_WORD_RE = /[a-zA-ZÀ-ÿ]+/g;
+
+/**
+ * Detect the dominant writing language from actual user content.
+ * Counts CJK characters (each ≈ 1 word) vs Latin words in the combined
+ * text of the story spine, characters, and ideas.
+ * Falls back to the Settings locale when content is absent or ambiguous.
+ */
+function detectContentLocale(story, ideas, characters, settingsLocale) {
+  const sample = [
+    story?.oneSentence, story?.setup, story?.disaster1, story?.disaster2, story?.disaster3, story?.ending,
+    ...(ideas || []).map((i) => `${i.title || ''} ${i.body || ''}`),
+    ...(characters || []).map((c) =>
+      [c.name, c.oneSentence, c.goal, c.motivation, c.conflict, c.epiphany].filter(Boolean).join(' ')
+    ),
+  ].filter(Boolean).join(' ');
+
+  const cjkWords = (sample.match(CJK_RE) || []).length;
+  const latinWords = (sample.match(LATIN_WORD_RE) || []).length;
+
+  // If CJK characters are a clear majority, the user is writing in Chinese.
+  // Otherwise trust the Settings locale (handles en/es/fr distinctions).
+  if (cjkWords > 0 && cjkWords >= latinWords) return 'zh';
+  return settingsLocale || 'en';
 }
 
 function stripCodeFences(s) {
@@ -203,7 +230,7 @@ export async function draftOutlineFromSpine({ storyId, scope = 'all' }) {
   ]);
   if (!story) throw new Error('Story not found.');
 
-  const locale = getOutputLocale();
+  const locale = detectContentLocale(story, ideas, characters, getSettingsLocale());
   const existingOutline = buildExistingOutlineBlurb(chapters, scenes);
   const { systemPrompt, userPrompt } = buildDraftPrompt({
     story, ideas, characters, existingOutline, scope, locale,
