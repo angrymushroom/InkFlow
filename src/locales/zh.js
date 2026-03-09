@@ -310,6 +310,18 @@ export default {
     modelLongForm: '长文模型',
     modelLongFormHint: '用于日后长文功能（如写长场景）。若当前 API 不支持会自动退回快速模型。',
   },
+  storySwitcher: {
+    current: '当前',
+  },
+  search: {
+    placeholder: '搜索灵感、角色、场景…',
+    typeToSearch: '输入至少 2 个字符以搜索',
+    noResults: '无结果',
+    typeIdea: '灵感',
+    typeCharacter: '角色',
+    typeChapter: '章节',
+    typeScene: '场景',
+  },
   ai: {
     expandWithAi: '✨ 用 AI 扩展',
     titleExpand: '用 AI 结合灵感与故事扩展此处',

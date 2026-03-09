@@ -224,6 +224,11 @@ export default {
     generatingFromHere: 'Generating…',
     generateFromHereDone: '{{generated}} scene(s) generated.',
     generateFromHereError: 'Some scenes failed. Check API key in Export → AI.',
+    totalWords: 'total words',
+    scenesWritten: 'scenes written',
+    scenesTotal: 'total scenes',
+    words: 'words',
+    notStarted: 'not started',
   },
   writeQuick: {
     capture: 'Capture selection',
@@ -316,6 +321,18 @@ export default {
     modelQuickHint: 'Used for "✨ Expand with AI" — fast, cheap. Use a lighter model here.',
     modelLongForm: 'Long-form model',
     modelLongFormHint: 'Used for future features (e.g. writing long scenes). Falls back to quick model if not available.',
+  },
+  storySwitcher: {
+    current: 'Current',
+  },
+  search: {
+    placeholder: 'Search ideas, characters, scenes…',
+    typeToSearch: 'Type 2+ characters to search',
+    noResults: 'No results',
+    typeIdea: 'Idea',
+    typeCharacter: 'Character',
+    typeChapter: 'Chapter',
+    typeScene: 'Scene',
   },
   ai: {
     expandWithAi: '✨ Expand with AI',

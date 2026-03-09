@@ -310,6 +310,18 @@ export default {
     modelLongForm: 'Modelo para texto largo',
     modelLongFormHint: 'Para funciones futuras (p. ej. escribir escenas largas). Si no está disponible, se usará el modelo rápido.',
   },
+  storySwitcher: {
+    current: 'Actual',
+  },
+  search: {
+    placeholder: 'Buscar ideas, personajes, escenas…',
+    typeToSearch: 'Escribe 2+ caracteres para buscar',
+    noResults: 'Sin resultados',
+    typeIdea: 'Idea',
+    typeCharacter: 'Personaje',
+    typeChapter: 'Capítulo',
+    typeScene: 'Escena',
+  },
   ai: {
     expandWithAi: '✨ Expandir con IA',
     titleExpand: 'Expandir esto con IA usando Ideas e Historia',

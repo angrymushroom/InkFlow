@@ -31,19 +31,33 @@
       <aside class="sidebar" :class="{ 'sidebar-open': sidebarOpen }">
         <div class="sidebar-header">
           <h2 class="sidebar-title">{{ t('sidebar.contents') }}</h2>
-          <button
-            v-if="isMobile"
-            type="button"
-            class="sidebar-close"
-            aria-label="Close sidebar"
-            @click="sidebarOpen = false"
-          >
-            ×
-          </button>
+          <div class="sidebar-header-actions">
+            <button
+              type="button"
+              class="sidebar-icon-btn"
+              :title="t('search.placeholder')"
+              aria-label="Search"
+              @click="searchOpen = true"
+            >
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+            </button>
+            <button
+              v-if="isMobile"
+              type="button"
+              class="sidebar-close"
+              aria-label="Close sidebar"
+              @click="sidebarOpen = false"
+            >
+              ×
+            </button>
+          </div>
         </div>
         <nav class="sidebar-nav">
           <section class="sidebar-section">
-            <h3 class="sidebar-section-title">{{ t('sidebar.story') }}</h3>
+            <button type="button" class="sidebar-section-title sidebar-section-title-btn" @click="storySwitcherOpen = true">
+              {{ t('sidebar.story') }}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+            </button>
             <template v-if="stories.length">
               <button
                 v-for="s in stories"
@@ -115,6 +129,14 @@
       </main>
     </div>
 
+    <StorySwitcher
+      v-model="storySwitcherOpen"
+      :stories="stories"
+      :current-story-id="currentStoryId"
+      @select="switchStory"
+      @new="addNewStory"
+    />
+    <SearchModal v-model="searchOpen" />
     <AppToast />
   </div>
 </template>
@@ -127,6 +149,8 @@ import { useOutline } from '@/composables/useOutline';
 import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
 import NavIcon from '@/components/NavIcon.vue';
 import AppToast from '@/components/AppToast.vue';
+import StorySwitcher from '@/components/StorySwitcher.vue';
+import SearchModal from '@/components/SearchModal.vue';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -135,6 +159,8 @@ const { chapters, load, getScenesForChapter } = useOutline();
 
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
+const storySwitcherOpen = ref(false);
+const searchOpen = ref(false);
 const ideas = ref([]);
 const stories = ref([]);
 const currentStoryId = ref(getCurrentStoryId());
@@ -205,12 +231,20 @@ async function onRouteChange() {
   } catch (_) {}
 }
 
+function onGlobalKeydown(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    searchOpen.value = true;
+  }
+}
+
 onMounted(async () => {
   await loadStories();
   load();
   loadIdeas();
   checkMobile();
   window.addEventListener('resize', checkMobile);
+  window.addEventListener('keydown', onGlobalKeydown);
   window.addEventListener('inkflow-story-saved', loadStories);
   window.addEventListener('inkflow-outline-changed', load);
   window.addEventListener('inkflow-ideas-changed', onIdeasChanged);
@@ -219,6 +253,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile);
+  window.removeEventListener('keydown', onGlobalKeydown);
   window.removeEventListener('inkflow-story-saved', loadStories);
   window.removeEventListener('inkflow-outline-changed', load);
   window.removeEventListener('inkflow-ideas-changed', onIdeasChanged);
@@ -287,6 +322,27 @@ watch(
   margin: 0;
   color: var(--text);
 }
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.sidebar-icon-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  padding: var(--space-1);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+.sidebar-icon-btn:hover {
+  color: var(--text);
+  background: var(--bg);
+}
 .sidebar-close {
   background: none;
   border: none;
@@ -297,6 +353,23 @@ watch(
   padding: var(--space-1);
 }
 .sidebar-close:hover {
+  color: var(--text);
+}
+.sidebar-section-title-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  width: 100%;
+  text-align: left;
+  color: var(--text-muted);
+  padding: var(--space-1) var(--space-4);
+  margin: 0 0 var(--space-1);
+}
+.sidebar-section-title-btn:hover {
   color: var(--text);
 }
 .sidebar-link {
