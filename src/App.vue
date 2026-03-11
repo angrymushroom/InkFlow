@@ -86,8 +86,30 @@
             </div>
             <template v-else>
               <div v-for="(ch, chIndex) in chapters" :key="ch.id" class="sidebar-chapter">
-                <div class="sidebar-chapter-title">{{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}</div>
+                <!-- On outline page: click scrolls to chapter/scene on same page; on write page: scene links navigate to editor -->
+                <button
+                  v-if="route.path === '/outline'"
+                  type="button"
+                  class="sidebar-chapter-title sidebar-chapter-title-btn"
+                  @click="sidebarFocus(ch.id, null)"
+                >
+                  {{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}
+                </button>
+                <div v-else class="sidebar-chapter-title">{{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}</div>
+                <template v-if="route.path === '/outline'">
+                  <button
+                    v-for="(scene, scIndex) in getScenesForChapter(ch.id)"
+                    :key="scene.id"
+                    type="button"
+                    class="sidebar-scene sidebar-scene-btn"
+                    :class="{ active: currentSceneId === scene.id }"
+                    @click="sidebarFocus(ch.id, scene.id)"
+                  >
+                    {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}: {{ scene.title || t('outline.untitledScene') }}
+                  </button>
+                </template>
                 <router-link
+                  v-else
                   v-for="(scene, scIndex) in getScenesForChapter(ch.id)"
                   :key="scene.id"
                   :to="`/write/${scene.id}`"
@@ -170,6 +192,11 @@ const currentSceneId = computed(() =>
 );
 
 function onNavClick() {}
+
+function sidebarFocus(chapterId, sceneId) {
+  window.dispatchEvent(new CustomEvent('inkflow-sidebar-focus', { detail: { chapterId, sceneId } }));
+  sidebarOpen.value = false;
+}
 
 function checkMobile() {
   isMobile.value = window.innerWidth < 768;
@@ -279,15 +306,18 @@ watch(
 
 <style scoped>
 .app {
-  min-height: 100vh;
+  height: 100vh;
+  height: 100dvh;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .app-body {
   flex: 1;
-  display: flex;
   min-height: 0;
+  display: flex;
   position: relative;
+  overflow: hidden;
 }
 @media (min-width: 768px) {
   .app-body {
@@ -297,8 +327,10 @@ watch(
 .main-content {
   flex: 1;
   min-width: 0;
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow-y: auto;
 }
 .sidebar {
   width: 260px;
@@ -478,6 +510,17 @@ watch(
   padding: var(--space-1) var(--space-4);
   margin-bottom: var(--space-1);
 }
+.sidebar-chapter-title-btn {
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+.sidebar-chapter-title-btn:hover {
+  color: var(--text);
+}
 .sidebar-scene {
   display: block;
   font-size: 0.9375rem;
@@ -493,6 +536,30 @@ watch(
   color: var(--text);
 }
 .sidebar-scene.active {
+  background: rgba(37, 99, 235, 0.08);
+  border-left-color: var(--accent);
+  color: var(--accent);
+  font-weight: 500;
+}
+.sidebar-scene-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  font-size: 0.9375rem;
+  padding: var(--space-2) var(--space-4);
+  color: var(--text);
+  background: none;
+  border: none;
+  border-left: 3px solid transparent;
+  cursor: pointer;
+  font: inherit;
+  transition: background 0.15s, border-color 0.15s;
+}
+.sidebar-scene-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.sidebar-scene-btn.active {
   background: rgba(37, 99, 235, 0.08);
   border-left-color: var(--accent);
   color: var(--accent);

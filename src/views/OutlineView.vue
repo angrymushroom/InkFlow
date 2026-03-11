@@ -147,8 +147,9 @@
             {{ t('outline.noChaptersInSection') }}
           </div>
 
-          <div v-else class="outline-list">
-            <div v-for="ch in chaptersForBeat(b)" :key="ch.id" class="card chapter-card">
+          <div v-else class="outline-list" :data-sortable-chapter-list="b">
+            <div v-for="ch in chaptersForBeat(b)" :key="ch.id" :id="'chapter-' + ch.id" class="card chapter-card">
+              <span class="chapter-drag-handle" aria-label="Reorder chapter" title="Drag to reorder">≡</span>
               <!-- Edit chapter form inline -->
               <div
                 v-if="activeChapterForm?.mode === 'edit' && activeChapterForm?.chapterId === ch.id"
@@ -180,7 +181,7 @@
 
               <template v-else>
                 <div class="chapter-header">
-                  <h3 class="chapter-title chapter-title-link" @click="goToWrite">
+                  <h3 class="chapter-title chapter-title-link" @click="scrollToChapter(ch.id)">
                     {{ ch.title || t('outline.untitledChapter') }}
                   </h3>
                   <div class="chapter-actions">
@@ -194,13 +195,15 @@
                   </div>
                 </div>
                 <p v-if="ch.summary" class="chapter-summary">{{ ch.summary }}</p>
-                <div class="scenes">
+                <div class="scenes" :data-sortable-scene-list="ch.id" :data-chapter-id="ch.id">
                   <div
                     v-for="scene in scenesByChapter(ch.id)"
                     :key="scene.id"
+                    :id="'scene-' + scene.id"
                     class="scene-card"
-                    @click="editingSceneId !== scene.id && goToScene(scene.id)"
+                    @click="editingSceneId !== scene.id && scrollToScene(scene.id)"
                   >
+                    <span class="scene-drag-handle" aria-label="Reorder scene" title="Drag to reorder">≡</span>
                     <div v-if="editingSceneId === scene.id" class="outline-inline-scene-form card form-card" @click.stop>
                       <h3 class="form-title">{{ t('outline.editScene') }}</h3>
                       <div class="form-group">
@@ -266,8 +269,9 @@
         </button>
 
         <div v-show="!collapsedBeats['ungrouped']" class="outline-section-body">
-          <div class="outline-list">
-            <div v-for="ch in ungroupedChapters" :key="ch.id" class="card chapter-card">
+          <div class="outline-list" data-sortable-chapter-list="ungrouped">
+            <div v-for="ch in ungroupedChapters" :key="ch.id" :id="'chapter-' + ch.id" class="card chapter-card">
+              <span class="chapter-drag-handle" aria-label="Reorder chapter" title="Drag to reorder">≡</span>
               <div
                 v-if="activeChapterForm?.mode === 'edit' && activeChapterForm?.chapterId === ch.id"
                 ref="chapterFormRef"
@@ -297,7 +301,7 @@
               </div>
               <template v-else>
                 <div class="chapter-header">
-                  <h3 class="chapter-title chapter-title-link" @click="goToWrite">
+                  <h3 class="chapter-title chapter-title-link" @click="scrollToChapter(ch.id)">
                     {{ ch.title || t('outline.untitledChapter') }}
                   </h3>
                   <div class="chapter-actions">
@@ -311,13 +315,15 @@
                   </div>
                 </div>
                 <p v-if="ch.summary" class="chapter-summary">{{ ch.summary }}</p>
-                <div class="scenes">
+                <div class="scenes" :data-sortable-scene-list="ch.id" :data-chapter-id="ch.id">
                   <div
                     v-for="scene in scenesByChapter(ch.id)"
                     :key="scene.id"
+                    :id="'scene-' + scene.id"
                     class="scene-card"
-                    @click="editingSceneId !== scene.id && goToScene(scene.id)"
+                    @click="editingSceneId !== scene.id && scrollToScene(scene.id)"
                   >
+                    <span class="scene-drag-handle" aria-label="Reorder scene" title="Drag to reorder">≡</span>
                     <div v-if="editingSceneId === scene.id" class="outline-inline-scene-form card form-card" @click.stop>
                       <h3 class="form-title">{{ t('outline.editScene') }}</h3>
                       <div class="form-group">
@@ -404,7 +410,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick, reactive } from 'vue';
-import { useRouter } from 'vue-router';
+import Sortable from 'sortablejs';
 import {
   getCharacters,
   getStory,
@@ -416,6 +422,8 @@ import {
   addScene,
   updateScene,
   deleteScene,
+  reorderChapters,
+  reorderScenesInChapter,
 } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
@@ -428,7 +436,6 @@ import { useToast } from '@/composables/useToast';
 
 const { t } = useI18n();
 const { error: toastError } = useToast();
-const router = useRouter();
 const { chapters, scenes, load, loadError, getScenesForChapter } = useOutline();
 const saveError = ref('');
 
@@ -447,6 +454,9 @@ const chapterForm = ref({ title: '', summary: '', beat: 'setup' });
 const sceneForm = ref({ chapterId: '', title: '', oneSentenceSummary: '', povCharacterId: '', notes: '' });
 
 const beats = ['setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
+const beatOrder = [...beats, 'ungrouped'];
+
+const sortableInstances = [];
 
 // Collapsed state for each beat + ungrouped
 const COLLAPSE_KEY = 'inkflow_outline_collapsed';
@@ -572,8 +582,20 @@ async function doDeleteScene() {
   }
 }
 
-function goToWrite() { router.push('/write'); }
-function goToScene(sceneId) { router.push(`/write/${sceneId}`); }
+function scrollToChapter(chapterId) {
+  document.getElementById('chapter-' + chapterId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function scrollToScene(sceneId) {
+  document.getElementById('scene-' + sceneId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+function onSidebarFocus(e) {
+  const { chapterId, sceneId } = e.detail || {};
+  if (sceneId) {
+    document.getElementById('scene-' + sceneId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } else if (chapterId) {
+    document.getElementById('chapter-' + chapterId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+}
 
 function openNewScene() {
   editingSceneId.value = null;
@@ -750,12 +772,76 @@ async function applyDraft(payload) {
   }
 }
 
-onMounted(() => {
-  loadAll();
-  window.addEventListener('inkflow-story-switched', loadAll);
+function initSortables() {
+  sortableInstances.forEach((s) => s.destroy());
+  sortableInstances.length = 0;
+
+  document.querySelectorAll('[data-sortable-chapter-list]').forEach((el) => {
+    const beat = el.getAttribute('data-sortable-chapter-list');
+    const sortable = Sortable.create(el, {
+      handle: '.chapter-drag-handle',
+      animation: 150,
+      onEnd() {
+        const ids = [...el.querySelectorAll('[id^="chapter-"]')].map((node) => node.id.replace('chapter-', ''));
+        if (ids.length === 0) return;
+        const byBeat = {};
+        for (const ch of chapters.value) {
+          const b = ch.beat && beatOrder.includes(ch.beat) ? ch.beat : 'ungrouped';
+          if (!byBeat[b]) byBeat[b] = [];
+          byBeat[b].push(ch);
+        }
+        byBeat[beat] = ids.map((id) => chapters.value.find((c) => c.id === id)).filter(Boolean);
+        const fullOrder = beatOrder.flatMap((b) => (byBeat[b] || []).map((c) => c.id));
+        reorderChapters(getCurrentStoryId(), fullOrder).then(async () => {
+          await loadAll();
+          window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
+          await nextTick();
+          initSortables();
+        });
+      },
+    });
+    sortableInstances.push(sortable);
+  });
+
+  document.querySelectorAll('[data-sortable-scene-list]').forEach((el) => {
+    const chapterId = el.getAttribute('data-chapter-id');
+    if (!chapterId) return;
+    const sortable = Sortable.create(el, {
+      handle: '.scene-drag-handle',
+      animation: 150,
+      onEnd() {
+        const ids = [...el.querySelectorAll('[id^="scene-"]')].map((node) => node.id.replace('scene-', ''));
+        if (ids.length === 0) return;
+        reorderScenesInChapter(chapterId, ids).then(async () => {
+          await loadAll();
+          window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
+          await nextTick();
+          initSortables();
+        });
+      },
+    });
+    sortableInstances.push(sortable);
+  });
+}
+
+async function onStorySwitched() {
+  await loadAll();
+  await nextTick();
+  initSortables();
+}
+
+onMounted(async () => {
+  await loadAll();
+  window.addEventListener('inkflow-story-switched', onStorySwitched);
+  window.addEventListener('inkflow-sidebar-focus', onSidebarFocus);
+  await nextTick();
+  initSortables();
 });
 onUnmounted(() => {
-  window.removeEventListener('inkflow-story-switched', loadAll);
+  window.removeEventListener('inkflow-story-switched', onStorySwitched);
+  window.removeEventListener('inkflow-sidebar-focus', onSidebarFocus);
+  sortableInstances.forEach((s) => s.destroy());
+  sortableInstances.length = 0;
 });
 </script>
 
@@ -832,7 +918,19 @@ onUnmounted(() => {
 .outline-section-empty { padding: var(--space-3) 0 var(--space-1); color: var(--text-muted); }
 .outline-section--ungrouped { border: 1px solid rgba(220, 38, 38, 0.25); }
 .outline-list { display: flex; flex-direction: column; gap: var(--space-4); }
-.chapter-card { padding: var(--space-4); }
+.chapter-card { position: relative; padding: var(--space-4); padding-right: var(--space-6); }
+.chapter-drag-handle {
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  cursor: grab;
+  color: var(--text-muted);
+  padding: var(--space-1);
+  font-size: 1rem;
+  line-height: 1;
+  user-select: none;
+}
+.chapter-drag-handle:active { cursor: grabbing; }
 .chapter-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2); }
 .chapter-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
 .chapter-summary { font-size: 0.9375rem; color: var(--text-muted); margin: 0 0 var(--space-3); }
@@ -847,6 +945,16 @@ onUnmounted(() => {
   background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
   cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 }
+.scene-drag-handle {
+  flex-shrink: 0;
+  cursor: grab;
+  color: var(--text-muted);
+  padding: var(--space-1);
+  font-size: 1rem;
+  line-height: 1;
+  user-select: none;
+}
+.scene-drag-handle:active { cursor: grabbing; }
 .scene-card:hover { background: var(--bg-elevated); border-color: var(--accent); box-shadow: var(--shadow); }
 .scene-card-main { flex: 1; min-width: 0; }
 .scene-card-title { font-weight: 600; font-size: 1rem; display: block; }

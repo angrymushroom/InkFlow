@@ -334,6 +334,15 @@ export async function updateChapter(id, data) {
   await db.chapters.update(id, { ...data, updatedAt: Date.now() });
 }
 
+/**
+ * Update chapter order for the whole story. chapterIdsInOrder is the full list of chapter ids in desired order.
+ */
+export async function reorderChapters(storyId, chapterIdsInOrder) {
+  for (let i = 0; i < chapterIdsInOrder.length; i++) {
+    await db.chapters.update(chapterIdsInOrder[i], { order: i, updatedAt: Date.now() });
+  }
+}
+
 export async function deleteChapter(id) {
   await db.scenes.where("chapterId").equals(id).delete();
   await db.chapters.delete(id);
@@ -383,6 +392,15 @@ export async function updateScene(id, data) {
       "Could not save scene. If you're in private browsing or out of space, try downloading a backup and using a normal window.",
       e
     );
+  }
+}
+
+/**
+ * Update scene order within a chapter. sceneIdsInOrder is the list of scene ids in desired order.
+ */
+export async function reorderScenesInChapter(chapterId, sceneIdsInOrder) {
+  for (let i = 0; i < sceneIdsInOrder.length; i++) {
+    await db.scenes.update(sceneIdsInOrder[i], { order: i, updatedAt: Date.now() });
   }
 }
 
