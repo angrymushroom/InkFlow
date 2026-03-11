@@ -146,13 +146,13 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
-import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId } from '@/db';
+import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId, seedExampleStoryOnce } from '@/db';
 import NavIcon from '@/components/NavIcon.vue';
 import AppToast from '@/components/AppToast.vue';
 import StorySwitcher from '@/components/StorySwitcher.vue';
 import SearchModal from '@/components/SearchModal.vue';
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const { chapters, load, getScenesForChapter } = useOutline();
@@ -239,6 +239,7 @@ function onGlobalKeydown(e) {
 }
 
 onMounted(async () => {
+  await seedExampleStoryOnce(locale.value);
   await loadStories();
   load();
   loadIdeas();

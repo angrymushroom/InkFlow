@@ -74,22 +74,30 @@
     </div>
 
     <div class="card card-section">
-      <h2 class="section-title">{{ t('export.backup') }}</h2>
-      <p class="form-hint">{{ t('export.backupReminder') }}</p>
+      <h2 class="section-title">{{ t('export.exportTitle') }}</h2>
       <div class="export-format-group">
         <div class="form-group">
           <label>{{ t('export.exportFormat') }}</label>
           <select v-model="exportFormat" class="locale-select">
             <option value="json">{{ t('export.formatJson') }}</option>
+            <option value="epub">{{ t('export.formatEpub') }}</option>
+            <option value="docx">{{ t('export.formatDocx') }}</option>
+            <option value="pdf">{{ t('export.formatPdf') }}</option>
             <option value="markdown">{{ t('export.formatMarkdown') }}</option>
             <option value="txt">{{ t('export.formatTxt') }}</option>
           </select>
         </div>
-        <button class="btn btn-primary" @click="exportProject">{{ t('export.downloadBackup') }}</button>
+        <button class="btn btn-primary" :disabled="exporting" @click="doExport">
+          {{ exporting ? '…' : t('export.download') }}
+        </button>
       </div>
+      <p class="form-hint format-hint">{{ formatHint }}</p>
+      <p v-if="exportFormat === 'pdf'" class="form-hint pdf-note">{{ t('export.pdfNote') }}</p>
+      <p v-if="exportFormat === 'json' && backupNudge" class="form-hint backup-nudge">{{ t('export.backupNudge') }}</p>
       <p v-if="exportError" class="test-message test-error">{{ exportError }}</p>
-      <p v-if="backupNudge" class="form-hint backup-nudge">{{ t('export.backupNudge') }}</p>
-      <div class="form-group" style="margin-top: var(--space-4)">
+
+      <div class="import-divider"></div>
+      <div class="form-group">
         <label>{{ t('export.importBackup') }}</label>
         <input type="file" accept=".json,application/json" @change="onFileSelect" />
         <p class="form-hint">{{ t('export.importHint') }}</p>
@@ -113,7 +121,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useTheme } from '@/composables/useTheme';
 import { useToast } from '@/composables/useToast';
-import { exportProject as doExportJson, importProject, getStory, getChapters, getScenes, getCurrentStoryId } from '@/db';
+import { exportProject as doExportJson, importProject, getCurrentStoryId, getStory } from '@/db';
+import { buildMarkdown, buildPlainText, buildEpubBlob, buildDocxBlob, openPrintWindow, safeFilename } from '@/utils/exportFormats';
 import {
   PROVIDERS, TIERS, getProvider, setProvider, getApiKey, setApiKey,
   getModel, setModel, testApiKey, GEMINI_MODEL_OPTIONS, OPENAI_MODEL_OPTIONS,
@@ -144,11 +153,18 @@ const modelOptions = computed(() => provider.value === 'gemini' ? GEMINI_MODEL_O
 
 const modelQuick = ref('');
 const modelLongForm = ref('');
+const exportFormat = ref('json');
+const exporting = ref(false);
 const exportError = ref('');
 const importError = ref('');
-const exportFormat = ref('json');
 const importConfirmOpen = ref(false);
 let pendingImportData = null;
+
+const formatHint = computed(() => {
+  if (exportFormat.value === 'json') return t.value('export.formatJsonHint');
+  if (exportFormat.value === 'pdf') return t.value('export.formatStoryHint');
+  return t.value('export.formatStoryHint');
+});
 
 const LAST_EXPORT_KEY = 'inkflow_last_export_at';
 const BACKUP_NUDGE_DAYS = 30;
@@ -209,73 +225,38 @@ function downloadBlob(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-async function buildMarkdown(storyId) {
-  const story = await getStory(storyId);
-  const chapters = await getChapters(storyId);
-  const scenes = await getScenes(storyId);
-  const lines = [];
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  lines.push(`# ${title}`, '');
-  if (story?.setup) lines.push(`## Setup`, '', story.setup, '');
-  if (story?.disaster1) lines.push(`## Disaster 1`, '', story.disaster1, '');
-  if (story?.disaster2) lines.push(`## Disaster 2`, '', story.disaster2, '');
-  if (story?.disaster3) lines.push(`## Disaster 3`, '', story.disaster3, '');
-  if (story?.ending) lines.push(`## Ending`, '', story.ending, '');
-  lines.push('---', '');
-  for (const ch of chapters) {
-    lines.push(`## ${ch.title || 'Untitled Chapter'}`, '');
-    if (ch.summary) lines.push(`*${ch.summary}*`, '');
-    const chScenes = scenes.filter((s) => s.chapterId === ch.id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    for (const sc of chScenes) {
-      lines.push(`### ${sc.title || 'Untitled Scene'}`, '');
-      if (sc.oneSentenceSummary) lines.push(`*${sc.oneSentenceSummary}*`, '');
-      if (sc.content?.trim()) lines.push(sc.content.trim(), '');
-    }
-  }
-  return lines.join('\n');
-}
-
-async function buildPlainText(storyId) {
-  const story = await getStory(storyId);
-  const chapters = await getChapters(storyId);
-  const scenes = await getScenes(storyId);
-  const lines = [];
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  lines.push(title.toUpperCase(), '='.repeat(Math.min(title.length, 60)), '');
-  for (const ch of chapters) {
-    lines.push(ch.title || 'Untitled Chapter', '-'.repeat(40), '');
-    const chScenes = scenes.filter((s) => s.chapterId === ch.id).sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    for (const sc of chScenes) {
-      if (sc.title) lines.push(sc.title, '');
-      if (sc.content?.trim()) lines.push(sc.content.trim(), '');
-    }
-  }
-  return lines.join('\n');
-}
-
-async function exportProject() {
+async function doExport() {
   exportError.value = '';
+  exporting.value = true;
+  const storyId = getCurrentStoryId();
   const dateStr = new Date().toISOString().slice(0, 10);
   try {
     if (exportFormat.value === 'json') {
       const data = await doExportJson();
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      downloadBlob(blob, `inkflow-${dateStr}.json`);
-    } else if (exportFormat.value === 'markdown') {
-      const storyId = getCurrentStoryId();
-      const md = await buildMarkdown(storyId);
-      const blob = new Blob([md], { type: 'text/markdown' });
-      downloadBlob(blob, `inkflow-${dateStr}.md`);
+      downloadBlob(blob, `inkflow-backup-${dateStr}.json`);
+      try { localStorage.setItem(LAST_EXPORT_KEY, String(Date.now())); } catch (_) {}
+      backupNudge.value = false;
     } else {
-      const storyId = getCurrentStoryId();
-      const txt = await buildPlainText(storyId);
-      const blob = new Blob([txt], { type: 'text/plain' });
-      downloadBlob(blob, `inkflow-${dateStr}.txt`);
+      const story = await getStory(storyId);
+      if (exportFormat.value === 'markdown') {
+        const md = await buildMarkdown(storyId);
+        downloadBlob(new Blob([md], { type: 'text/markdown;charset=utf-8' }), safeFilename(story, 'md'));
+      } else if (exportFormat.value === 'txt') {
+        const txt = await buildPlainText(storyId);
+        downloadBlob(new Blob([txt], { type: 'text/plain;charset=utf-8' }), safeFilename(story, 'txt'));
+      } else if (exportFormat.value === 'pdf') {
+        await openPrintWindow(storyId);
+      } else if (exportFormat.value === 'epub') {
+        downloadBlob(await buildEpubBlob(storyId), safeFilename(story, 'epub'));
+      } else if (exportFormat.value === 'docx') {
+        downloadBlob(await buildDocxBlob(storyId), safeFilename(story, 'docx'));
+      }
     }
-    try { localStorage.setItem(LAST_EXPORT_KEY, String(Date.now())); } catch (_) {}
-    backupNudge.value = false;
   } catch (err) {
     exportError.value = err?.message || t.value('export.exportErrorGeneric');
+  } finally {
+    exporting.value = false;
   }
 }
 
@@ -340,10 +321,23 @@ async function doImport() {
   gap: var(--space-3);
   align-items: flex-end;
   flex-wrap: wrap;
+  margin-bottom: 0;
 }
 .export-format-group .form-group {
   margin-bottom: 0;
   flex: 1;
   min-width: 180px;
+}
+.format-hint {
+  margin-top: var(--space-2);
+  margin-bottom: 0;
+}
+.pdf-note {
+  margin-top: var(--space-1);
+  margin-bottom: 0;
+}
+.import-divider {
+  border-top: 1px solid var(--border);
+  margin: var(--space-5) 0 var(--space-4);
 }
 </style>

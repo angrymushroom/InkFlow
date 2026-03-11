@@ -442,6 +442,49 @@ export async function replaceStoryFactsForScenes(storyId, sceneIds, newFacts) {
   }
 }
 
+const EXAMPLE_SEEDED_KEY = 'inkflow_example_seeded';
+
+async function insertExampleStory(locale) {
+  const { getLocalizedExampleStory, EXAMPLE_STORY_ID } = await import('@/data/exampleStory.js');
+  const data = getLocalizedExampleStory(locale);
+  await db.transaction('rw', [db.stories, db.characters, db.chapters, db.scenes, db.ideas], async () => {
+    await db.stories.add(data.story);
+    for (const c of data.characters) await db.characters.add(c);
+    for (const ch of data.chapters) await db.chapters.add(ch);
+    for (const s of data.scenes) await db.scenes.add(s);
+    for (const i of data.ideas) await db.ideas.add(i);
+  });
+  return EXAMPLE_STORY_ID;
+}
+
+// Seed the example story once on first launch (no-op if already seeded or deleted by user).
+export async function seedExampleStoryOnce(locale = 'en') {
+  if (localStorage.getItem(EXAMPLE_SEEDED_KEY)) return;
+  try {
+    const { EXAMPLE_STORY_ID } = await import('@/data/exampleStory.js');
+    const existing = await db.stories.get(EXAMPLE_STORY_ID);
+    if (!existing) await insertExampleStory(locale);
+    setCurrentStoryId(EXAMPLE_STORY_ID);
+  } catch (_) {
+    // Non-fatal — app works without the example story
+  } finally {
+    localStorage.setItem(EXAMPLE_SEEDED_KEY, '1');
+  }
+}
+
+// Load (or reload) the example story without wiping existing data.
+export async function loadExampleStory(locale = 'en') {
+  const { EXAMPLE_STORY_ID } = await import('@/data/exampleStory.js');
+  try {
+    const existing = await db.stories.get(EXAMPLE_STORY_ID);
+    if (!existing) await insertExampleStory(locale);
+    setCurrentStoryId(EXAMPLE_STORY_ID);
+    return EXAMPLE_STORY_ID;
+  } catch (e) {
+    throw createStorageError('Could not load the example story.', e);
+  }
+}
+
 // Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts)
 export async function exportProject() {
   try {

@@ -85,6 +85,7 @@ function newStory() {
   emit('new');
   emit('update:modelValue', false);
 }
+
 </script>
 
 <style scoped>
