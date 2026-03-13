@@ -25,6 +25,16 @@
         <NavIcon name="settings" />
         <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
+      <button
+        type="button"
+        class="nav-link nav-otter-btn"
+        :class="{ 'nav-otter-btn--active': otterOpen }"
+        :aria-label="otterOpen ? 'Close Pip chat' : 'Open Pip chat'"
+        @click="otterOpen = !otterOpen"
+      >
+        <span class="nav-otter-icon" aria-hidden="true">🦦</span>
+        <span class="nav-link-text">Pip</span>
+      </button>
     </nav>
 
     <div class="app-body">
@@ -149,6 +159,8 @@
           <div v-else class="page"><p class="page-subtitle">Loading…</p></div>
         </router-view>
       </main>
+
+      <OtterChat :open="otterOpen" @close="otterOpen = false" />
     </div>
 
     <StorySwitcher
@@ -173,6 +185,7 @@ import NavIcon from '@/components/NavIcon.vue';
 import AppToast from '@/components/AppToast.vue';
 import StorySwitcher from '@/components/StorySwitcher.vue';
 import SearchModal from '@/components/SearchModal.vue';
+import OtterChat from '@/components/OtterChat.vue';
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -180,6 +193,7 @@ const router = useRouter();
 const { chapters, load, getScenesForChapter } = useOutline();
 
 const sidebarOpen = ref(false);
+const otterOpen = ref(false);
 const isMobile = ref(false);
 const storySwitcherOpen = ref(false);
 const searchOpen = ref(false);
@@ -591,6 +605,27 @@ watch(
 }
 .sidebar-toggle:hover {
   background: var(--border);
+}
+
+/* Otter toggle button in nav */
+.nav-otter-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+.nav-otter-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+.nav-otter-btn--active {
+  color: var(--accent);
+  background: rgba(37, 99, 235, 0.1);
+}
+@media (min-width: 768px) {
+  .nav-otter-btn {
+    margin-left: auto;
+  }
 }
 
 /* Mobile: sidebar as overlay */

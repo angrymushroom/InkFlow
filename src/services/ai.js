@@ -318,6 +318,87 @@ async function callGemini(apiKey, systemPrompt, userPrompt, options = {}) {
 }
 
 /**
+ * Multi-turn chat completion. Maintains conversation history for both providers.
+ * @param {{ messages: {role:'user'|'assistant', content:string}[], systemPrompt: string, tier?: string, maxTokens?: number }}
+ * @returns {Promise<string>}
+ */
+export async function chatWithAi({ messages, systemPrompt, tier = TIERS.LIGHT, maxTokens = 1024 }) {
+  const provider = getProvider();
+  const apiKey = getApiKey();
+  if (!apiKey?.trim()) {
+    throw new Error(
+      `Add your ${provider === "gemini" ? "Gemini" : "OpenAI"} API key in Settings to chat.`
+    );
+  }
+  if (provider === "gemini") {
+    return chatGemini(apiKey.trim(), systemPrompt, messages, { tier, maxTokens });
+  }
+  return chatOpenAIChat(apiKey.trim(), systemPrompt, messages, { tier, maxTokens });
+}
+
+async function chatOpenAIChat(apiKey, systemPrompt, messages, options = {}) {
+  const tier = options.tier ?? TIERS.LIGHT;
+  const maxTokens = options.maxTokens ?? 1024;
+  const model = getModel("openai", tier);
+  const res = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
+        ...messages.map((m) => ({ role: m.role, content: m.content })),
+      ],
+      max_tokens: maxTokens,
+      temperature: 0.8,
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(friendlyOpenAIError(err?.error?.message || `API error: ${res.status}`, res.status));
+  }
+  const data = await res.json();
+  const content = data.choices?.[0]?.message?.content?.trim();
+  if (!content) throw new Error("OpenAI returned an empty response.");
+  return content;
+}
+
+async function chatGemini(apiKey, systemPrompt, messages, options = {}) {
+  const tier = options.tier ?? TIERS.LIGHT;
+  const model = getModel("gemini", tier);
+  const maxOutputTokens = options.maxTokens ?? 1024;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
+  // Gemini roles: 'user' / 'model' (not 'assistant')
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+  const res = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      system_instruction: { parts: [{ text: systemPrompt }] },
+      contents,
+      generationConfig: { maxOutputTokens, temperature: 0.8 },
+    }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(friendlyGeminiError(err?.error?.message || `API error: ${res.status}`, res.status));
+  }
+  const data = await res.json();
+  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  if (!text) {
+    const reason = data.candidates?.[0]?.finishReason || "Unknown";
+    throw new Error(`Empty response from Gemini (${reason})`);
+  }
+  return text;
+}
+
+/**
  * Test if the given (or saved) API key works. Uses minimal request.
  * @param {string} [key] - Key to test; if omitted uses saved key for current provider
  * @param {string} [providerId] - "openai" | "gemini"; if omitted uses getProvider()
