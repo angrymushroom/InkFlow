@@ -373,11 +373,16 @@ async function send() {
   await scrollToBottom();
 
   try {
-    // Auto-retry with progressively fewer history messages if context is too long
-    const RETRY_LIMITS = [HISTORY_LIMIT, 8, 4];
+    // Auto-retry on token limit: first trim history, then also strip story context
+    // useContext=false falls back to BASE_SYSTEM_PROMPT without the story data blob
+    const RETRIES = [
+      { limit: HISTORY_LIMIT, useContext: true  },
+      { limit: 8,             useContext: true  },
+      { limit: 4,             useContext: false }, // drop story context as last resort
+    ];
     let raw = null;
     let lastErr = null;
-    for (const limit of RETRY_LIMITS) {
+    for (const { limit, useContext } of RETRIES) {
       try {
         const history = messages.value.slice(-limit).map((m) => ({
           role: m.role,
@@ -385,7 +390,7 @@ async function send() {
         }));
         raw = await chatWithAi({
           messages: history,
-          systemPrompt: systemPrompt.value,
+          systemPrompt: useContext ? systemPrompt.value : BASE_SYSTEM_PROMPT,
           tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
           maxTokens: 600,
         });
@@ -393,8 +398,7 @@ async function send() {
         break;
       } catch (e) {
         lastErr = e;
-        if (classifyAiError(e) !== 'token_limit') throw e; // non-token errors: give up immediately
-        // token_limit: loop and try again with fewer messages
+        if (classifyAiError(e) !== 'token_limit') throw e;
       }
     }
     if (lastErr) throw lastErr;
