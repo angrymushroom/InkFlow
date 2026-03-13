@@ -64,7 +64,7 @@ describe('generation', () => {
       expect(ctx).toContain('Courage');
       expect(ctx).toContain('Scene Two');
       expect(ctx).toContain('The conflict.');
-      expect(ctx).toContain('Prior scenes');
+      expect(ctx).toContain('Last lines of previous scene');
       expect(ctx).toContain('First scene text.');
     });
 
@@ -84,7 +84,7 @@ describe('generation', () => {
         { factType: 'location', content: 'Village.' },
       ]);
       const ctx = await buildSceneContext(storyId, sceneId);
-      expect(ctx).toContain('Establish facts');
+      expect(ctx).toContain('Established facts');
       expect(ctx).toContain('Alice is the hero.');
       expect(ctx).toContain('Village.');
     });
