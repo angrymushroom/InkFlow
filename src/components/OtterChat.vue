@@ -93,7 +93,7 @@
 
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
-import { chatWithAi, getApiKey, CONTEXTS, tierForContext } from '@/services/ai';
+import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
 import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
@@ -332,6 +332,23 @@ const inputEl = ref(null);
 
 const hasApiKey = computed(() => !!getApiKey()?.trim());
 
+function pipErrorMessage(e) {
+  const type = classifyAiError(e);
+  if (type === 'network')
+    return "I couldn't reach the AI — looks like a network issue. Check your connection and try again. 🦦";
+  if (type === 'invalid_key')
+    return "Your API key doesn't seem to work. Head to Settings → AI to check it. 🦦";
+  if (type === 'access_denied')
+    return "Access was denied — your API key may not have the right permissions. Check Settings → AI. 🦦";
+  if (type === 'rate_limit')
+    return "I hit a rate or quota limit on the current model. I tried lighter fallbacks but all were busy too — give it a minute and try again. 🦦";
+  if (type === 'service_down')
+    return "The AI service seems temporarily unavailable. Try again in a moment. 🦦";
+  if (type === 'empty')
+    return "I got a blank response — the model may have hit a token limit or a safety filter. Try rephrasing or sending a shorter message. 🦦";
+  return `Something went wrong — ${e?.message || 'please try again'}. 🦦`;
+}
+
 async function scrollToBottom() {
   await nextTick();
   if (messagesEl.value) {
@@ -373,7 +390,7 @@ async function send() {
   } catch (e) {
     messages.value.push({
       role: 'assistant',
-      content: `Oops, something went wrong — ${e?.message || 'please try again'}. 🦦`,
+      content: pipErrorMessage(e),
       appliedActions: [],
     });
   } finally {

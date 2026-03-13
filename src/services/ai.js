@@ -70,6 +70,20 @@ const DEFAULT_MODELS = Object.freeze({
   },
 });
 
+/**
+ * Ordered fallback chains: when a model fails with a retryable error (429 / 503 / 404)
+ * we walk down the chain until one succeeds or there are no more options.
+ */
+const GEMINI_FALLBACK_CHAIN = [
+  "gemini-2.5-pro",
+  "gemini-2.5-flash",
+  "gemini-2.5-flash-lite",
+  "gemini-2.0-flash",
+  "gemini-1.5-flash",
+];
+
+const OPENAI_FALLBACK_CHAIN = ["gpt-4o", "gpt-4o-mini"];
+
 /** Preset options for UI dropdowns (id = model id sent to API). Order: default first, then by tier. */
 export const GEMINI_MODEL_OPTIONS = [
   { id: "gemini-2.5-flash", name: "Gemini 2.5 Flash (default, 5 RPM / 250K TPM)" },
@@ -299,28 +313,37 @@ export async function completeWithAi({ systemPrompt, userPrompt, tier = TIERS.LI
 async function callOpenAI(apiKey, systemPrompt, userPrompt, options = {}) {
   const tier = options.tier ?? TIERS.LIGHT;
   const maxTokens = options.maxTokens ?? (tier === TIERS.ADVANCED ? 2048 : 500);
-  const model = getModel("openai", tier);
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: userPrompt },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.6,
-    }),
-  });
+  const model = options._model ?? getModel("openai", tier);
+
+  let res;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.6,
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
 
   if (!res.ok) {
+    // Auto-fallback on rate limit or service error
+    if (res.status === 429 || res.status === 503) {
+      const idx = OPENAI_FALLBACK_CHAIN.indexOf(model);
+      if (idx >= 0 && idx < OPENAI_FALLBACK_CHAIN.length - 1) {
+        return callOpenAI(apiKey, systemPrompt, userPrompt, { ...options, _model: OPENAI_FALLBACK_CHAIN[idx + 1] });
+      }
+    }
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || `API error: ${res.status}`;
-    throw new Error(friendlyOpenAIError(msg, res.status));
+    throw new Error(friendlyOpenAIError(err?.error?.message || `API error: ${res.status}`, res.status));
   }
 
   const data = await res.json();
@@ -331,40 +354,45 @@ async function callOpenAI(apiKey, systemPrompt, userPrompt, options = {}) {
 
 async function callGemini(apiKey, systemPrompt, userPrompt, options = {}) {
   const tier = options.tier ?? TIERS.LIGHT;
-  const model = getModel("gemini", tier);
+  const model = options._model ?? getModel("gemini", tier);
   const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-
   const maxOutputTokens = options.maxTokens ?? (tier === TIERS.ADVANCED ? 2048 : 500);
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      contents: [{ parts: [{ text: fullPrompt }] }],
-      generationConfig: {
-        maxOutputTokens,
-        temperature: 0.6,
-      },
-    }),
-  });
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ parts: [{ text: fullPrompt }] }],
+        generationConfig: { maxOutputTokens, temperature: 0.6 },
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
 
   if (!res.ok) {
-    if (res.status === 404 && tier === TIERS.ADVANCED) {
-      const fallback = getModel("gemini", TIERS.LIGHT);
-      if (fallback !== model) {
-        return callGemini(apiKey, systemPrompt, userPrompt, { tier: TIERS.LIGHT });
+    // Auto-fallback on rate limit, quota, service errors, or model not found
+    if (res.status === 429 || res.status === 503 || res.status === 404) {
+      const idx = GEMINI_FALLBACK_CHAIN.indexOf(model);
+      if (idx >= 0 && idx < GEMINI_FALLBACK_CHAIN.length - 1) {
+        return callGemini(apiKey, systemPrompt, userPrompt, { ...options, _model: GEMINI_FALLBACK_CHAIN[idx + 1] });
       }
     }
     const err = await res.json().catch(() => ({}));
-    const msg = err?.error?.message || err?.message || `API error: ${res.status}`;
-    throw new Error(friendlyGeminiError(msg, res.status));
+    throw new Error(friendlyGeminiError(err?.error?.message || err?.message || `API error: ${res.status}`, res.status));
   }
 
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text?.trim();
   if (!text) {
-    const reason = data.candidates?.[0]?.finishReason || "Unknown";
-    throw new Error(`Empty response from Gemini (${reason})`);
+    const reason = candidate?.finishReason || "Unknown";
+    if (reason === "SAFETY") throw new Error("Response blocked by Gemini safety filters. Try rephrasing your prompt.");
+    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (token limit). Try simplifying your prompt.");
+    throw new Error(`Empty response from Gemini (${reason}). Try again.`);
   }
   return text;
 }
@@ -391,24 +419,34 @@ export async function chatWithAi({ messages, systemPrompt, tier = TIERS.LIGHT, m
 async function chatOpenAIChat(apiKey, systemPrompt, messages, options = {}) {
   const tier = options.tier ?? TIERS.LIGHT;
   const maxTokens = options.maxTokens ?? 1024;
-  const model = getModel("openai", tier);
-  const res = await fetch("https://api.openai.com/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: "system", content: systemPrompt },
-        ...messages.map((m) => ({ role: m.role, content: m.content })),
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.8,
-    }),
-  });
+  const model = options._model ?? getModel("openai", tier);
+
+  let res;
+  try {
+    res = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.8,
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
+
   if (!res.ok) {
+    if (res.status === 429 || res.status === 503) {
+      const idx = OPENAI_FALLBACK_CHAIN.indexOf(model);
+      if (idx >= 0 && idx < OPENAI_FALLBACK_CHAIN.length - 1) {
+        return chatOpenAIChat(apiKey, systemPrompt, messages, { ...options, _model: OPENAI_FALLBACK_CHAIN[idx + 1] });
+      }
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(friendlyOpenAIError(err?.error?.message || `API error: ${res.status}`, res.status));
   }
@@ -420,32 +458,47 @@ async function chatOpenAIChat(apiKey, systemPrompt, messages, options = {}) {
 
 async function chatGemini(apiKey, systemPrompt, messages, options = {}) {
   const tier = options.tier ?? TIERS.LIGHT;
-  const model = getModel("gemini", tier);
+  const model = options._model ?? getModel("gemini", tier);
   const maxOutputTokens = options.maxTokens ?? 1024;
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${encodeURIComponent(apiKey)}`;
-  // Gemini roles: 'user' / 'model' (not 'assistant')
   const contents = messages.map((m) => ({
     role: m.role === "assistant" ? "model" : "user",
     parts: [{ text: m.content }],
   }));
-  const res = await fetch(url, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { maxOutputTokens, temperature: 0.8 },
-    }),
-  });
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { maxOutputTokens, temperature: 0.8 },
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
+
   if (!res.ok) {
+    if (res.status === 429 || res.status === 503 || res.status === 404) {
+      const idx = GEMINI_FALLBACK_CHAIN.indexOf(model);
+      if (idx >= 0 && idx < GEMINI_FALLBACK_CHAIN.length - 1) {
+        return chatGemini(apiKey, systemPrompt, messages, { ...options, _model: GEMINI_FALLBACK_CHAIN[idx + 1] });
+      }
+    }
     const err = await res.json().catch(() => ({}));
     throw new Error(friendlyGeminiError(err?.error?.message || `API error: ${res.status}`, res.status));
   }
   const data = await res.json();
-  const text = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  const candidate = data.candidates?.[0];
+  const text = candidate?.content?.parts?.[0]?.text?.trim();
   if (!text) {
-    const reason = data.candidates?.[0]?.finishReason || "Unknown";
-    throw new Error(`Empty response from Gemini (${reason})`);
+    const reason = candidate?.finishReason || "Unknown";
+    if (reason === "SAFETY") throw new Error("Response blocked by safety filters. Try rephrasing.");
+    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (token limit). Try a shorter message.");
+    throw new Error(`Empty response from Gemini (${reason}). Try again.`);
   }
   return text;
 }
@@ -515,23 +568,50 @@ export async function testApiKey(key, providerId) {
 function friendlyOpenAIError(msg, status) {
   if (status === 401 || (typeof msg === "string" && (msg.includes("invalid") || msg.includes("401") || msg.includes("Incorrect API key"))))
     return "Invalid API key. Check your OpenAI API key in Settings.";
-  if (status === 429 || (typeof msg === "string" && (msg.includes("429") || msg.includes("rate limit"))))
-    return "Rate limit exceeded. Try again later.";
+  if (status === 429 || (typeof msg === "string" && (msg.includes("429") || msg.includes("rate limit") || msg.includes("quota"))))
+    return "Rate limit or quota exceeded (OpenAI). Try again in a moment, or upgrade your plan.";
   if (status === 403 || (typeof msg === "string" && (msg.includes("403") || msg.includes("permission"))))
     return "Access denied. Check your API key and permissions.";
+  if (status === 503 || (typeof msg === "string" && msg.includes("503")))
+    return "OpenAI service is temporarily unavailable. Try again in a moment.";
   if (typeof msg !== "string") return "API request failed.";
   return msg;
 }
 
 function friendlyGeminiError(msg, status) {
   if (status === 404 || (typeof msg === "string" && (msg.includes("404") || msg.includes("NOT_FOUND") || msg.includes("not found"))))
-    return "Model not found (404). Try a different model in Export → AI (e.g. Gemini 2.5 Flash).";
+    return "Model not found. All fallback models were tried — check your quota or try again later.";
   if (typeof msg !== "string") return "API request failed.";
   if (msg.includes("API_KEY_INVALID") || msg.includes("invalid") || msg.includes("401"))
     return "Invalid API key. Get a key at Google AI Studio: aistudio.google.com/app/apikey";
-  if (msg.includes("429") || msg.includes("quota") || msg.includes("rate"))
-    return "Rate limit or quota exceeded. Try again later or check your Google Cloud quota.";
+  if (msg.includes("429") || msg.includes("quota") || msg.includes("rate") || msg.includes("RESOURCE_EXHAUSTED"))
+    return "Rate limit or quota exhausted (Gemini). All fallback models were tried — wait a moment and try again.";
   if (msg.includes("403") || msg.includes("permission"))
-    return "Access denied. Check that the API is enabled for your key.";
+    return "Access denied. Check that the Gemini API is enabled for your key.";
+  if (msg.includes("503") || msg.includes("unavailable"))
+    return "Gemini service is temporarily unavailable. Try again in a moment.";
   return msg;
+}
+
+/**
+ * Classify an error thrown by the AI service into a short category string.
+ * Use this in UI components to show user-friendly, context-appropriate messages.
+ * @param {Error|unknown} error
+ * @returns {"rate_limit"|"invalid_key"|"access_denied"|"network"|"empty"|"service_down"|"unknown"}
+ */
+export function classifyAiError(error) {
+  const msg = (error?.message || "").toLowerCase();
+  if (msg.includes("network") || msg.includes("failed to fetch") || msg.includes("networkerror") || msg.includes("load failed"))
+    return "network";
+  if (msg.includes("invalid api key") || msg.includes("api_key_invalid") || msg.includes("incorrect api key"))
+    return "invalid_key";
+  if (msg.includes("access denied") || msg.includes("permission") || msg.includes("403"))
+    return "access_denied";
+  if (msg.includes("rate limit") || msg.includes("quota") || msg.includes("resource_exhausted") || msg.includes("429"))
+    return "rate_limit";
+  if (msg.includes("503") || msg.includes("unavailable") || msg.includes("temporarily"))
+    return "service_down";
+  if (msg.includes("empty response") || msg.includes("blank response"))
+    return "empty";
+  return "unknown";
 }
