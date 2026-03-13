@@ -130,6 +130,7 @@ async function send() {
   messages.value.push({ role: 'user', content: text });
   inputText.value = '';
   isLoading.value = true;
+  inputEl.value?.focus();
   await scrollToBottom();
 
   try {
@@ -149,6 +150,7 @@ async function send() {
   } finally {
     isLoading.value = false;
     await scrollToBottom();
+    inputEl.value?.focus();
   }
 }
 </script>
