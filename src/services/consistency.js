@@ -1,6 +1,5 @@
 import { getStoryFacts, getCharacters, getScene, getScenes, replaceStoryFactsForScenes } from "@/db";
-import { completeWithAi } from "@/services/ai";
-import { TIERS } from "@/services/ai";
+import { completeWithAi, CONTEXTS, tierForContext } from "@/services/ai";
 
 const EXTRACT_SYSTEM = "You are a fiction analyst. Extract structured facts from scene text. Reply with valid JSON only, no markdown or preamble.";
 const EXTRACT_USER = `From this scene text, list:
@@ -35,7 +34,7 @@ export async function extractFactsFromProse({ sceneText, sceneId, chapterId, sto
   const raw = await completeWithAi({
     systemPrompt: EXTRACT_SYSTEM,
     userPrompt,
-    tier: TIERS.LIGHT,
+    tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 600,
   });
   const facts = [];
@@ -138,7 +137,7 @@ export async function checkConsistency({ storyId, sceneId }) {
   const reply = await completeWithAi({
     systemPrompt: CHECK_SYSTEM,
     userPrompt,
-    tier: TIERS.LIGHT,
+    tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 500,
   });
   return (reply || "").trim();

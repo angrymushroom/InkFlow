@@ -1,5 +1,5 @@
 import { getStoryById, getIdeas, getCharacters, getChapters, getScenes } from '@/db';
-import { completeWithAi, TIERS, getLanguageRule } from '@/services/ai';
+import { completeWithAi, TIERS, CONTEXTS, tierForContext, getLanguageRule } from '@/services/ai';
 
 export const OUTLINE_BEATS = Object.freeze(['setup', 'disaster1', 'disaster2', 'disaster3', 'ending']);
 
@@ -236,9 +236,11 @@ export async function draftOutlineFromSpine({ storyId, scope = 'all' }) {
     story, ideas, characters, existingOutline, scope, locale,
   });
 
-  // Cost optimization: section drafts are focused → LIGHT is sufficient and much cheaper.
-  // Full outline drafts require planning the whole arc → ADVANCED for better coherence.
-  const tier = scope === 'all' ? TIERS.ADVANCED : TIERS.LIGHT;
+  // Full outline requires planning the whole arc → always ADVANCED for coherence.
+  // Section drafts are focused → context-aware (upgrades to ADVANCED in "best" mode).
+  const tier = scope === 'all'
+    ? tierForContext(CONTEXTS.OUTLINE_DRAFT_FULL)
+    : tierForContext(CONTEXTS.OUTLINE_DRAFT_SECTION);
   const maxTokens = scope === 'all' ? 4000 : 2000;
 
   const raw = await completeWithAi({ systemPrompt, userPrompt, tier, maxTokens });

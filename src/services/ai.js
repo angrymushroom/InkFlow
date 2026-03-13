@@ -3,8 +3,60 @@ const STORAGE_OPENAI_KEY = "inkflow_ai_openai_key";
 const STORAGE_GEMINI_KEY = "inkflow_ai_gemini_key";
 const STORAGE_MODEL_PREFIX = "inkflow_ai_model_";
 
-/** Feature tiers: light = cheap/fast (quick expand); advanced = better model for long-form. */
+/** Feature tiers: light = cheap/fast; advanced = better model for complex tasks. */
 export const TIERS = Object.freeze({ LIGHT: "light", ADVANCED: "advanced" });
+
+/** Global quality bias: faster keeps defaults, best upgrades eligible LIGHT contexts to ADVANCED. */
+export const QUALITY_BIAS = Object.freeze({ FASTER: "faster", BEST: "best" });
+const STORAGE_QUALITY_BIAS = "inkflow_quality_bias";
+
+export function getQualityBias() {
+  return localStorage.getItem(STORAGE_QUALITY_BIAS) || QUALITY_BIAS.FASTER;
+}
+export function setQualityBias(bias) {
+  if (bias === QUALITY_BIAS.BEST) localStorage.setItem(STORAGE_QUALITY_BIAS, bias);
+  else localStorage.removeItem(STORAGE_QUALITY_BIAS);
+}
+
+/**
+ * Named usage contexts. Each maps to a base tier; the quality bias may upgrade
+ * LIGHT contexts to ADVANCED (except CHAT, which stays LIGHT regardless of cost).
+ */
+export const CONTEXTS = Object.freeze({
+  CHAT:                    "chat",                  // casual otter conversation → always LIGHT
+  CHAT_WITH_TOOLS:         "chat_with_tools",       // otter actions / tool use → always ADVANCED
+  EXPAND_SHORT:            "expand_short",          // quick field expansion → LIGHT (upgradeable)
+  OUTLINE_DRAFT_FULL:      "outline_draft_full",    // full story outline → always ADVANCED
+  OUTLINE_DRAFT_SECTION:   "outline_draft_section", // single spine section → LIGHT (upgradeable)
+  SCENE_PROSE:             "scene_prose",           // scene prose generation → LIGHT (upgradeable)
+  CONSISTENCY:             "consistency",           // fact extraction + check → LIGHT (upgradeable)
+});
+
+const CONTEXT_BASE_TIER = Object.freeze({
+  [CONTEXTS.CHAT]:                  TIERS.LIGHT,
+  [CONTEXTS.CHAT_WITH_TOOLS]:       TIERS.ADVANCED,
+  [CONTEXTS.EXPAND_SHORT]:          TIERS.LIGHT,
+  [CONTEXTS.OUTLINE_DRAFT_FULL]:    TIERS.ADVANCED,
+  [CONTEXTS.OUTLINE_DRAFT_SECTION]: TIERS.LIGHT,
+  [CONTEXTS.SCENE_PROSE]:           TIERS.LIGHT,
+  [CONTEXTS.CONSISTENCY]:           TIERS.LIGHT,
+});
+
+// These contexts always use their base tier regardless of the quality bias.
+const BIAS_LOCKED = new Set([CONTEXTS.CHAT, CONTEXTS.CHAT_WITH_TOOLS, CONTEXTS.OUTLINE_DRAFT_FULL]);
+
+/**
+ * Resolve a usage context to a tier, applying the current quality bias.
+ * In "best" mode, LIGHT contexts that are not bias-locked are upgraded to ADVANCED.
+ * @param {string} context - one of CONTEXTS.*
+ * @returns {"light"|"advanced"}
+ */
+export function tierForContext(context) {
+  const base = CONTEXT_BASE_TIER[context] ?? TIERS.LIGHT;
+  if (BIAS_LOCKED.has(context)) return base;
+  if (getQualityBias() === QUALITY_BIAS.BEST) return TIERS.ADVANCED;
+  return base;
+}
 
 /** Default models per provider per tier. Light = fast/cheap; advanced = better when API supports it. */
 const DEFAULT_MODELS = Object.freeze({
@@ -216,8 +268,8 @@ export async function expandWithAi({
     extraContext
   );
 
-  // Quick expand is a light-tier feature (cheap, fast model). Use 1024 tokens so expansions finish as complete Setup/Disaster/Scene units.
-  const tier = TIERS.LIGHT;
+  // Quick expand uses the EXPAND_SHORT context (upgrades to ADVANCED in "best" mode).
+  const tier = tierForContext(CONTEXTS.EXPAND_SHORT);
   const expandMaxTokens = 1024;
   if (provider === "gemini") {
     return callGemini(apiKey.trim(), systemPrompt, userPrompt, { tier, maxTokens: expandMaxTokens });

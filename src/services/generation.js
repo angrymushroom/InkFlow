@@ -7,8 +7,7 @@ import {
   getStoryFacts,
   updateScene,
 } from "@/db";
-import { completeWithAi } from "@/services/ai";
-import { TIERS } from "@/services/ai";
+import { completeWithAi, TIERS, CONTEXTS, tierForContext } from "@/services/ai";
 
 const PRIOR_SCENE_TAIL_CHARS = 800;
 const LAST_LINES_CHARS = 400;
@@ -207,7 +206,7 @@ export async function generateSceneProse({ storyId, sceneId }) {
   const text = await completeWithAi({
     systemPrompt,
     userPrompt,
-    tier: TIERS.LIGHT,
+    tier: tierForContext(CONTEXTS.SCENE_PROSE),
     maxTokens: SCENE_GENERATION_MAX_TOKENS,
   });
 

@@ -58,18 +58,22 @@
         </p>
       </div>
       <div class="form-group">
-        <label>{{ t('export.modelQuick') }}</label>
-        <select v-model="modelQuick" @change="onModelQuickChange" class="locale-select">
-          <option v-for="opt in modelOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
-        </select>
-        <p class="form-hint form-hint-small">{{ t('export.modelQuickHint') }}</p>
-      </div>
-      <div class="form-group">
-        <label>{{ t('export.modelLongForm') }}</label>
-        <select v-model="modelLongForm" @change="onModelLongFormChange" class="locale-select">
-          <option v-for="opt in modelOptions" :key="opt.id" :value="opt.id">{{ opt.name }}</option>
-        </select>
-        <p class="form-hint form-hint-small">{{ t('export.modelLongFormHint') }}</p>
+        <label>{{ t('export.qualityBias') }}</label>
+        <div class="bias-toggle">
+          <button
+            type="button"
+            class="bias-btn"
+            :class="{ 'bias-btn--active': qualityBias === 'faster' }"
+            @click="onBiasChange('faster')"
+          >⚡ {{ t('export.qualityBiasFaster') }}</button>
+          <button
+            type="button"
+            class="bias-btn"
+            :class="{ 'bias-btn--active': qualityBias === 'best' }"
+            @click="onBiasChange('best')"
+          >✨ {{ t('export.qualityBiasBest') }}</button>
+        </div>
+        <p class="form-hint form-hint-small">{{ t('export.qualityBiasHint') }}</p>
       </div>
     </div>
 
@@ -124,8 +128,8 @@ import { useToast } from '@/composables/useToast';
 import { exportProject as doExportJson, importProject, getCurrentStoryId, getStory } from '@/db';
 import { buildMarkdown, buildPlainText, buildEpubBlob, buildDocxBlob, openPrintWindow, safeFilename } from '@/utils/exportFormats';
 import {
-  PROVIDERS, TIERS, getProvider, setProvider, getApiKey, setApiKey,
-  getModel, setModel, testApiKey, GEMINI_MODEL_OPTIONS, OPENAI_MODEL_OPTIONS,
+  PROVIDERS, getProvider, setProvider, getApiKey, setApiKey,
+  testApiKey, QUALITY_BIAS, getQualityBias, setQualityBias,
 } from '@/services/ai';
 import { useI18n } from '@/composables/useI18n';
 import { LOCALES } from '@/locales';
@@ -149,10 +153,8 @@ const testSuccess = ref(false);
 
 const providerLabel = computed(() => providers.find((x) => x.id === provider.value)?.name ?? 'API');
 const providerPlaceholder = computed(() => providers.find((x) => x.id === provider.value)?.placeholder ?? 'API key');
-const modelOptions = computed(() => provider.value === 'gemini' ? GEMINI_MODEL_OPTIONS : OPENAI_MODEL_OPTIONS);
 
-const modelQuick = ref('');
-const modelLongForm = ref('');
+const qualityBias = ref(getQualityBias());
 const exportFormat = ref('json');
 const exporting = ref(false);
 const exportError = ref('');
@@ -171,17 +173,11 @@ const BACKUP_NUDGE_DAYS = 30;
 const backupNudge = ref(false);
 
 function loadKey() { apiKey.value = getApiKey(); }
-function loadModels() {
-  modelQuick.value = getModel(provider.value, TIERS.LIGHT);
-  modelLongForm.value = getModel(provider.value, TIERS.ADVANCED);
-}
-function onModelQuickChange() { setModel(provider.value, TIERS.LIGHT, modelQuick.value); }
-function onModelLongFormChange() { setModel(provider.value, TIERS.ADVANCED, modelLongForm.value); }
-function onProviderChange() { setProvider(provider.value); loadKey(); loadModels(); }
+function onBiasChange(bias) { qualityBias.value = bias; setQualityBias(bias); }
+function onProviderChange() { setProvider(provider.value); loadKey(); }
 
 onMounted(() => {
   loadKey();
-  loadModels();
   currentLocale.value = locale.value;
   checkBackupNudge();
 });
@@ -311,6 +307,15 @@ async function doImport() {
 .form-hint code { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.8125rem; }
 .form-row { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
 .form-hint-small { margin-top: var(--space-1); font-size: 0.8125rem; }
+.bias-toggle { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
+.bias-btn {
+  flex: 1; padding: var(--space-2) var(--space-3); font: inherit; font-size: 0.875rem;
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  background: var(--bg); color: var(--text-muted); cursor: pointer;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.bias-btn:hover { border-color: var(--accent); color: var(--text); }
+.bias-btn--active { border-color: var(--accent); background: rgba(37,99,235,0.08); color: var(--accent); font-weight: 500; }
 .form-hint-small a { color: var(--accent); }
 .test-message { margin-top: var(--space-2); font-size: 0.875rem; }
 .test-success { color: var(--success); }

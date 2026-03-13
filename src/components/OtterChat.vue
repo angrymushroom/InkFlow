@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, computed, nextTick } from 'vue';
-import { chatWithAi, getApiKey } from '@/services/ai';
+import { chatWithAi, getApiKey, CONTEXTS, tierForContext } from '@/services/ai';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
@@ -139,6 +139,7 @@ async function send() {
     const reply = await chatWithAi({
       messages: history,
       systemPrompt: SYSTEM_PROMPT,
+      tier: tierForContext(CONTEXTS.CHAT),
       maxTokens: 512,
     });
     messages.value.push({ role: 'assistant', content: reply });
