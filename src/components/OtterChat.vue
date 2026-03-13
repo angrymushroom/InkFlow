@@ -24,15 +24,21 @@
         <p v-else>Hi! I'm Pip, your story companion. Tell me about the story you want to write — or just say hello and we'll find an idea together!</p>
       </div>
 
-      <div
-        v-for="(msg, i) in messages"
-        :key="i"
-        class="otter-msg"
-        :class="msg.role === 'assistant' ? 'otter-msg--assistant' : 'otter-msg--user'"
-      >
-        <span v-if="msg.role === 'assistant'" class="otter-msg-icon" aria-hidden="true">🦦</span>
-        <div class="otter-bubble">{{ msg.content }}</div>
-      </div>
+      <template v-for="(msg, i) in messages" :key="i">
+        <div
+          class="otter-msg"
+          :class="msg.role === 'assistant' ? 'otter-msg--assistant' : 'otter-msg--user'"
+        >
+          <span v-if="msg.role === 'assistant'" class="otter-msg-icon" aria-hidden="true">🦦</span>
+          <div class="otter-bubble">{{ msg.content }}</div>
+        </div>
+        <!-- Action chips shown below assistant messages -->
+        <div v-if="msg.appliedActions?.length" class="otter-action-chips">
+          <span v-for="(a, j) in msg.appliedActions" :key="j" class="otter-action-chip">
+            ✓ {{ a.label }}
+          </span>
+        </div>
+      </template>
 
       <!-- Typing indicator -->
       <div v-if="isLoading" class="otter-msg otter-msg--assistant">
@@ -88,14 +94,18 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext } from '@/services/ai';
-import { getCurrentStoryId, getStoryById, getIdeas, getCharacters, getChapters, getScenes } from '@/db';
+import {
+  getCurrentStoryId, getStoryById, getStory, saveStory,
+  getIdeas, getCharacters, addCharacter, updateCharacter,
+  getChapters, getScenes,
+} from '@/db';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
 
-const HISTORY_LIMIT = 20; // messages kept in API context
+const HISTORY_LIMIT = 20;
 
-// ---- Story context ----
+// ---- Story context (Phase 2) ----
 const storyContext = ref('');
 const storyTitle = ref('Story companion');
 const contextLoading = ref(false);
@@ -128,7 +138,6 @@ async function loadStoryContext() {
 
     const lines = [];
 
-    // Spine
     const spineFields = [
       ['One-sentence summary', story.oneSentence],
       ['Setup', story.setup],
@@ -146,7 +155,6 @@ async function loadStoryContext() {
       hasStoryContent.value = true;
     }
 
-    // Characters
     if (characters?.length) {
       lines.push('\n=== CHARACTERS ===');
       for (const c of characters.slice(0, 10)) {
@@ -159,7 +167,6 @@ async function loadStoryContext() {
       hasStoryContent.value = true;
     }
 
-    // Ideas (top 15, brief)
     if (ideas?.length) {
       lines.push('\n=== IDEAS ===');
       for (const idea of ideas.slice(0, 15)) {
@@ -168,7 +175,6 @@ async function loadStoryContext() {
       hasStoryContent.value = true;
     }
 
-    // Outline (chapters + scenes, compact)
     if (chapters?.length) {
       lines.push('\n=== OUTLINE ===');
       const scenesByChapter = new Map();
@@ -193,7 +199,6 @@ async function loadStoryContext() {
     storyContext.value = lines.join('\n');
     contextLoaded.value = true;
 
-    // Build a contextual welcome message summarising what Pip noticed
     if (hasStoryContent.value) {
       const spineCount = spineFields.length;
       const charCount = characters?.length || 0;
@@ -216,12 +221,68 @@ async function loadStoryContext() {
   }
 }
 
-// Reload context each time the panel is opened
 watch(() => props.open, (val) => {
   if (val) loadStoryContext();
 });
 
-// ---- Chat ----
+// ---- Action parsing and applying (Phase 3) ----
+const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
+
+function parseActions(text) {
+  const actions = [];
+  const cleanText = text.replace(ACTION_RE, (_, json) => {
+    try {
+      actions.push(JSON.parse(json.trim()));
+    } catch {
+      // ignore malformed action blocks
+    }
+    return '';
+  }).replace(/\n{3,}/g, '\n\n').trim();
+  return { cleanText, actions };
+}
+
+async function applyActions(actions) {
+  const chips = [];
+  for (const action of actions) {
+    try {
+      if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
+        const current = await getStory();
+        if (!current) continue;
+        const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
+        const patch = {};
+        for (const key of SPINE_KEYS) {
+          if (action.fields[key] != null) patch[key] = String(action.fields[key]);
+        }
+        if (Object.keys(patch).length === 0) continue;
+        await saveStory({ ...current, ...patch });
+        const fieldNames = Object.keys(patch).join(', ');
+        chips.push({ label: `Story spine updated (${fieldNames})` });
+      } else if (action.type === 'upsert_character' && action.name) {
+        const storyId = getCurrentStoryId();
+        const name = String(action.name).trim();
+        const existing = await getCharacters(storyId);
+        const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
+        const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany'];
+        const fields = {};
+        for (const key of CHAR_KEYS) {
+          if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+        }
+        if (match) {
+          await updateCharacter(match.id, { name, ...fields });
+          chips.push({ label: `Character "${name}" updated` });
+        } else {
+          await addCharacter({ storyId, name, ...fields });
+          chips.push({ label: `Character "${name}" created` });
+        }
+      }
+    } catch (e) {
+      chips.push({ label: `Action failed: ${e?.message || 'unknown error'}` });
+    }
+  }
+  return chips;
+}
+
+// ---- System prompt (Phase 3) ----
 const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a writing app that uses the Snowflake Method to build stories step by step.
 
 Your personality:
@@ -235,15 +296,34 @@ Your role:
 - Use Snowflake Method framing when helpful: start with one sentence → expand the spine → develop characters → detail the scenes
 - When the writer is stuck, offer 2–3 concrete options or a gentle nudge
 - Celebrate progress — every piece of the story they define is worth acknowledging
-- You have been given the writer's current story data below — use it to give specific, personalised advice rather than generic suggestions
+- You have been given the writer's current story data — use it to give specific, personalised advice
 
-Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.`;
+Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.
+
+## Saving story data
+
+You can save changes directly to the writer's project by embedding action tags in your response. The tags are invisible to the user — only the confirmation chips appear.
+
+IMPORTANT RULES:
+- Only emit an action when the writer has clearly agreed to save something (e.g. "yes save it", "looks good", "go ahead")
+- Never emit an action speculatively or without the writer's approval
+- You may include multiple action tags in one response
+- After saving, briefly confirm what was saved and ask what to work on next
+
+### Update story spine fields
+Emit this to save one or more spine fields (only include fields you want to change):
+<pip-action>{"type":"update_spine","fields":{"oneSentence":"...","setup":"...","disaster1":"...","disaster2":"...","disaster3":"...","ending":"..."}}</pip-action>
+
+### Create or update a character
+Emit this to create a new character or update an existing one (matched by name, case-insensitive):
+<pip-action>{"type":"upsert_character","name":"CharacterName","fields":{"oneSentence":"...","goal":"...","motivation":"...","conflict":"...","epiphany":"..."}}</pip-action>`;
 
 const systemPrompt = computed(() => {
   if (!storyContext.value) return BASE_SYSTEM_PROMPT;
   return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`;
 });
 
+// ---- Chat ----
 const messages = ref([]);
 const inputText = ref('');
 const isLoading = ref(false);
@@ -270,19 +350,31 @@ async function send() {
   await scrollToBottom();
 
   try {
-    // Send only the last HISTORY_LIMIT messages to avoid token overflow
-    const history = messages.value.slice(-HISTORY_LIMIT);
-    const reply = await chatWithAi({
+    const history = messages.value.slice(-HISTORY_LIMIT).map((m) => ({
+      role: m.role,
+      content: m.content,
+    }));
+    const raw = await chatWithAi({
       messages: history,
       systemPrompt: systemPrompt.value,
-      tier: tierForContext(CONTEXTS.CHAT),
-      maxTokens: 512,
+      tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
+      maxTokens: 600,
     });
-    messages.value.push({ role: 'assistant', content: reply });
+
+    const { cleanText, actions } = parseActions(raw);
+    let appliedActions = [];
+    if (actions.length) {
+      appliedActions = await applyActions(actions);
+      // Refresh context so subsequent messages reflect the saved changes
+      loadStoryContext();
+    }
+
+    messages.value.push({ role: 'assistant', content: cleanText, appliedActions });
   } catch (e) {
     messages.value.push({
       role: 'assistant',
       content: `Oops, something went wrong — ${e?.message || 'please try again'}. 🦦`,
+      appliedActions: [],
     });
   } finally {
     isLoading.value = false;
@@ -309,14 +401,12 @@ async function send() {
   transform: translateX(110%);
   transition: transform 0.25s ease;
   z-index: 210;
-  /* Account for fixed top nav on desktop */
   padding-top: calc(64px + env(safe-area-inset-top, 0px));
 }
 .otter-panel--open {
   transform: translateX(0);
 }
 
-/* Mobile: nav is at the bottom — leave room for it */
 @media (max-width: 767px) {
   .otter-panel {
     padding-top: env(safe-area-inset-top, 0px);
@@ -435,6 +525,27 @@ async function send() {
   border-bottom-right-radius: 4px;
 }
 
+/* ---- Action chips ---- */
+.otter-action-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  padding-left: calc(1.1rem + var(--space-2)); /* align with assistant bubble */
+  margin-top: calc(-1 * var(--space-2));
+}
+.otter-action-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  background: color-mix(in srgb, var(--success, #16a34a) 12%, transparent);
+  color: var(--success, #16a34a);
+  border: 1px solid color-mix(in srgb, var(--success, #16a34a) 30%, transparent);
+}
+
 /* Typing indicator */
 .otter-bubble--typing {
   display: flex;
@@ -494,7 +605,6 @@ async function send() {
   padding: var(--space-2) var(--space-3);
   line-height: 1.5;
   overflow-y: auto;
-  /* override global textarea min-height */
   min-height: 40px !important;
 }
 .otter-send-btn {
@@ -520,7 +630,7 @@ async function send() {
   cursor: default;
 }
 
-/* ---- Scrim (all screen sizes) ---- */
+/* ---- Scrim ---- */
 .otter-scrim {
   position: fixed;
   inset: 0;
