@@ -6,7 +6,7 @@
         <span class="otter-avatar" aria-hidden="true">🦦</span>
         <div>
           <div class="otter-name">Pip</div>
-          <div class="otter-tagline">Story companion</div>
+          <div class="otter-tagline">{{ contextLoaded ? storyTitle : 'Story companion' }}</div>
         </div>
       </div>
       <button type="button" class="otter-close-btn" aria-label="Close chat" @click="$emit('close')">
@@ -19,7 +19,9 @@
       <!-- Welcome shown only when no messages yet -->
       <div v-if="messages.length === 0" class="otter-welcome">
         <span class="otter-welcome-avatar" aria-hidden="true">🦦</span>
-        <p>Hi! I'm Pip, your story companion. Tell me about the story you want to write — or just say hello and we'll find an idea together!</p>
+        <p v-if="contextLoading">Reading your story…</p>
+        <p v-else-if="hasStoryContent">{{ welcomeWithContext }}</p>
+        <p v-else>Hi! I'm Pip, your story companion. Tell me about the story you want to write — or just say hello and we'll find an idea together!</p>
       </div>
 
       <div
@@ -84,15 +86,143 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick } from 'vue';
+import { ref, computed, watch, nextTick } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext } from '@/services/ai';
+import { getCurrentStoryId, getStoryById, getIdeas, getCharacters, getChapters, getScenes } from '@/db';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
 
 const HISTORY_LIMIT = 20; // messages kept in API context
 
-const SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a writing app that uses the Snowflake Method to build stories step by step.
+// ---- Story context ----
+const storyContext = ref('');
+const storyTitle = ref('Story companion');
+const contextLoading = ref(false);
+const contextLoaded = ref(false);
+const hasStoryContent = ref(false);
+const welcomeWithContext = ref('');
+
+function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+
+async function loadStoryContext() {
+  contextLoading.value = true;
+  contextLoaded.value = false;
+  storyContext.value = '';
+  hasStoryContent.value = false;
+
+  try {
+    const storyId = getCurrentStoryId();
+    if (!storyId) return;
+
+    const [story, ideas, characters, chapters, scenes] = await Promise.all([
+      getStoryById(storyId),
+      getIdeas(storyId),
+      getCharacters(storyId),
+      getChapters(storyId),
+      getScenes(storyId),
+    ]);
+
+    if (!story) return;
+    storyTitle.value = truncate(story.title || 'Untitled story', 28);
+
+    const lines = [];
+
+    // Spine
+    const spineFields = [
+      ['One-sentence summary', story.oneSentence],
+      ['Setup', story.setup],
+      ['Disaster 1', story.disaster1],
+      ['Disaster 2', story.disaster2],
+      ['Disaster 3', story.disaster3],
+      ['Ending', story.ending],
+    ].filter(([, v]) => v?.trim());
+
+    if (spineFields.length) {
+      lines.push('=== STORY SPINE ===');
+      for (const [label, val] of spineFields) {
+        lines.push(`${label}: ${truncate(val, 300)}`);
+      }
+      hasStoryContent.value = true;
+    }
+
+    // Characters
+    if (characters?.length) {
+      lines.push('\n=== CHARACTERS ===');
+      for (const c of characters.slice(0, 10)) {
+        const parts = [`- ${c.name || 'Unnamed'}`];
+        if (c.oneSentence) parts.push(truncate(c.oneSentence, 120));
+        if (c.goal) parts.push(`Goal: ${truncate(c.goal, 80)}`);
+        if (c.epiphany) parts.push(`Epiphany: ${truncate(c.epiphany, 80)}`);
+        lines.push(parts.join(' | '));
+      }
+      hasStoryContent.value = true;
+    }
+
+    // Ideas (top 15, brief)
+    if (ideas?.length) {
+      lines.push('\n=== IDEAS ===');
+      for (const idea of ideas.slice(0, 15)) {
+        lines.push(`- [${idea.type}] ${idea.title || 'Untitled'}: ${truncate(idea.body, 120)}`);
+      }
+      hasStoryContent.value = true;
+    }
+
+    // Outline (chapters + scenes, compact)
+    if (chapters?.length) {
+      lines.push('\n=== OUTLINE ===');
+      const scenesByChapter = new Map();
+      for (const sc of scenes || []) {
+        const list = scenesByChapter.get(sc.chapterId) || [];
+        list.push(sc);
+        scenesByChapter.set(sc.chapterId, list);
+      }
+      for (const ch of chapters.slice(0, 20)) {
+        const beat = ch.beat ? ` [${ch.beat}]` : '';
+        lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`);
+        const scs = scenesByChapter.get(ch.id) || [];
+        for (const sc of scs.slice(0, 6)) {
+          const written = sc.prose?.trim() ? ' ✓' : '';
+          lines.push(`  Scene: ${truncate(sc.title || 'Untitled', 60)}${written}`);
+          if (sc.oneSentenceSummary) lines.push(`    ${truncate(sc.oneSentenceSummary, 100)}`);
+        }
+      }
+      hasStoryContent.value = true;
+    }
+
+    storyContext.value = lines.join('\n');
+    contextLoaded.value = true;
+
+    // Build a contextual welcome message summarising what Pip noticed
+    if (hasStoryContent.value) {
+      const spineCount = spineFields.length;
+      const charCount = characters?.length || 0;
+      const chapterCount = chapters?.length || 0;
+      const writtenScenes = (scenes || []).filter((s) => s.prose?.trim()).length;
+      const totalScenes = (scenes || []).length;
+
+      const parts = [];
+      if (spineCount >= 3) parts.push('a solid story spine');
+      else if (spineCount > 0) parts.push('a story spine in progress');
+      if (charCount > 0) parts.push(`${charCount} character${charCount > 1 ? 's' : ''}`);
+      if (chapterCount > 0) parts.push(`${chapterCount} chapter${chapterCount > 1 ? 's' : ''}`);
+      if (writtenScenes > 0) parts.push(`${writtenScenes}/${totalScenes} scenes written`);
+
+      const summary = parts.length ? `I can see you have ${parts.join(', ')}. ` : '';
+      welcomeWithContext.value = `Hi! I'm Pip 🦦 — I've read your story. ${summary}What would you like to work on?`;
+    }
+  } finally {
+    contextLoading.value = false;
+  }
+}
+
+// Reload context each time the panel is opened
+watch(() => props.open, (val) => {
+  if (val) loadStoryContext();
+});
+
+// ---- Chat ----
+const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a writing app that uses the Snowflake Method to build stories step by step.
 
 Your personality:
 - Warm, encouraging, and a little playful — express genuine enthusiasm for stories
@@ -105,8 +235,14 @@ Your role:
 - Use Snowflake Method framing when helpful: start with one sentence → expand the spine → develop characters → detail the scenes
 - When the writer is stuck, offer 2–3 concrete options or a gentle nudge
 - Celebrate progress — every piece of the story they define is worth acknowledging
+- You have been given the writer's current story data below — use it to give specific, personalised advice rather than generic suggestions
 
 Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.`;
+
+const systemPrompt = computed(() => {
+  if (!storyContext.value) return BASE_SYSTEM_PROMPT;
+  return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`;
+});
 
 const messages = ref([]);
 const inputText = ref('');
@@ -138,7 +274,7 @@ async function send() {
     const history = messages.value.slice(-HISTORY_LIMIT);
     const reply = await chatWithAi({
       messages: history,
-      systemPrompt: SYSTEM_PROMPT,
+      systemPrompt: systemPrompt.value,
       tier: tierForContext(CONTEXTS.CHAT),
       maxTokens: 512,
     });
@@ -216,6 +352,10 @@ async function send() {
 .otter-tagline {
   font-size: 0.75rem;
   color: var(--text-muted);
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .otter-close-btn {
   background: none;
