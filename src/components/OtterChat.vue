@@ -344,9 +344,15 @@ function pipErrorMessage(e) {
     return "I hit a rate or quota limit on the current model. I tried lighter fallbacks but all were busy too — give it a minute and try again. 🦦";
   if (type === 'service_down')
     return "The AI service seems temporarily unavailable. Try again in a moment. 🦦";
+  if (type === 'safety')
+    return "My response was blocked by a content safety filter. Try rephrasing your message. 🦦";
+  if (type === 'token_limit')
+    return "Our conversation got too long for the model to handle — I automatically trimmed older messages but it still didn't fit. Try starting a fresh chat. 🦦";
   if (type === 'empty')
-    return "I got a blank response — the model may have hit a token limit or a safety filter. Try rephrasing or sending a shorter message. 🦦";
-  return `Something went wrong — ${e?.message || 'please try again'}. 🦦`;
+    return "I got a blank response. Try sending your message again. 🦦";
+  // Strip trailing punctuation before appending to avoid double-period
+  const raw = (e?.message || 'please try again').replace(/[.!?]+$/, '');
+  return `Something went wrong — ${raw}. 🦦`;
 }
 
 async function scrollToBottom() {
@@ -367,16 +373,31 @@ async function send() {
   await scrollToBottom();
 
   try {
-    const history = messages.value.slice(-HISTORY_LIMIT).map((m) => ({
-      role: m.role,
-      content: m.content,
-    }));
-    const raw = await chatWithAi({
-      messages: history,
-      systemPrompt: systemPrompt.value,
-      tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
-      maxTokens: 600,
-    });
+    // Auto-retry with progressively fewer history messages if context is too long
+    const RETRY_LIMITS = [HISTORY_LIMIT, 8, 4];
+    let raw = null;
+    let lastErr = null;
+    for (const limit of RETRY_LIMITS) {
+      try {
+        const history = messages.value.slice(-limit).map((m) => ({
+          role: m.role,
+          content: m.content,
+        }));
+        raw = await chatWithAi({
+          messages: history,
+          systemPrompt: systemPrompt.value,
+          tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
+          maxTokens: 600,
+        });
+        lastErr = null;
+        break;
+      } catch (e) {
+        lastErr = e;
+        if (classifyAiError(e) !== 'token_limit') throw e; // non-token errors: give up immediately
+        // token_limit: loop and try again with fewer messages
+      }
+    }
+    if (lastErr) throw lastErr;
 
     const { cleanText, actions } = parseActions(raw);
     let appliedActions = [];

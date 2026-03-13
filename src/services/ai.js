@@ -611,6 +611,10 @@ export function classifyAiError(error) {
     return "rate_limit";
   if (msg.includes("503") || msg.includes("unavailable") || msg.includes("temporarily"))
     return "service_down";
+  if (msg.includes("safety"))
+    return "safety";
+  if (msg.includes("cut off") || msg.includes("token limit") || msg.includes("max_tokens"))
+    return "token_limit";
   if (msg.includes("empty response") || msg.includes("blank response"))
     return "empty";
   return "unknown";
