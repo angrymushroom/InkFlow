@@ -33,10 +33,18 @@
           <div class="otter-bubble">{{ msg.content }}</div>
         </div>
         <!-- Action chips shown below assistant messages -->
-        <div v-if="msg.appliedActions?.length" class="otter-action-chips">
-          <span v-for="(a, j) in msg.appliedActions" :key="j" class="otter-action-chip">
-            ✓ {{ a.label }}
-          </span>
+        <div v-if="msg.actions?.length" class="otter-action-chips">
+          <template v-for="(a, j) in msg.actions" :key="j">
+            <div v-if="a.status === 'pending'" class="otter-action-pending">
+              <span class="otter-action-pending-label">{{ a.label }}</span>
+              <button class="otter-action-btn otter-action-btn--save" @click="confirmAction(a)">Save</button>
+              <button class="otter-action-btn otter-action-btn--skip" @click="skipAction(a)">Skip</button>
+            </div>
+            <span v-else-if="a.status === 'applying'" class="otter-action-chip otter-action-chip--muted">⏳ Saving…</span>
+            <span v-else-if="a.status === 'applied'" class="otter-action-chip">✓ {{ a.resultLabel }}</span>
+            <span v-else-if="a.status === 'skipped'" class="otter-action-chip otter-action-chip--muted">✗ Skipped</span>
+            <span v-else-if="a.status === 'error'" class="otter-action-chip otter-action-chip--error">✗ {{ a.resultLabel }}</span>
+          </template>
         </div>
       </template>
 
@@ -97,7 +105,8 @@ import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from
 import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
-  getChapters, getScenes,
+  getChapters, addChapter, updateChapter,
+  getScenes, addScene, updateScene,
 } from '@/db';
 
 const props = defineProps({ open: Boolean });
@@ -241,45 +250,132 @@ function parseActions(text) {
   return { cleanText, actions };
 }
 
-async function applyActions(actions) {
-  const chips = [];
-  for (const action of actions) {
-    try {
-      if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-        const current = await getStory();
-        if (!current) continue;
-        const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-        const patch = {};
-        for (const key of SPINE_KEYS) {
-          if (action.fields[key] != null) patch[key] = String(action.fields[key]);
-        }
-        if (Object.keys(patch).length === 0) continue;
-        await saveStory({ ...current, ...patch });
-        const fieldNames = Object.keys(patch).join(', ');
-        chips.push({ label: `Story spine updated (${fieldNames})` });
-      } else if (action.type === 'upsert_character' && action.name) {
-        const storyId = getCurrentStoryId();
-        const name = String(action.name).trim();
-        const existing = await getCharacters(storyId);
-        const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
-        const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany'];
-        const fields = {};
-        for (const key of CHAR_KEYS) {
-          if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-        }
-        if (match) {
-          await updateCharacter(match.id, { name, ...fields });
-          chips.push({ label: `Character "${name}" updated` });
-        } else {
-          await addCharacter({ storyId, name, ...fields });
-          chips.push({ label: `Character "${name}" created` });
-        }
-      }
-    } catch (e) {
-      chips.push({ label: `Action failed: ${e?.message || 'unknown error'}` });
+function actionLabel(action) {
+  if (action.type === 'update_spine') {
+    const keys = Object.keys(action.fields || {});
+    return `Update story spine${keys.length ? ` (${keys.join(', ')})` : ''}`;
+  }
+  if (action.type === 'upsert_character') return `Character "${action.name}"`;
+  if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
+  if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
+  if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
+  if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
+  return action.type;
+}
+
+async function applySingleAction(action) {
+  if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
+    const current = await getStory();
+    if (!current) throw new Error('No story found');
+    const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
+    const patch = {};
+    for (const key of SPINE_KEYS) {
+      if (action.fields[key] != null) patch[key] = String(action.fields[key]);
+    }
+    if (Object.keys(patch).length === 0) throw new Error('No fields to update');
+    await saveStory({ ...current, ...patch });
+    return `Story spine updated (${Object.keys(patch).join(', ')})`;
+  }
+  if (action.type === 'upsert_character' && action.name) {
+    const storyId = getCurrentStoryId();
+    const name = String(action.name).trim();
+    const existing = await getCharacters(storyId);
+    const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
+    const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany'];
+    const fields = {};
+    for (const key of CHAR_KEYS) {
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+    }
+    if (match) {
+      await updateCharacter(match.id, { name, ...fields });
+      return `Character "${name}" updated`;
+    } else {
+      await addCharacter({ storyId, name, ...fields });
+      return `Character "${name}" created`;
     }
   }
-  return chips;
+  if (action.type === 'add_chapter' && action.title) {
+    const storyId = getCurrentStoryId();
+    const title = String(action.title).trim();
+    const CHAPTER_KEYS = ['beat', 'summary'];
+    const fields = {};
+    for (const key of CHAPTER_KEYS) {
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+      else if (action[key] != null) fields[key] = String(action[key]);
+    }
+    await addChapter({ storyId, title, ...fields });
+    return `Chapter "${title}" added`;
+  }
+  if (action.type === 'update_chapter' && action.title_match) {
+    const storyId = getCurrentStoryId();
+    const existing = await getChapters(storyId);
+    const match = existing.find((c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase());
+    if (!match) throw new Error(`Chapter not found: "${action.title_match}"`);
+    const CHAPTER_KEYS = ['title', 'beat', 'summary'];
+    const fields = {};
+    for (const key of CHAPTER_KEYS) {
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+    }
+    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
+    await updateChapter(match.id, fields);
+    return `Chapter "${match.title}" updated`;
+  }
+  if (action.type === 'add_scene' && action.title && action.chapter_title_match) {
+    const storyId = getCurrentStoryId();
+    const chapters = await getChapters(storyId);
+    const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
+    if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`);
+    const title = String(action.title).trim();
+    const SCENE_KEYS = ['oneSentenceSummary', 'notes'];
+    const fields = {};
+    for (const key of SCENE_KEYS) {
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+      else if (action[key] != null) fields[key] = String(action[key]);
+    }
+    await addScene({ chapterId: chapter.id, title, ...fields });
+    return `Scene "${title}" added to "${chapter.title}"`;
+  }
+  if (action.type === 'update_scene' && action.title_match) {
+    const storyId = getCurrentStoryId();
+    const allScenes = await getScenes(storyId);
+    let match = null;
+    if (action.chapter_title_match) {
+      const chapters = await getChapters(storyId);
+      const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
+      if (chapter) {
+        match = allScenes.find((s) => s.chapterId === chapter.id && s.title?.toLowerCase() === String(action.title_match).toLowerCase());
+      }
+    }
+    if (!match) match = allScenes.find((s) => s.title?.toLowerCase() === String(action.title_match).toLowerCase());
+    if (!match) throw new Error(`Scene not found: "${action.title_match}"`);
+    const SCENE_KEYS = ['title', 'oneSentenceSummary', 'notes'];
+    const fields = {};
+    for (const key of SCENE_KEYS) {
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+    }
+    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
+    await updateScene(match.id, fields);
+    return `Scene "${match.title}" updated`;
+  }
+  throw new Error(`Unknown action: ${action.type}`);
+}
+
+async function confirmAction(actionObj) {
+  if (actionObj.status !== 'pending') return;
+  actionObj.status = 'applying';
+  try {
+    actionObj.resultLabel = await applySingleAction(actionObj.raw);
+    actionObj.status = 'applied';
+    loadStoryContext();
+  } catch (e) {
+    actionObj.resultLabel = e?.message || 'Failed';
+    actionObj.status = 'error';
+  }
+}
+
+function skipAction(actionObj) {
+  if (actionObj.status !== 'pending') return;
+  actionObj.status = 'skipped';
 }
 
 // ---- System prompt (Phase 3) ----
@@ -316,7 +412,23 @@ Emit this to save one or more spine fields (only include fields you want to chan
 
 ### Create or update a character
 Emit this to create a new character or update an existing one (matched by name, case-insensitive):
-<pip-action>{"type":"upsert_character","name":"CharacterName","fields":{"oneSentence":"...","goal":"...","motivation":"...","conflict":"...","epiphany":"..."}}</pip-action>`;
+<pip-action>{"type":"upsert_character","name":"CharacterName","fields":{"oneSentence":"...","goal":"...","motivation":"...","conflict":"...","epiphany":"..."}}</pip-action>
+
+### Add a chapter
+Emit this to add a new chapter. beat must be one of: setup, disaster1, disaster2, disaster3, ending.
+<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","fields":{"summary":"Brief chapter summary"}}</pip-action>
+
+### Update a chapter
+Emit this to update an existing chapter matched by title (case-insensitive). Only include fields you want to change.
+<pip-action>{"type":"update_chapter","title_match":"Existing chapter title","fields":{"title":"New title","beat":"disaster1","summary":"Updated summary"}}</pip-action>
+
+### Add a scene to a chapter
+Emit this to add a scene to a chapter matched by title (case-insensitive).
+<pip-action>{"type":"add_scene","chapter_title_match":"Chapter title","title":"Scene title","fields":{"oneSentenceSummary":"What happens in one sentence","notes":"Any extra notes"}}</pip-action>
+
+### Update a scene
+Emit this to update a scene matched by title (case-insensitive). Optionally narrow by chapter title to avoid ambiguity.
+<pip-action>{"type":"update_scene","title_match":"Existing scene title","chapter_title_match":"Optional chapter title","fields":{"title":"New title","oneSentenceSummary":"Updated summary","notes":"Updated notes"}}</pip-action>`;
 
 const systemPrompt = computed(() => {
   if (!storyContext.value) return BASE_SYSTEM_PROMPT;
@@ -404,19 +516,19 @@ async function send() {
     if (lastErr) throw lastErr;
 
     const { cleanText, actions } = parseActions(raw);
-    let appliedActions = [];
-    if (actions.length) {
-      appliedActions = await applyActions(actions);
-      // Refresh context so subsequent messages reflect the saved changes
-      loadStoryContext();
-    }
+    const pendingActions = actions.map((a) => ({
+      raw: a,
+      label: actionLabel(a),
+      status: 'pending',
+      resultLabel: null,
+    }));
 
-    messages.value.push({ role: 'assistant', content: cleanText, appliedActions });
+    messages.value.push({ role: 'assistant', content: cleanText, actions: pendingActions });
   } catch (e) {
     messages.value.push({
       role: 'assistant',
       content: pipErrorMessage(e),
-      appliedActions: [],
+      actions: [],
     });
   } finally {
     isLoading.value = false;
@@ -570,11 +682,57 @@ async function send() {
 /* ---- Action chips ---- */
 .otter-action-chips {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: var(--space-1);
   padding-left: calc(1.1rem + var(--space-2)); /* align with assistant bubble */
   margin-top: calc(-1 * var(--space-2));
 }
+
+/* Pending: label + Save / Skip buttons */
+.otter-action-pending {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.otter-action-pending-label {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.otter-action-btn {
+  flex-shrink: 0;
+  padding: 2px 10px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid;
+  transition: background 0.15s, color 0.15s;
+}
+.otter-action-btn--save {
+  background: color-mix(in srgb, var(--success, #16a34a) 12%, transparent);
+  color: var(--success, #16a34a);
+  border-color: color-mix(in srgb, var(--success, #16a34a) 30%, transparent);
+}
+.otter-action-btn--save:hover {
+  background: color-mix(in srgb, var(--success, #16a34a) 22%, transparent);
+}
+.otter-action-btn--skip {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.otter-action-btn--skip:hover {
+  background: var(--border);
+  color: var(--text);
+}
+
+/* Result chips (applied / skipped / error) */
 .otter-action-chip {
   display: inline-flex;
   align-items: center;
@@ -586,6 +744,16 @@ async function send() {
   background: color-mix(in srgb, var(--success, #16a34a) 12%, transparent);
   color: var(--success, #16a34a);
   border: 1px solid color-mix(in srgb, var(--success, #16a34a) 30%, transparent);
+}
+.otter-action-chip--muted {
+  background: transparent;
+  color: var(--text-muted);
+  border-color: var(--border);
+}
+.otter-action-chip--error {
+  background: color-mix(in srgb, var(--danger, #dc2626) 10%, transparent);
+  color: var(--danger, #dc2626);
+  border-color: color-mix(in srgb, var(--danger, #dc2626) 25%, transparent);
 }
 
 /* Typing indicator */
