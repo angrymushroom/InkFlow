@@ -343,7 +343,14 @@ async function callOpenAI(apiKey, systemPrompt, userPrompt, options = {}) {
       }
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(friendlyOpenAIError(err?.error?.message || `API error: ${res.status}`, res.status));
+    const errMsg = err?.error?.message || `API error: ${res.status}`;
+    if (res.status === 400) {
+      const lower = errMsg.toLowerCase();
+      if (lower.includes("context length") || lower.includes("maximum context") || lower.includes("too many tokens")) {
+        throw new Error(`Input too long for model — ${errMsg}`);
+      }
+    }
+    throw new Error(friendlyOpenAIError(errMsg, res.status));
   }
 
   const data = await res.json();
@@ -382,7 +389,14 @@ async function callGemini(apiKey, systemPrompt, userPrompt, options = {}) {
       }
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(friendlyGeminiError(err?.error?.message || err?.message || `API error: ${res.status}`, res.status));
+    const errMsg = err?.error?.message || err?.message || `API error: ${res.status}`;
+    if (res.status === 400) {
+      const lower = errMsg.toLowerCase();
+      if (lower.includes("token") || lower.includes("too large") || lower.includes("payload") || (lower.includes("exceeds") && lower.includes("limit"))) {
+        throw new Error(`Input too long for model — ${errMsg}`);
+      }
+    }
+    throw new Error(friendlyGeminiError(errMsg, res.status));
   }
 
   const data = await res.json();
@@ -391,7 +405,7 @@ async function callGemini(apiKey, systemPrompt, userPrompt, options = {}) {
   if (!text) {
     const reason = candidate?.finishReason || "Unknown";
     if (reason === "SAFETY") throw new Error("Response blocked by Gemini safety filters. Try rephrasing your prompt.");
-    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (token limit). Try simplifying your prompt.");
+    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (output too long). Try simplifying your prompt.");
     throw new Error(`Empty response from Gemini (${reason}). Try again.`);
   }
   return text;
@@ -448,7 +462,14 @@ async function chatOpenAIChat(apiKey, systemPrompt, messages, options = {}) {
       }
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(friendlyOpenAIError(err?.error?.message || `API error: ${res.status}`, res.status));
+    const errMsg = err?.error?.message || `API error: ${res.status}`;
+    if (res.status === 400) {
+      const lower = errMsg.toLowerCase();
+      if (lower.includes("context length") || lower.includes("maximum context") || lower.includes("too many tokens")) {
+        throw new Error(`Input too long for model — ${errMsg}`);
+      }
+    }
+    throw new Error(friendlyOpenAIError(errMsg, res.status));
   }
   const data = await res.json();
   const content = data.choices?.[0]?.message?.content?.trim();
@@ -489,7 +510,14 @@ async function chatGemini(apiKey, systemPrompt, messages, options = {}) {
       }
     }
     const err = await res.json().catch(() => ({}));
-    throw new Error(friendlyGeminiError(err?.error?.message || `API error: ${res.status}`, res.status));
+    const errMsg = err?.error?.message || err?.message || `API error: ${res.status}`;
+    if (res.status === 400) {
+      const lower = errMsg.toLowerCase();
+      if (lower.includes("token") || lower.includes("too large") || lower.includes("payload") || (lower.includes("exceeds") && lower.includes("limit"))) {
+        throw new Error(`Input too long for model — ${errMsg}`);
+      }
+    }
+    throw new Error(friendlyGeminiError(errMsg, res.status));
   }
   const data = await res.json();
   const candidate = data.candidates?.[0];
@@ -497,7 +525,7 @@ async function chatGemini(apiKey, systemPrompt, messages, options = {}) {
   if (!text) {
     const reason = candidate?.finishReason || "Unknown";
     if (reason === "SAFETY") throw new Error("Response blocked by safety filters. Try rephrasing.");
-    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (token limit). Try a shorter message.");
+    if (reason === "MAX_TOKENS") throw new Error("Response was cut off (output too long). Try asking for a shorter reply.");
     throw new Error(`Empty response from Gemini (${reason}). Try again.`);
   }
   return text;
@@ -613,9 +641,40 @@ export function classifyAiError(error) {
     return "service_down";
   if (msg.includes("safety"))
     return "safety";
-  if (msg.includes("cut off") || msg.includes("token limit") || msg.includes("max_tokens"))
+  if (msg.includes("output too long") || msg.includes("cut off"))
     return "token_limit";
+  if (msg.includes("input too long") || msg.includes("too long for the model"))
+    return "context_too_long";
   if (msg.includes("empty response") || msg.includes("blank response"))
     return "empty";
   return "unknown";
+}
+
+/**
+ * Convert an AI error into a user-friendly string. Works for all AI features.
+ * @param {Error|unknown} error
+ * @returns {string}
+ */
+export function friendlyAiError(error) {
+  const type = classifyAiError(error);
+  if (type === "network")
+    return "Couldn't reach the AI — check your internet connection and try again.";
+  if (type === "invalid_key")
+    return "Your API key doesn't work. Go to Settings → AI to check it.";
+  if (type === "access_denied")
+    return "Access denied — your API key may not have the right permissions. Check Settings → AI.";
+  if (type === "rate_limit")
+    return "Rate or quota limit reached. All fallback models were tried — wait a moment and try again.";
+  if (type === "service_down")
+    return "The AI service is temporarily unavailable. Try again in a moment.";
+  if (type === "safety")
+    return "Response blocked by content safety filters. Try rephrasing your request.";
+  if (type === "token_limit")
+    return "The AI response was too long to complete. Try asking for something shorter.";
+  if (type === "context_too_long")
+    return "Your request was too long for the model. Try shortening your input.";
+  if (type === "empty")
+    return "The AI returned an empty response. Try again.";
+  const raw = (error?.message || "please try again").replace(/[.!?]+$/, "");
+  return `Something went wrong — ${raw}.`;
 }

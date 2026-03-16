@@ -431,6 +431,7 @@ import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
 import { draftOutlineFromSpine } from '@/services/outlineAi';
+import { friendlyAiError } from '@/services/ai';
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
 import { useToast } from '@/composables/useToast';
 
@@ -732,7 +733,7 @@ async function draftForBeat(beat) {
     draftScope.value = beat;
     draftOpen.value = true;
   } catch (e) {
-    toastError(e?.message || t.value('outline.aiDraftError'));
+    toastError(friendlyAiError(e));
   } finally {
     drafting.value = false;
   }
@@ -746,7 +747,7 @@ async function draftAll() {
     draftScope.value = 'all';
     draftOpen.value = true;
   } catch (e) {
-    toastError(e?.message || t.value('outline.aiDraftError'));
+    toastError(friendlyAiError(e));
   } finally {
     drafting.value = false;
   }
@@ -768,7 +769,7 @@ async function applyDraft(payload) {
     draftOpen.value = false;
     draftData.value = null;
   } catch (e) {
-    toastError(e?.message || t.value('outline.aiDraftError'));
+    toastError(friendlyAiError(e));
   }
 }
 

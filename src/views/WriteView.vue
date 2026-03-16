@@ -125,6 +125,7 @@ import { useOutline } from '@/composables/useOutline';
 import { getCurrentStoryId, getScenes } from '@/db';
 import { countWords } from '@/utils/wordCount';
 import { generateFromScene } from '@/services/generation';
+import { friendlyAiError } from '@/services/ai';
 
 const { t } = useI18n();
 const { chapters, scenes, loadError, getScenesForChapter } = useOutline();
@@ -226,7 +227,7 @@ async function runGeneration(fromSceneId) {
     setTimeout(() => { resultMessage.value = ''; }, 6000);
   } catch (e) {
     resultHasErrors.value = true;
-    resultMessage.value = e?.message || t.value('write.generatePartial');
+    resultMessage.value = friendlyAiError(e);
     setTimeout(() => { resultMessage.value = ''; }, 6000);
   } finally {
     generating.value = false;

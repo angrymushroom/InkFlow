@@ -102,10 +102,11 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
+import { useOutline } from '@/composables/useOutline';
 import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
-  getChapters, addChapter, updateChapter,
+  getChapters, addChapter, updateChapter, reorderChapters,
   getScenes, addScene, updateScene,
 } from '@/db';
 
@@ -113,6 +114,8 @@ const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
 
 const HISTORY_LIMIT = 20;
+
+const { load: reloadOutline } = useOutline();
 
 // ---- Story context (Phase 2) ----
 const storyContext = ref('');
@@ -195,6 +198,7 @@ async function loadStoryContext() {
       for (const ch of chapters.slice(0, 20)) {
         const beat = ch.beat ? ` [${ch.beat}]` : '';
         lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`);
+        if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`);
         const scs = scenesByChapter.get(ch.id) || [];
         for (const sc of scs.slice(0, 6)) {
           const written = sc.prose?.trim() ? ' ✓' : '';
@@ -303,7 +307,23 @@ async function applySingleAction(action) {
       if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
       else if (action[key] != null) fields[key] = String(action[key]);
     }
-    await addChapter({ storyId, title, ...fields });
+    const newChapter = await addChapter({ storyId, title, ...fields });
+    // If a position is specified, reorder so the new chapter sits after the named one
+    if (action.after_chapter_title) {
+      const allChapters = await getChapters(storyId);
+      const afterIdx = allChapters.findIndex(
+        (c) => c.id !== newChapter.id && c.title?.toLowerCase() === String(action.after_chapter_title).toLowerCase()
+      );
+      if (afterIdx >= 0) {
+        const withoutNew = allChapters.filter((c) => c.id !== newChapter.id);
+        const reordered = [
+          ...withoutNew.slice(0, afterIdx + 1),
+          newChapter,
+          ...withoutNew.slice(afterIdx + 1),
+        ];
+        await reorderChapters(storyId, reordered.map((c) => c.id));
+      }
+    }
     return `Chapter "${title}" added`;
   }
   if (action.type === 'update_chapter' && action.title_match) {
@@ -367,6 +387,7 @@ async function confirmAction(actionObj) {
     actionObj.resultLabel = await applySingleAction(actionObj.raw);
     actionObj.status = 'applied';
     loadStoryContext();
+    reloadOutline();
   } catch (e) {
     actionObj.resultLabel = e?.message || 'Failed';
     actionObj.status = 'error';
@@ -416,7 +437,8 @@ Emit this to create a new character or update an existing one (matched by name, 
 
 ### Add a chapter
 Emit this to add a new chapter. beat must be one of: setup, disaster1, disaster2, disaster3, ending.
-<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","fields":{"summary":"Brief chapter summary"}}</pip-action>
+Use "after_chapter_title" to insert the chapter after a specific existing chapter (matched case-insensitively). If omitted, the chapter is appended at the end.
+<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
 
 ### Update a chapter
 Emit this to update an existing chapter matched by title (case-insensitive). Only include fields you want to change.
@@ -459,6 +481,8 @@ function pipErrorMessage(e) {
   if (type === 'safety')
     return "My response was blocked by a content safety filter. Try rephrasing your message. 🦦";
   if (type === 'token_limit')
+    return "My response got too long for the model to finish. Try asking me to keep it shorter, or break the request into smaller steps. 🦦";
+  if (type === 'context_too_long')
     return "Our conversation got too long for the model to handle — I automatically trimmed older messages but it still didn't fit. Try starting a fresh chat. 🦦";
   if (type === 'empty')
     return "I got a blank response. Try sending your message again. 🦦";
@@ -503,14 +527,16 @@ async function send() {
         raw = await chatWithAi({
           messages: history,
           systemPrompt: useContext ? systemPrompt.value : BASE_SYSTEM_PROMPT,
-          tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
-          maxTokens: 600,
+          tier: tierForContext(hasStoryContent.value ? CONTEXTS.CHAT_WITH_TOOLS : CONTEXTS.CHAT),
+          maxTokens: 4096,
         });
         lastErr = null;
         break;
       } catch (e) {
         lastErr = e;
-        if (classifyAiError(e) !== 'token_limit') throw e;
+        const errType = classifyAiError(e);
+        if (errType !== 'token_limit' && errType !== 'context_too_long') throw e;
+        if (errType === 'token_limit') throw e; // output truncated — retrying won't help
       }
     }
     if (lastErr) throw lastErr;
