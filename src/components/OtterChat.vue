@@ -71,28 +71,32 @@
       <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">Go to Settings</router-link>
     </div>
 
-    <!-- Input -->
-    <div v-else class="otter-input-row">
-      <textarea
-        ref="inputEl"
-        v-model="inputText"
-        class="otter-textarea"
-        :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
-        :disabled="isLoading"
-        rows="1"
-        @input="autoGrow"
-        @keydown.enter.exact.prevent="send"
-      />
-      <button
-        type="button"
-        class="otter-send-btn"
-        :disabled="isLoading || !inputText.trim()"
-        aria-label="Send message"
-        @click="send"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
-      </button>
-    </div>
+    <!-- Input resize handle + input (shown when API key is set) -->
+    <template v-if="hasApiKey">
+      <div class="otter-input-drag-bar" @mousedown.prevent="startTextareaResize" />
+      <div class="otter-input-row">
+        <textarea
+          ref="inputEl"
+          v-model="inputText"
+          class="otter-textarea"
+          :style="textareaManualHeight ? { height: textareaManualHeight + 'px' } : {}"
+          :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
+          :disabled="isLoading"
+          rows="1"
+          @input="autoGrow"
+          @keydown.enter.exact.prevent="send"
+        />
+        <button
+          type="button"
+          class="otter-send-btn"
+          :disabled="isLoading || !inputText.trim()"
+          aria-label="Send message"
+          @click="send"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
+        </button>
+      </div>
+    </template>
   </div>
 
   <!-- Scrim (all screen sizes) -->
@@ -501,7 +505,13 @@ const inputEl = ref(null);
 
 const hasApiKey = computed(() => !!getApiKey()?.trim());
 
+// ---- Textarea resize ----
+const TEXTAREA_MIN = 40;
+const TEXTAREA_MAX = 400;
+const textareaManualHeight = ref(null); // null = auto-grow mode
+
 function autoGrow(e) {
+  if (textareaManualHeight.value !== null) return; // manual mode active
   const el = e?.target ?? inputEl.value;
   if (!el) return;
   el.style.height = 'auto';
@@ -509,9 +519,26 @@ function autoGrow(e) {
 }
 
 function resetTextareaHeight() {
+  textareaManualHeight.value = null;
   nextTick(() => {
     if (inputEl.value) inputEl.value.style.height = '';
   });
+}
+
+function startTextareaResize(e) {
+  const startY = e.clientY;
+  const startHeight = textareaManualHeight.value ?? (inputEl.value?.offsetHeight ?? TEXTAREA_MIN);
+
+  function onMove(e) {
+    const delta = startY - e.clientY; // drag up = taller
+    textareaManualHeight.value = Math.min(TEXTAREA_MAX, Math.max(TEXTAREA_MIN, startHeight + delta));
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
 }
 
 function pipErrorMessage(e) {
@@ -877,6 +904,19 @@ async function send() {
   40% { opacity: 1; transform: scale(1); }
 }
 
+/* ---- Textarea drag bar ---- */
+.otter-input-drag-bar {
+  flex-shrink: 0;
+  height: 5px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+.otter-input-drag-bar:hover {
+  background: var(--accent);
+  opacity: 0.35;
+}
+
 /* ---- No API key ---- */
 .otter-no-key {
   flex-shrink: 0;
@@ -906,7 +946,7 @@ async function send() {
 .otter-textarea {
   flex: 1;
   min-height: 40px;
-  max-height: 200px;
+  max-height: 400px;
   resize: none;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
