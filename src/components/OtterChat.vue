@@ -1,5 +1,11 @@
 <template>
-  <div class="otter-panel" :class="{ 'otter-panel--open': open }">
+  <div
+    class="otter-panel"
+    :class="{ 'otter-panel--open': open, 'otter-panel--resizing': isResizing }"
+    :style="panelStyle"
+  >
+    <!-- Resize handle (desktop only) -->
+    <div class="otter-resize-handle" @mousedown.prevent="startResize" />
     <!-- Header -->
     <div class="otter-header">
       <div class="otter-header-left">
@@ -73,7 +79,8 @@
         class="otter-textarea"
         :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
         :disabled="isLoading"
-        rows="2"
+        rows="1"
+        @input="autoGrow"
         @keydown.enter.exact.prevent="send"
       />
       <button
@@ -457,6 +464,34 @@ const systemPrompt = computed(() => {
   return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`;
 });
 
+// ---- Panel resize ----
+const PANEL_WIDTH_KEY = 'inkflow_pip_width';
+const PANEL_MIN = 280;
+const PANEL_MAX = 680;
+const panelWidth = ref(parseInt(localStorage.getItem(PANEL_WIDTH_KEY) || '320', 10));
+const isResizing = ref(false);
+const panelStyle = computed(() => ({ width: `min(${panelWidth.value}px, 90vw)` }));
+
+function startResize(e) {
+  if (window.innerWidth <= 767) return;
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = panelWidth.value;
+
+  function onMove(e) {
+    const delta = startX - e.clientX;
+    panelWidth.value = Math.min(PANEL_MAX, Math.max(PANEL_MIN, startWidth + delta));
+  }
+  function onUp() {
+    isResizing.value = false;
+    localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth.value));
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
 // ---- Chat ----
 const messages = ref([]);
 const inputText = ref('');
@@ -465,6 +500,19 @@ const messagesEl = ref(null);
 const inputEl = ref(null);
 
 const hasApiKey = computed(() => !!getApiKey()?.trim());
+
+function autoGrow(e) {
+  const el = e?.target ?? inputEl.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function resetTextareaHeight() {
+  nextTick(() => {
+    if (inputEl.value) inputEl.value.style.height = '';
+  });
+}
 
 function pipErrorMessage(e) {
   const type = classifyAiError(e);
@@ -504,6 +552,7 @@ async function send() {
 
   messages.value.push({ role: 'user', content: text });
   inputText.value = '';
+  resetTextareaHeight();
   isLoading.value = true;
   inputEl.value?.focus();
   await scrollToBottom();
@@ -571,7 +620,7 @@ async function send() {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(320px, 90vw);
+  width: min(320px, 90vw); /* fallback; overridden by inline style on desktop */
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
@@ -585,6 +634,29 @@ async function send() {
 }
 .otter-panel--open {
   transform: translateX(0);
+}
+.otter-panel--resizing {
+  transition: none;
+  user-select: none;
+}
+
+/* ---- Resize handle ---- */
+.otter-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.otter-resize-handle:hover,
+.otter-panel--resizing .otter-resize-handle {
+  background: var(--accent);
+  opacity: 0.35;
+}
+@media (max-width: 767px) {
+  .otter-resize-handle { display: none; }
 }
 
 @media (max-width: 767px) {
@@ -833,15 +905,14 @@ async function send() {
 }
 .otter-textarea {
   flex: 1;
-  min-height: unset;
-  max-height: 120px;
+  min-height: 40px;
+  max-height: 200px;
   resize: none;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   padding: var(--space-2) var(--space-3);
   line-height: 1.5;
   overflow-y: auto;
-  min-height: 40px !important;
 }
 .otter-send-btn {
   flex-shrink: 0;
