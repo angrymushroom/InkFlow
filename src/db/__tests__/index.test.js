@@ -127,10 +127,15 @@ const {
   deleteStory,
   addScene,
   addChapter,
+  getScenes,
   getCharacterRelationships,
   addCharacterRelationship,
   updateCharacterRelationship,
   deleteCharacterRelationship,
+  addCustomIdeaType,
+  deleteCustomIdeaType,
+  renameCustomIdeaType,
+  getCustomIdeaTypes,
   exportProject,
   importProject,
 } = await import('@/db/index.js');
@@ -363,30 +368,32 @@ describe('deleteCharacter cascade', () => {
   beforeEach(resetAllTables);
 
   it('nullifies povCharacterId in scenes that reference the deleted character', async () => {
-    const char = await addCharacter({ id: 'c1', storyId: 'story', name: 'Alice', createdAt: Date.now() });
-    await db.scenes.add({ id: 's1', chapterId: 'ch1', order: 0, povCharacterId: 'c1', createdAt: Date.now() });
-    await db.scenes.add({ id: 's2', chapterId: 'ch1', order: 1, povCharacterId: 'c2', createdAt: Date.now() });
-    await deleteCharacter('c1');
+    const char = await addCharacter({ storyId: 'story', name: 'Alice' });
+    // second character for unrelated POV
+    await db.scenes.add({ id: 's1', chapterId: 'ch1', order: 0, povCharacterId: char.id, createdAt: Date.now() });
+    await db.scenes.add({ id: 's2', chapterId: 'ch1', order: 1, povCharacterId: 'other-char', createdAt: Date.now() });
+    await deleteCharacter(char.id);
     const s1 = await db.scenes.get('s1');
     const s2 = await db.scenes.get('s2');
     expect(s1.povCharacterId).toBeNull();
-    expect(s2.povCharacterId).toBe('c2'); // untouched
+    expect(s2.povCharacterId).toBe('other-char'); // untouched
   });
 
   it('deletes all character_relationships involving the deleted character', async () => {
-    await addCharacterRelationship({ storyId: 'story', fromCharId: 'c1', toCharId: 'c2', label: 'a' });
-    await addCharacterRelationship({ storyId: 'story', fromCharId: 'c3', toCharId: 'c1', label: 'b' });
+    const char = await addCharacter({ storyId: 'story', name: 'Alice' });
+    await addCharacterRelationship({ storyId: 'story', fromCharId: char.id, toCharId: 'c2', label: 'a' });
+    await addCharacterRelationship({ storyId: 'story', fromCharId: 'c3', toCharId: char.id, label: 'b' });
     await addCharacterRelationship({ storyId: 'story', fromCharId: 'c2', toCharId: 'c3', label: 'c' }); // unrelated
-    await deleteCharacter('c1');
+    await deleteCharacter(char.id);
     const rels = await db.character_relationships.toArray();
     expect(rels).toHaveLength(1);
     expect(rels[0].label).toBe('c');
   });
 
   it('deletes the character record itself', async () => {
-    await db.characters.add({ id: 'c1', storyId: 'story', name: 'Bob', createdAt: Date.now() });
-    await deleteCharacter('c1');
-    const gone = await db.characters.get('c1');
+    const char = await addCharacter({ storyId: 'story', name: 'Bob' });
+    await deleteCharacter(char.id);
+    const gone = await db.characters.get(char.id);
     expect(gone).toBeUndefined();
   });
 });
@@ -407,6 +414,84 @@ describe('deleteStory cascade', () => {
     const rels = await db.character_relationships.toArray();
     expect(rels).toHaveLength(1);
     expect(rels[0].storyId).toBe('s2');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getScenes — sorted by chapter.order then scene.order (not chapterId UUID)
+// ---------------------------------------------------------------------------
+describe('getScenes sort order', () => {
+  beforeEach(resetAllTables);
+
+  it('returns scenes in chapter.order then scene.order sequence', async () => {
+    // Chapter with order:1 created first, then chapter with order:0
+    await db.chapters.add({ id: 'ch-late', storyId: 'story', order: 1, createdAt: 1 });
+    await db.chapters.add({ id: 'ch-early', storyId: 'story', order: 0, createdAt: 2 });
+    await db.scenes.add({ id: 's1', chapterId: 'ch-late', order: 0, createdAt: 1 });
+    await db.scenes.add({ id: 's2', chapterId: 'ch-early', order: 0, createdAt: 2 });
+    const scenes = await getScenes('story');
+    expect(scenes[0].id).toBe('s2'); // ch-early (order:0) comes before ch-late (order:1)
+    expect(scenes[1].id).toBe('s1');
+  });
+
+  it('sorts scenes within same chapter by scene.order', async () => {
+    await db.chapters.add({ id: 'ch1', storyId: 'story', order: 0, createdAt: 1 });
+    await db.scenes.add({ id: 's-b', chapterId: 'ch1', order: 1, createdAt: 1 });
+    await db.scenes.add({ id: 's-a', chapterId: 'ch1', order: 0, createdAt: 2 });
+    const scenes = await getScenes('story');
+    expect(scenes[0].id).toBe('s-a');
+    expect(scenes[1].id).toBe('s-b');
+  });
+
+  it('returns empty array when story has no chapters', async () => {
+    const scenes = await getScenes('story');
+    expect(scenes).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Custom idea type management — delete and rename
+// ---------------------------------------------------------------------------
+describe('custom idea type management', () => {
+  beforeEach(resetAllTables);
+
+  it('deleteCustomIdeaType removes the record', async () => {
+    const type = await addCustomIdeaType('Fantasy Elements');
+    await deleteCustomIdeaType(type.id);
+    const types = await getCustomIdeaTypes();
+    expect(types.find((t) => t.id === type.id)).toBeUndefined();
+  });
+
+  it('deleteCustomIdeaType does not affect other types', async () => {
+    const a = await addCustomIdeaType('Alpha');
+    const b = await addCustomIdeaType('Beta');
+    await deleteCustomIdeaType(a.id);
+    const types = await getCustomIdeaTypes();
+    expect(types).toHaveLength(1);
+    expect(types[0].id).toBe(b.id);
+  });
+
+  it('renameCustomIdeaType updates the name', async () => {
+    const type = await addCustomIdeaType('Old Name');
+    await renameCustomIdeaType(type.id, 'New Name');
+    const types = await getCustomIdeaTypes();
+    const updated = types.find((t) => t.id === type.id);
+    expect(updated.name).toBe('New Name');
+  });
+
+  it('renameCustomIdeaType trims whitespace', async () => {
+    const type = await addCustomIdeaType('Trim Me');
+    await renameCustomIdeaType(type.id, '  Trimmed  ');
+    const types = await getCustomIdeaTypes();
+    expect(types.find((t) => t.id === type.id).name).toBe('Trimmed');
+  });
+
+  it('renameCustomIdeaType ignores empty name', async () => {
+    const type = await addCustomIdeaType('Keep Me');
+    await renameCustomIdeaType(type.id, '   ');
+    const types = await getCustomIdeaTypes();
+    // name should be unchanged (empty rename is a no-op)
+    expect(types.find((t) => t.id === type.id).name).toBe('Keep Me');
   });
 });
 

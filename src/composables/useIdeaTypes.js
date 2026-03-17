@@ -1,5 +1,5 @@
 import { ref, onMounted } from 'vue';
-import { getCustomIdeaTypes, addCustomIdeaType } from '@/db';
+import { getCustomIdeaTypes, addCustomIdeaType, deleteCustomIdeaType, renameCustomIdeaType } from '@/db';
 import { BUILT_IN_IDEA_TYPES, isBuiltInType } from '@/constants/ideaTypes';
 
 /**
@@ -31,6 +31,20 @@ export function useIdeaTypes() {
     return null;
   }
 
+  async function deleteCustomType(id) {
+    await deleteCustomIdeaType(id);
+    customTypes.value = customTypes.value.filter((ct) => ct.id !== id);
+  }
+
+  async function renameCustomType(id, name) {
+    const trimmed = (name || '').trim();
+    if (!trimmed) return;
+    await renameCustomIdeaType(id, trimmed);
+    customTypes.value = customTypes.value.map((ct) =>
+      ct.id === id ? { ...ct, name: trimmed } : ct
+    );
+  }
+
   onMounted(loadCustomTypes);
 
   return {
@@ -38,6 +52,8 @@ export function useIdeaTypes() {
     customTypes,
     loadCustomTypes,
     addCustomType,
+    deleteCustomType,
+    renameCustomType,
     getIdeaTypeLabel,
     isBuiltInType,
   };

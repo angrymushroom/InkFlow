@@ -88,12 +88,71 @@
       :danger="true"
       @confirm="doDelete"
     />
+
+    <!-- Relationships section (visible when ≥2 characters exist) -->
+    <section v-if="characters.length >= 2" class="rel-section">
+      <h2 class="rel-section-title">{{ t('characters.relationships') }}</h2>
+      <p class="page-subtitle">{{ t('characters.relationshipsSubtitle') }}</p>
+
+      <div v-if="showRelForm" class="card form-card">
+        <h3 class="form-title">{{ t('characters.newRelationship') }}</h3>
+        <div class="form-group">
+          <label>{{ t('characters.relFrom') }}</label>
+          <select v-model="relForm.fromCharId" class="rel-select">
+            <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('characters.relTo') }}</label>
+          <select v-model="relForm.toCharId" class="rel-select">
+            <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>{{ t('characters.relLabel') }}</label>
+          <input v-model="relForm.label" type="text" :placeholder="t('characters.relLabelPlaceholder')" />
+        </div>
+        <div class="form-group">
+          <label>{{ t('characters.relDescription') }}</label>
+          <ResizableTextarea v-model="relForm.description" :placeholder="t('characters.relDescriptionPlaceholder')" :rows="2" />
+        </div>
+        <div class="form-actions">
+          <button class="btn btn-ghost" @click="cancelRelForm">{{ t('ideas.cancel') }}</button>
+          <button class="btn btn-primary" @click="saveRelationship">{{ t('ideas.add') }}</button>
+        </div>
+      </div>
+
+      <button v-if="!showRelForm" class="btn btn-primary" @click="openRelForm">+ {{ t('characters.newRelationship') }}</button>
+
+      <div v-if="relationships.length" class="rel-list">
+        <div v-for="rel in relationships" :key="rel.id" class="card rel-card">
+          <div class="rel-header">
+            <span class="rel-names">
+              <strong>{{ charName(rel.fromCharId) }}</strong>
+              <span class="rel-arrow">{{ rel.label || '→' }}</span>
+              <strong>{{ charName(rel.toCharId) }}</strong>
+            </span>
+            <button class="btn btn-ghost btn-sm btn-icon" @click="confirmDeleteRel(rel)" :title="t('ideas.delete')">🗑️</button>
+          </div>
+          <p v-if="rel.description" class="rel-description">{{ rel.description }}</p>
+        </div>
+      </div>
+    </section>
+
+    <ConfirmModal
+      v-model="deleteRelModal.open"
+      :title="t('characters.relConfirmDelete')"
+      :confirm-label="t('ideas.delete')"
+      :cancel-label="t('ideas.cancel')"
+      :danger="true"
+      @confirm="doDeleteRel"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue';
-import { getCharacters, addCharacter, updateCharacter, deleteCharacter } from '@/db';
+import { getCharacters, addCharacter, updateCharacter, deleteCharacter, getCharacterRelationships, addCharacterRelationship, deleteCharacterRelationship } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
@@ -116,10 +175,68 @@ const loadError = ref('');
 const saveError = ref('');
 const deleteModal = ref({ open: false, character: null });
 
+// Relationships
+const relationships = ref([]);
+const showRelForm = ref(false);
+const relForm = ref({ fromCharId: '', toCharId: '', label: '', description: '' });
+const deleteRelModal = ref({ open: false, relationship: null });
+
+function charName(id) {
+  return characters.value.find((c) => c.id === id)?.name || id;
+}
+
+function openRelForm() {
+  relForm.value = {
+    fromCharId: characters.value[0]?.id ?? '',
+    toCharId: characters.value[1]?.id ?? '',
+    label: '',
+    description: '',
+  };
+  showRelForm.value = true;
+}
+
+function cancelRelForm() {
+  showRelForm.value = false;
+}
+
+async function saveRelationship() {
+  saveError.value = '';
+  try {
+    await addCharacterRelationship(relForm.value);
+    relationships.value = await getCharacterRelationships();
+    cancelRelForm();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
+}
+
+function confirmDeleteRel(rel) {
+  deleteRelModal.value = { open: true, relationship: rel };
+}
+
+async function doDeleteRel() {
+  const rel = deleteRelModal.value.relationship;
+  if (!rel) return;
+  deleteRelModal.value.open = false;
+  try {
+    await deleteCharacterRelationship(rel.id);
+    relationships.value = await getCharacterRelationships();
+  } catch (e) {
+    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+  }
+}
+
+async function loadRelationships() {
+  try {
+    relationships.value = await getCharacterRelationships();
+  } catch (_) {}
+}
+
 async function load() {
   loadError.value = '';
   try {
     characters.value = await getCharacters();
+    relationships.value = await getCharacterRelationships();
   } catch (e) {
     loadError.value = e?.message || t.value('common.loadErrorGeneric');
   }
@@ -176,7 +293,7 @@ async function doDelete() {
   saveError.value = '';
   try {
     await deleteCharacter(char.id);
-    await load();
+    await load(); // also reloads relationships since cascade cleaned them up
     window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
   } catch (e) {
     saveError.value = e?.message || t.value('common.saveErrorGeneric');
@@ -255,5 +372,52 @@ onUnmounted(() => {
   margin-bottom: var(--space-2);
   font-size: 0.875rem;
   color: var(--danger);
+}
+.rel-section {
+  margin-top: var(--space-7);
+}
+.rel-section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-1);
+}
+.rel-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+}
+.rel-card {
+  padding: var(--space-3) var(--space-4);
+}
+.rel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.rel-names {
+  font-size: 0.9375rem;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.rel-arrow {
+  color: var(--text-muted);
+  font-style: italic;
+}
+.rel-description {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: var(--space-2) 0 0;
+}
+.rel-select {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
 }
 </style>

@@ -278,8 +278,9 @@ export async function addIdea(idea) {
   const id = crypto.randomUUID();
   const createdAt = Date.now();
   const storyId = idea.storyId ?? getCurrentStoryId();
-  await db.ideas.add({ id, ...idea, storyId, createdAt });
-  return { id, ...idea, storyId, createdAt };
+  const record = { ...idea, id, storyId, createdAt };
+  await db.ideas.add(record);
+  return record;
 }
 
 export async function updateIdea(id, data) {
@@ -308,6 +309,16 @@ export async function addCustomIdeaType(name) {
   return { id, name: trimmed, createdAt };
 }
 
+export async function deleteCustomIdeaType(id) {
+  await db.idea_custom_types.delete(id);
+}
+
+export async function renameCustomIdeaType(id, name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return;
+  await db.idea_custom_types.update(id, { name: trimmed, updatedAt: Date.now() });
+}
+
 // Characters (scoped by current story)
 export async function getCharacters(storyId) {
   const sid = storyId ?? getCurrentStoryId();
@@ -318,8 +329,9 @@ export async function addCharacter(char) {
   const id = crypto.randomUUID();
   const createdAt = Date.now();
   const storyId = char.storyId ?? getCurrentStoryId();
-  await db.characters.add({ id, ...char, storyId, createdAt });
-  return { id, ...char, storyId, createdAt };
+  const record = { ...char, id, storyId, createdAt };
+  await db.characters.add(record);
+  return record;
 }
 
 export async function updateCharacter(id, data) {
@@ -383,8 +395,9 @@ export async function addChapter(chapter) {
   const storyId = chapter.storyId ?? getCurrentStoryId();
   const count = await db.chapters.where("storyId").equals(storyId).count();
   const order = chapter.order ?? count;
-  await db.chapters.add({ id, ...chapter, storyId, order, createdAt });
-  return { id, ...chapter, storyId, order, createdAt };
+  const record = { ...chapter, id, storyId, order, createdAt };
+  await db.chapters.add(record);
+  return record;
 }
 
 export async function updateChapter(id, data) {
@@ -408,12 +421,16 @@ export async function deleteChapter(id) {
 // Scenes (when storyId given, only scenes whose chapter belongs to that story)
 export async function getScenes(storyId) {
   if (storyId != null) {
-    const chapterIds = await db.chapters.where("storyId").equals(storyId).primaryKeys();
-    if (chapterIds.length === 0) return [];
+    // Fetch chapters with their order so we can sort scenes correctly.
+    // Sorting by chapterId (UUID string) is wrong — it must follow chapter.order.
+    const chapters = await db.chapters.where("storyId").equals(storyId).toArray();
+    if (chapters.length === 0) return [];
+    const chapterOrderMap = new Map(chapters.map((ch) => [ch.id, ch.order ?? 0]));
+    const chapterIds = chapters.map((ch) => ch.id);
     const list = await db.scenes.where("chapterId").anyOf(chapterIds).toArray();
     return list.sort((a, b) => {
-      const c = (a.chapterId || "").localeCompare(b.chapterId || "");
-      return c !== 0 ? c : (a.order ?? 0) - (b.order ?? 0);
+      const co = (chapterOrderMap.get(a.chapterId) ?? 0) - (chapterOrderMap.get(b.chapterId) ?? 0);
+      return co !== 0 ? co : (a.order ?? 0) - (b.order ?? 0);
     });
   }
   const list = await db.scenes.toArray();
@@ -437,8 +454,9 @@ export async function addScene(scene) {
   const order =
     scene.order ??
     (await db.scenes.where("chapterId").equals(scene.chapterId).count());
-  await db.scenes.add({ id, ...scene, order, createdAt });
-  return { id, ...scene, order, createdAt };
+  const record = { ...scene, id, order, createdAt };
+  await db.scenes.add(record);
+  return record;
 }
 
 export async function updateScene(id, data) {

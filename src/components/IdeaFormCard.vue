@@ -22,6 +22,12 @@
         </optgroup>
         <option value="__add_custom__">{{ t('ideas.addCustomType') }}</option>
       </select>
+      <button
+        v-if="customTypes.length"
+        type="button"
+        class="btn btn-ghost btn-sm manage-types-btn"
+        @click="openManageTypes"
+      >{{ t('ideas.manageCustomTypes') }}</button>
     </div>
     <div class="form-actions">
       <button type="button" class="btn btn-ghost" @click="emit('cancel')">{{ t('ideas.cancel') }}</button>
@@ -39,6 +45,28 @@
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" @click="closeCustomTypeModal">{{ t('ideas.cancel') }}</button>
           <button type="button" class="btn btn-primary" @click="saveCustomType">{{ t('ideas.customTypeModalSave') }}</button>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showManageTypesModal" class="modal-backdrop" @click.self="showManageTypesModal = false">
+      <div class="modal-card">
+        <h3 class="modal-title">{{ t('ideas.manageCustomTypesTitle') }}</h3>
+        <div v-if="!customTypes.length" class="manage-empty">{{ t('ideas.noCustomTypes') }}</div>
+        <ul v-else class="manage-type-list">
+          <li v-for="ct in customTypes" :key="ct.id" class="manage-type-item">
+            <input
+              v-model="renameValues[ct.id]"
+              class="manage-type-input"
+              type="text"
+              @keydown.enter="doRenameType(ct.id)"
+            />
+            <button class="btn btn-ghost btn-sm" @click="doRenameType(ct.id)" :title="t('ideas.customTypeRename')">✓</button>
+            <button class="btn btn-ghost btn-sm btn-danger-icon" @click="doDeleteType(ct.id)" :title="t('ideas.customTypeDelete')">🗑️</button>
+          </li>
+        </ul>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-primary" @click="showManageTypesModal = false">{{ t('ideas.close') }}</button>
         </div>
       </div>
     </div>
@@ -62,13 +90,37 @@ const props = defineProps({
 const emit = defineEmits(['save', 'cancel', 'delete']);
 
 const { t } = useI18n();
-const { builtInTypes, customTypes, addCustomType } = useIdeaTypes();
+const { builtInTypes, customTypes, addCustomType, deleteCustomType, renameCustomType } = useIdeaTypes();
 
 const form = ref({ title: '', body: '', type: 'plot' });
 const saveError = ref('');
 const showCustomTypeModal = ref(false);
 const customTypeName = ref('');
 const customTypeError = ref('');
+const showManageTypesModal = ref(false);
+const renameValues = ref({});
+
+function openManageTypes() {
+  renameValues.value = Object.fromEntries(customTypes.value.map((ct) => [ct.id, ct.name]));
+  showManageTypesModal.value = true;
+}
+
+async function doDeleteType(id) {
+  await deleteCustomType(id);
+  delete renameValues.value[id];
+  // If current idea uses this type, reset to plot
+  if (form.value.type === (customTypes.value.find((ct) => ct.id === id)?.name)) {
+    form.value.type = 'plot';
+  }
+}
+
+async function doRenameType(id) {
+  const newName = (renameValues.value[id] || '').trim();
+  if (!newName) return;
+  const oldName = customTypes.value.find((ct) => ct.id === id)?.name;
+  await renameCustomType(id, newName);
+  if (form.value.type === oldName) form.value.type = newName;
+}
 
 watch(
   () => [props.idea, props.typeFilter],
@@ -204,5 +256,39 @@ function doDelete() {
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-4);
+}
+.manage-types-btn {
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+}
+.manage-type-list {
+  list-style: none;
+  margin: 0 0 var(--space-3);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.manage-type-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.manage-type-input {
+  flex: 1;
+  padding: var(--space-1) var(--space-2);
+  font-size: 0.9375rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-elevated);
+  color: var(--text);
+}
+.btn-danger-icon {
+  color: var(--danger);
+}
+.manage-empty {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: var(--space-3);
 }
 </style>
