@@ -25,7 +25,9 @@ vi.mock('@/services/ai', () => ({
     }
     return Promise.resolve('No contradictions.');
   }),
-  TIERS: { LIGHT: 'light' },
+  TIERS: { LIGHT: 'light', ADVANCED: 'advanced' },
+  CONTEXTS: { CONSISTENCY: 'consistency', CHAT: 'chat', SCENE_PROSE: 'scene_prose', EXPAND_SHORT: 'expand_short', OUTLINE_DRAFT_FULL: 'outline_draft_full', OUTLINE_DRAFT_SECTION: 'outline_draft_section', CHAT_WITH_TOOLS: 'chat_with_tools' },
+  tierForContext: vi.fn(() => 'light'),
 }));
 
 const { extractFactsFromProse, updateStoryFactsFromScenes, checkConsistency } = await import('@/services/consistency.js');

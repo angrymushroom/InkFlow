@@ -21,6 +21,8 @@ vi.mock('@/db', () => ({
 vi.mock('@/services/ai', () => ({
   completeWithAi: vi.fn(() => Promise.resolve('Generated scene prose.')),
   TIERS: { LIGHT: 'light', ADVANCED: 'advanced' },
+  CONTEXTS: { CONSISTENCY: 'consistency', CHAT: 'chat', SCENE_PROSE: 'scene_prose', EXPAND_SHORT: 'expand_short', OUTLINE_DRAFT_FULL: 'outline_draft_full', OUTLINE_DRAFT_SECTION: 'outline_draft_section', CHAT_WITH_TOOLS: 'chat_with_tools' },
+  tierForContext: vi.fn(() => 'light'),
 }));
 
 const { buildSceneContext, generateSceneProse, generateFromScene } = await import('@/services/generation.js');

@@ -84,6 +84,18 @@ db.version(4).stores({
   story_facts: "id, storyId, factType, createdAt",
 });
 
+db.version(5).stores({
+  story: "id, updatedAt",
+  stories: "id, updatedAt, createdAt",
+  ideas: "id, storyId, type, createdAt",
+  characters: "id, storyId, createdAt",
+  chapters: "id, storyId, order, createdAt",
+  scenes: "id, chapterId, order, createdAt",
+  idea_custom_types: "id, createdAt",
+  story_facts: "id, storyId, factType, createdAt",
+  character_relationships: "id, storyId, fromCharId, toCharId, createdAt",
+});
+
 function createStorageError(message, cause) {
   const err = new Error(message);
   err.code = "STORAGE_ERROR";
@@ -177,22 +189,26 @@ export async function getStory() {
   }
 }
 
+// Snowflake Method core fields — always present, default to empty string
+const STORY_CORE_FIELDS = ["oneSentence", "setup", "disaster1", "disaster2", "disaster3", "ending"];
+
 export async function saveStory(data) {
   try {
     const id = data.id || getCurrentStoryId() || "story";
     const updatedAt = Date.now();
     const existing = await db.stories.get(id);
+    // Merge: existing record first, then incoming data, then lock system fields.
+    // This preserves any extra story fields (e.g. title, discoveryPhase) without a whitelist.
     const payload = {
+      ...(existing || {}),
+      ...data,
       id,
-      oneSentence: data.oneSentence ?? "",
-      setup: data.setup ?? "",
-      disaster1: data.disaster1 ?? "",
-      disaster2: data.disaster2 ?? "",
-      disaster3: data.disaster3 ?? "",
-      ending: data.ending ?? "",
       updatedAt,
       createdAt: existing?.createdAt ?? updatedAt,
     };
+    for (const f of STORY_CORE_FIELDS) {
+      if (payload[f] == null) payload[f] = "";
+    }
     await db.stories.put(payload);
     return payload;
   } catch (e) {
@@ -207,13 +223,14 @@ export async function createStory(overrides = {}) {
   const id = crypto.randomUUID();
   const now = Date.now();
   const story = {
+    oneSentence: "",
+    setup: "",
+    disaster1: "",
+    disaster2: "",
+    disaster3: "",
+    ending: "",
+    ...overrides,
     id,
-    oneSentence: overrides.oneSentence ?? "",
-    setup: overrides.setup ?? "",
-    disaster1: overrides.disaster1 ?? "",
-    disaster2: overrides.disaster2 ?? "",
-    disaster3: overrides.disaster3 ?? "",
-    ending: overrides.ending ?? "",
     updatedAt: now,
     createdAt: now,
   };
@@ -236,6 +253,7 @@ export async function deleteStory(id) {
   await db.ideas.where("storyId").equals(id).delete();
   await db.characters.where("storyId").equals(id).delete();
   if (db.story_facts) await db.story_facts.where("storyId").equals(id).delete();
+  if (db.character_relationships) await db.character_relationships.where("storyId").equals(id).delete();
   await db.stories.delete(id);
 
   let switchedToId = null;
@@ -311,7 +329,46 @@ export async function updateCharacter(id, data) {
 
 
 export async function deleteCharacter(id) {
+  // Nullify POV references in scenes so they don't hold orphaned character ids
+  await db.scenes.filter((s) => s.povCharacterId === id).modify({ povCharacterId: null });
+  // Delete all relationships involving this character
+  if (db.character_relationships) {
+    await db.character_relationships
+      .filter((r) => r.fromCharId === id || r.toCharId === id)
+      .delete();
+  }
   await db.characters.delete(id);
+}
+
+// Character relationships (explicit edges between characters within a story)
+export async function getCharacterRelationships(storyId) {
+  const sid = storyId ?? getCurrentStoryId();
+  return db.character_relationships.where("storyId").equals(sid).toArray();
+}
+
+export async function addCharacterRelationship(rel) {
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  const storyId = rel.storyId ?? getCurrentStoryId();
+  const record = {
+    id,
+    storyId,
+    fromCharId: rel.fromCharId,
+    toCharId: rel.toCharId,
+    label: rel.label ?? "",
+    description: rel.description ?? "",
+    createdAt,
+  };
+  await db.character_relationships.add(record);
+  return record;
+}
+
+export async function updateCharacterRelationship(id, data) {
+  await db.character_relationships.update(id, { ...data, updatedAt: Date.now() });
+}
+
+export async function deleteCharacterRelationship(id) {
+  await db.character_relationships.delete(id);
 }
 
 // Chapters (scoped by current story)
@@ -503,16 +560,20 @@ export async function loadExampleStory(locale = 'en') {
   }
 }
 
-// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts)
+// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts; v5+ characterRelationships)
 export async function exportProject() {
   try {
     let ideaCustomTypes = [];
     let storyFacts = [];
+    let characterRelationships = [];
     try {
       if (db.idea_custom_types) ideaCustomTypes = await db.idea_custom_types.toArray();
     } catch (_) {}
     try {
       if (db.story_facts) storyFacts = await db.story_facts.toArray();
+    } catch (_) {}
+    try {
+      if (db.character_relationships) characterRelationships = await db.character_relationships.toArray();
     } catch (_) {}
     const [stories, ideas, characters, chapters, scenes] = await Promise.all([
       db.stories.toArray(),
@@ -522,7 +583,7 @@ export async function exportProject() {
       db.scenes.toArray(),
     ]);
     return {
-      version: 4,
+      version: 5,
       exportedAt: new Date().toISOString(),
       stories,
       ideas,
@@ -531,6 +592,7 @@ export async function exportProject() {
       scenes,
       ideaCustomTypes,
       storyFacts,
+      characterRelationships,
     };
   } catch (e) {
     throw createStorageError(
@@ -572,6 +634,9 @@ export function validateImportData(data) {
   if (data.storyFacts != null && !Array.isArray(data.storyFacts)) {
     throw createImportValidationError("Invalid backup format: storyFacts must be an array.");
   }
+  if (data.characterRelationships != null && !Array.isArray(data.characterRelationships)) {
+    throw createImportValidationError("Invalid backup format: characterRelationships must be an array.");
+  }
 }
 
 export async function importProject(data) {
@@ -580,6 +645,7 @@ export async function importProject(data) {
     const stores = [db.stories, db.ideas, db.characters, db.chapters, db.scenes];
     if (db.idea_custom_types) stores.push(db.idea_custom_types);
     if (db.story_facts) stores.push(db.story_facts);
+    if (db.character_relationships) stores.push(db.character_relationships);
     await db.transaction("rw", stores, async () => {
       await db.stories.clear();
       await db.ideas.clear();
@@ -588,6 +654,7 @@ export async function importProject(data) {
       await db.scenes.clear();
       if (db.idea_custom_types) await db.idea_custom_types.clear();
       if (db.story_facts) await db.story_facts.clear();
+      if (db.character_relationships) await db.character_relationships.clear();
       const isV2 = data.version >= 2 && Array.isArray(data.stories);
       if (isV2 && data.stories?.length) {
         for (const s of data.stories) await db.stories.add(s);
@@ -600,6 +667,9 @@ export async function importProject(data) {
         }
         if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
           for (const f of data.storyFacts) await db.story_facts.add(f);
+        }
+        if (db.character_relationships && Array.isArray(data.characterRelationships)) {
+          for (const r of data.characterRelationships) await db.character_relationships.add(r);
         }
         if (data.stories[0]?.id) setCurrentStoryId(data.stories[0].id);
       } else {
@@ -615,6 +685,9 @@ export async function importProject(data) {
         }
         if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
           for (const f of data.storyFacts) await db.story_facts.add(f);
+        }
+        if (db.character_relationships && Array.isArray(data.characterRelationships)) {
+          for (const r of data.characterRelationships) await db.character_relationships.add(r);
         }
         setCurrentStoryId(storyId);
       }
