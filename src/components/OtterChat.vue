@@ -111,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
 import { useOutline } from '@/composables/useOutline';
 import {
@@ -135,6 +135,11 @@ const contextLoading = ref(false);
 const contextLoaded = ref(false);
 const hasStoryContent = ref(false);
 const welcomeWithContext = ref('');
+// Locked story ID for the current Pip session.
+// Set once when context is loaded; used by all action handlers so that
+// a mid-session story switch never silently redirects writes to a
+// different story.
+const contextStoryId = ref(null);
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
@@ -146,6 +151,9 @@ async function loadStoryContext() {
 
   try {
     const storyId = getCurrentStoryId();
+    // Lock this story ID so every action applied in this session targets
+    // the same story, even if the user switches stories while Pip is open.
+    contextStoryId.value = storyId;
     if (!storyId) return;
 
     const [story, ideas, characters, chapters, scenes] = await Promise.all([
@@ -249,6 +257,30 @@ watch(() => props.open, (val) => {
   if (val) loadStoryContext();
 });
 
+// When the user switches stories while Pip is open, reload context so the
+// system prompt and storyTitle stay accurate.  Any already-generated pending
+// actions keep their own storyId stamp and still apply to the correct story.
+function onStorySwitched() {
+  loadStoryContext();
+  // Surface a brief in-chat notice so the user knows Pip has re-read their project.
+  if (messages.value.length > 0) {
+    messages.value.push({
+      role: 'assistant',
+      content: "I noticed you switched stories — I've updated my context to your current story. Any pending saves above still apply to the story they were created for. 🦦",
+      actions: [],
+    });
+    scrollToBottom();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('inkflow-story-switched', onStorySwitched);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('inkflow-story-switched', onStorySwitched);
+});
+
 // ---- Action parsing and applying (Phase 3) ----
 const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
 
@@ -278,9 +310,17 @@ function actionLabel(action) {
   return action.type;
 }
 
-async function applySingleAction(action) {
+// Each actionObj carries the storyId that was active when the AI generated it.
+// This prevents a mid-session story switch from silently redirecting writes.
+async function applySingleAction(actionObj) {
+  const action = actionObj.raw;
+  // Use the per-action locked storyId; fall back to current only if somehow missing.
+  const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
+
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    const current = await getStory();
+    // Use getStoryById with the locked storyId — not getStory() which re-reads
+    // getCurrentStoryId() and may point to a different story by apply-time.
+    const current = await getStoryById(storyId);
     if (!current) throw new Error('No story found');
     const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
     const patch = {};
@@ -292,7 +332,6 @@ async function applySingleAction(action) {
     return `Story spine updated (${Object.keys(patch).join(', ')})`;
   }
   if (action.type === 'upsert_character' && action.name) {
-    const storyId = getCurrentStoryId();
     const name = String(action.name).trim();
     const existing = await getCharacters(storyId);
     const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
@@ -310,7 +349,6 @@ async function applySingleAction(action) {
     }
   }
   if (action.type === 'add_chapter' && action.title) {
-    const storyId = getCurrentStoryId();
     const title = String(action.title).trim();
     const CHAPTER_KEYS = ['beat', 'summary'];
     const fields = {};
@@ -338,7 +376,6 @@ async function applySingleAction(action) {
     return `Chapter "${title}" added`;
   }
   if (action.type === 'update_chapter' && action.title_match) {
-    const storyId = getCurrentStoryId();
     const existing = await getChapters(storyId);
     const match = existing.find((c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase());
     if (!match) throw new Error(`Chapter not found: "${action.title_match}"`);
@@ -352,7 +389,6 @@ async function applySingleAction(action) {
     return `Chapter "${match.title}" updated`;
   }
   if (action.type === 'add_scene' && action.title && action.chapter_title_match) {
-    const storyId = getCurrentStoryId();
     const chapters = await getChapters(storyId);
     const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
     if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`);
@@ -367,7 +403,6 @@ async function applySingleAction(action) {
     return `Scene "${title}" added to "${chapter.title}"`;
   }
   if (action.type === 'update_scene' && action.title_match) {
-    const storyId = getCurrentStoryId();
     const allScenes = await getScenes(storyId);
     let match = null;
     if (action.chapter_title_match) {
@@ -395,7 +430,8 @@ async function confirmAction(actionObj) {
   if (actionObj.status !== 'pending') return;
   actionObj.status = 'applying';
   try {
-    actionObj.resultLabel = await applySingleAction(actionObj.raw);
+    // Pass the full actionObj so applySingleAction can read the locked storyId.
+    actionObj.resultLabel = await applySingleAction(actionObj);
     actionObj.status = 'applied';
     loadStoryContext();
     reloadOutline();
@@ -623,6 +659,10 @@ async function send() {
       label: actionLabel(a),
       status: 'pending',
       resultLabel: null,
+      // Stamp the story that was active when the AI generated these actions.
+      // Ensures the user can switch stories mid-conversation without
+      // accidentally writing chapters/scenes into the wrong story.
+      storyId: contextStoryId.value,
     }));
 
     messages.value.push({ role: 'assistant', content: cleanText, actions: pendingActions });
