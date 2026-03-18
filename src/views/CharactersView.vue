@@ -46,6 +46,7 @@
     <button v-if="!showForm" class="btn btn-primary" @click="openNew">+ {{ t('characters.newCharacter') }}</button>
 
     <div v-if="!characters.length && !showForm" class="empty-state card">
+      <OtterIllustration size="md" variant="idle" class="empty-otter" />
       <p>{{ t('characters.empty') }}</p>
     </div>
 
@@ -157,6 +158,7 @@ import { useI18n } from '@/composables/useI18n';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import OtterIllustration from '@/components/OtterIllustration.vue';
 
 const { t } = useI18n();
 

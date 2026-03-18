@@ -38,6 +38,7 @@
     <button v-if="!showForm" class="btn btn-primary" @click="openNew">+ {{ t('ideas.newIdea') }}</button>
 
     <div v-if="!displayedIdeas.length && !showForm" class="empty-state card">
+      <OtterIllustration v-if="!typeFilter" size="md" variant="idle" class="empty-otter" />
       <p>{{ typeFilter ? t('entities.emptyFilter') : t('ideas.empty') }}</p>
     </div>
 
@@ -78,6 +79,7 @@ import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
+import OtterIllustration from '@/components/OtterIllustration.vue';
 
 const props = defineProps({
   /** When set, only show ideas of this type and default new idea to this type */

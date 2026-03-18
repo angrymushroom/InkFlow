@@ -352,3 +352,9 @@ label {
 .empty-state p {
   margin: 0 0 var(--space-4);
 }
+.empty-otter {
+  margin: 0 auto var(--space-4);
+}
+.generate-otter {
+  flex-shrink: 0;
+}

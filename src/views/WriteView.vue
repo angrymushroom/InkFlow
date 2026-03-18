@@ -9,6 +9,7 @@
     </div>
 
     <div v-else-if="!scenes.length" class="empty-state card">
+      <OtterIllustration size="md" variant="idle" class="empty-otter" />
       <p>{{ t('write.empty') }}</p>
       <router-link to="/outline" class="btn btn-primary" style="margin-top: var(--space-3);">{{ t('write.goToOutline') }}</router-link>
     </div>
@@ -63,6 +64,7 @@
         <!-- Generating state -->
         <template v-else>
           <div class="generate-row generate-row--active">
+            <OtterIllustration size="sm" variant="writing" class="generate-otter" />
             <div class="generate-info">
               <span class="generate-title">{{ t('write.generating') }}</span>
               <span class="generate-hint">{{ progressLabel }}</span>
@@ -126,6 +128,7 @@ import { getCurrentStoryId, getScenes } from '@/db';
 import { countWords } from '@/utils/wordCount';
 import { generateFromScene } from '@/services/generation';
 import { friendlyAiError } from '@/services/ai';
+import OtterIllustration from '@/components/OtterIllustration.vue';
 
 const { t } = useI18n();
 const { chapters, scenes, loadError, getScenesForChapter } = useOutline();
