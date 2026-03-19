@@ -80,7 +80,7 @@ export default {
     customTypeModalSave: 'Ajouter le type',
     customTypeModalNameRequired: 'Veuillez entrer un nom.',
     manageCustomTypes: 'Gérer les types',
-    manageCustomTypesTitle: 'Types d'idée personnalisés',
+    manageCustomTypesTitle: "Types d'idée personnalisés",
     customTypeRename: 'Renommer',
     customTypeDelete: 'Supprimer',
     noCustomTypes: 'Aucun type personnalisé.',

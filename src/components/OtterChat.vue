@@ -118,7 +118,7 @@ import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
   getChapters, addChapter, updateChapter, reorderChapters,
-  getScenes, addScene, updateScene,
+  getScenes, getScenesByChapter, addScene, updateScene,
 } from '@/db';
 
 const props = defineProps({ open: Boolean });
@@ -305,7 +305,9 @@ function actionLabel(action) {
   if (action.type === 'upsert_character') return `Character "${action.name}"`;
   if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
   if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
-  if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
+  if (action.type === 'add_scene') return action.after_scene_title
+    ? `Add scene "${action.title}" after "${action.after_scene_title}"`
+    : `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
   return action.type;
 }
@@ -398,6 +400,20 @@ async function applySingleAction(actionObj) {
     for (const key of SCENE_KEYS) {
       if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
       else if (action[key] != null) fields[key] = String(action[key]);
+    }
+    if (action.after_scene_title) {
+      const scenesInChapter = await getScenesByChapter(chapter.id);
+      const afterScene = scenesInChapter.find(
+        (s) => s.title?.toLowerCase() === String(action.after_scene_title).toLowerCase()
+      );
+      if (afterScene) {
+        const insertOrder = afterScene.order + 1;
+        for (const s of scenesInChapter) {
+          if (s.order >= insertOrder) await updateScene(s.id, { order: s.order + 1 });
+        }
+        await addScene({ chapterId: chapter.id, title, order: insertOrder, ...fields });
+        return `Scene "${title}" inserted after "${afterScene.title}" in "${chapter.title}"`;
+      }
     }
     await addScene({ chapterId: chapter.id, title, ...fields });
     return `Scene "${title}" added to "${chapter.title}"`;
@@ -493,7 +509,9 @@ Emit this to update an existing chapter matched by title (case-insensitive). Onl
 
 ### Add a scene to a chapter
 Emit this to add a scene to a chapter matched by title (case-insensitive).
-<pip-action>{"type":"add_scene","chapter_title_match":"Chapter title","title":"Scene title","fields":{"oneSentenceSummary":"What happens in one sentence","notes":"Any extra notes"}}</pip-action>
+To insert after a specific scene (rather than appending at the end), include after_scene_title.
+IMPORTANT: If the user says "after scene X" or "between scene X and Y", always include after_scene_title.
+<pip-action>{"type":"add_scene","chapter_title_match":"Chapter title","title":"Scene title","after_scene_title":"Title of scene to insert after","fields":{"oneSentenceSummary":"What happens in one sentence","notes":"Any extra notes"}}</pip-action>
 
 ### Update a scene
 Emit this to update a scene matched by title (case-insensitive). Optionally narrow by chapter title to avoid ambiguity.
