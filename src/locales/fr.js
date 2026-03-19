@@ -377,4 +377,32 @@ export default {
     keepMine: 'Garder le mien',
     generating: 'Génération…',
   },
+  pip: {
+    storyCompanion: "Compagnon d’écriture",
+    readingStory: "Lecture de votre histoire…",
+    thinking: "Pip réfléchit…",
+    inputPlaceholder: "Parlez à Pip…",
+    noApiKey: "Configurez votre clé API dans Paramètres pour discuter avec Pip 🦦",
+    goToSettings: "Aller aux paramètres",
+    clearChat: "Effacer le chat",
+    clearChatConfirm: "Effacer l’historique du chat pour cette histoire ?",
+    welcomeDefault: "Bonjour ! Je suis Pip 🦦 Parlez-moi de l’histoire que vous souhaitez écrire — ou dites juste bonjour et nous trouverons une idée ensemble !",
+    welcomeEmpty: "Bonjour ! Je suis Pip 🦦 {question}",
+    welcomeProgress: "Bon début ! Continuons — {question}",
+    welcomeNeedCharacters: "Votre structure narrative est complète ! Donnons maintenant vie à vos personnages. Qui est votre protagoniste ?",
+    welcomeNeedChapters: "Excellente base ! Voulez-vous commencer à planifier vos chapitres ?",
+    welcomeBack: "Bon retour ! Vous avez écrit {n} scène{s}. Voulez-vous continuer ou vous concentrer sur un point particulier ?",
+    welcomeHasOutline: "Votre plan est prêt avec {n} scène{s}. Prêt à écrire ?",
+    coachQuestion: {
+      snowflake: {
+        oneSentence: "Dites-moi votre idée d’histoire — même une phrase suffit pour commencer.",
+        setup: "Comment l’histoire commence-t-elle ? Quel était le monde avant que tout ne change ?",
+        disaster1: "Quel est le premier grand tournant — le moment où les choses tournent mal ?",
+        disaster2: "Comment les enjeux s’intensifient-ils ? Qu’est-ce qui rend les choses encore plus difficiles pour votre protagoniste ?",
+        disaster3: "Quel est le moment le plus sombre — quand tout espoir semble perdu ?",
+        ending: "Comment cela se résout-il ? Qu’a appris ou qu’est devenu votre protagoniste ?",
+      },
+    },
+  },
+
 }

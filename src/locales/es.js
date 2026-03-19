@@ -377,4 +377,32 @@ export default {
     keepMine: 'Quedarme con el mío',
     generating: 'Generando…',
   },
+  pip: {
+    storyCompanion: "Compañero de escritura",
+    readingStory: "Leyendo tu historia…",
+    thinking: "Pip está pensando…",
+    inputPlaceholder: "Habla con Pip…",
+    noApiKey: "Configura tu clave API en Ajustes para chatear con Pip 🦦",
+    goToSettings: "Ir a Ajustes",
+    clearChat: "Borrar chat",
+    clearChatConfirm: "¿Borrar el historial del chat para esta historia?",
+    welcomeDefault: "¡Hola! Soy Pip 🦦 Cuéntame la historia que quieres escribir — ¡o salúdame y encontraremos una idea juntos!",
+    welcomeEmpty: "¡Hola! Soy Pip 🦦 {question}",
+    welcomeProgress: "¡Buen progreso! Sigamos — {question}",
+    welcomeNeedCharacters: "¡La estructura de tu historia está completa! Ahora démosles vida a tus personajes. ¿Quién es tu protagonista?",
+    welcomeNeedChapters: "¡Buena base! ¿Quieres empezar a planificar tus capítulos?",
+    welcomeBack: "¡Bienvenido de vuelta! Has escrito {n} escena{s}. ¿Quieres continuar o centrarte en algo específico?",
+    welcomeHasOutline: "Tu esquema está listo con {n} escena{s}. ¿Listo para empezar a escribir?",
+    coachQuestion: {
+      snowflake: {
+        oneSentence: "Cuéntame tu idea de historia — incluso una frase es suficiente para empezar.",
+        setup: "¿Cómo comienza la historia? ¿Cómo era el mundo antes de que todo cambiara?",
+        disaster1: "¿Cuál es el primer gran punto de inflexión — el momento en que las cosas salen mal?",
+        disaster2: "¿Cómo escalan las apuestas? ¿Qué hace las cosas aún más difíciles para tu protagonista?",
+        disaster3: "¿Cuál es el momento más oscuro — cuando toda esperanza parece perdida?",
+        ending: "¿Cómo se resuelve? ¿Qué ha aprendido o en qué se ha convertido tu protagonista?",
+      },
+    },
+  },
+
 }

@@ -96,6 +96,19 @@ db.version(5).stores({
   character_relationships: "id, storyId, fromCharId, toCharId, createdAt",
 });
 
+db.version(6).stores({
+  story: "id, updatedAt",
+  stories: "id, updatedAt, createdAt",
+  ideas: "id, storyId, type, createdAt",
+  characters: "id, storyId, createdAt",
+  chapters: "id, storyId, order, createdAt",
+  scenes: "id, chapterId, order, createdAt",
+  idea_custom_types: "id, createdAt",
+  story_facts: "id, storyId, factType, createdAt",
+  character_relationships: "id, storyId, fromCharId, toCharId, createdAt",
+  chat_messages: "++id, storyId, createdAt",
+});
+
 function createStorageError(message, cause) {
   const err = new Error(message);
   err.code = "STORAGE_ERROR";
@@ -254,6 +267,7 @@ export async function deleteStory(id) {
   await db.characters.where("storyId").equals(id).delete();
   if (db.story_facts) await db.story_facts.where("storyId").equals(id).delete();
   if (db.character_relationships) await db.character_relationships.where("storyId").equals(id).delete();
+  if (db.chat_messages) await db.chat_messages.where("storyId").equals(id).delete();
   await db.stories.delete(id);
 
   let switchedToId = null;
@@ -576,6 +590,23 @@ export async function loadExampleStory(locale = 'en') {
   } catch (e) {
     throw createStorageError('Could not load the example story.', e);
   }
+}
+
+// Chat history (per-story Pip conversation; v6+)
+export async function getChatMessages(storyId, limit = 100) {
+  if (!db.chat_messages) return [];
+  const all = await db.chat_messages.where("storyId").equals(storyId).sortBy("createdAt");
+  return all.slice(-limit);
+}
+
+export async function saveChatMessage(storyId, role, content) {
+  if (!db.chat_messages) return;
+  await db.chat_messages.add({ storyId, role, content, createdAt: Date.now() });
+}
+
+export async function clearChatHistory(storyId) {
+  if (!db.chat_messages) return;
+  await db.chat_messages.where("storyId").equals(storyId).delete();
 }
 
 // Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts; v5+ characterRelationships)

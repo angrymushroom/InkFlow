@@ -12,12 +12,21 @@
         <span class="otter-avatar" aria-hidden="true">🦦</span>
         <div>
           <div class="otter-name">Pip</div>
-          <div class="otter-tagline">{{ contextLoaded ? storyTitle : 'Story companion' }}</div>
+          <div class="otter-tagline">{{ contextLoaded && storyTitle ? storyTitle : t('pip.storyCompanion') }}</div>
         </div>
       </div>
-      <button type="button" class="otter-close-btn" aria-label="Close chat" @click="$emit('close')">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
-      </button>
+      <div class="otter-header-right">
+        <button
+          v-if="messages.length > 0"
+          type="button"
+          class="otter-clear-btn"
+          :title="t('pip.clearChat')"
+          @click="clearChat"
+        >{{ t('pip.clearChat') }}</button>
+        <button type="button" class="otter-close-btn" aria-label="Close chat" @click="$emit('close')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
     </div>
 
     <!-- Messages -->
@@ -25,9 +34,8 @@
       <!-- Welcome shown only when no messages yet -->
       <div v-if="messages.length === 0" class="otter-welcome">
         <span class="otter-welcome-avatar" aria-hidden="true">🦦</span>
-        <p v-if="contextLoading">Reading your story…</p>
-        <p v-else-if="hasStoryContent">{{ welcomeWithContext }}</p>
-        <p v-else>Hi! I'm Pip, your story companion. Tell me about the story you want to write — or just say hello and we'll find an idea together!</p>
+        <p v-if="contextLoading">{{ t('pip.readingStory') }}</p>
+        <p v-else>{{ welcomeWithContext }}</p>
       </div>
 
       <template v-for="(msg, i) in messages" :key="i">
@@ -67,8 +75,8 @@
 
     <!-- No API key state -->
     <div v-if="!hasApiKey" class="otter-no-key">
-      <p>Set your API key in Settings to chat with Pip 🦦</p>
-      <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">Go to Settings</router-link>
+      <p>{{ t('pip.noApiKey') }}</p>
+      <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">{{ t('pip.goToSettings') }}</router-link>
     </div>
 
     <!-- Input resize handle + input (shown when API key is set) -->
@@ -80,7 +88,7 @@
           v-model="inputText"
           class="otter-textarea"
           :style="textareaManualHeight ? { height: textareaManualHeight + 'px' } : {}"
-          :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
+          :placeholder="isLoading ? t('pip.thinking') : t('pip.inputPlaceholder')"
           :disabled="isLoading"
           rows="1"
           @input="autoGrow"
@@ -111,15 +119,18 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
 import { useOutline } from '@/composables/useOutline';
+import { useI18n } from '@/composables/useI18n';
 import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
   getChapters, addChapter, updateChapter, reorderChapters,
   getScenes, getScenesByChapter, addScene, updateScene,
+  getChatMessages, saveChatMessage, clearChatHistory,
 } from '@/db';
+import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
@@ -127,10 +138,11 @@ const emit = defineEmits(['close']);
 const HISTORY_LIMIT = 20;
 
 const { load: reloadOutline } = useOutline();
+const { t } = useI18n();
 
 // ---- Story context (Phase 2) ----
 const storyContext = ref('');
-const storyTitle = ref('Story companion');
+const storyTitle = ref('');
 const contextLoading = ref(false);
 const contextLoaded = ref(false);
 const hasStoryContent = ref(false);
@@ -140,8 +152,35 @@ const welcomeWithContext = ref('');
 // a mid-session story switch never silently redirects writes to a
 // different story.
 const contextStoryId = ref(null);
+const storyGaps = ref(null);
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+
+function computeWelcomeMessage(gaps) {
+  if (!gaps) {
+    welcomeWithContext.value = t.value('pip.welcomeDefault');
+    return;
+  }
+  const { template, filledCount, nextMissingField, hasCharacters, hasChapters, writtenScenes, totalScenes } = gaps;
+  if (filledCount === 0) {
+    const question = t.value(template.fields[0].coachQuestionKey);
+    welcomeWithContext.value = t.value('pip.welcomeEmpty', { question });
+  } else if (nextMissingField) {
+    const question = t.value(nextMissingField.coachQuestionKey);
+    welcomeWithContext.value = t.value('pip.welcomeProgress', { question });
+  } else if (!hasCharacters) {
+    welcomeWithContext.value = t.value('pip.welcomeNeedCharacters');
+  } else if (!hasChapters) {
+    welcomeWithContext.value = t.value('pip.welcomeNeedChapters');
+  } else if (writtenScenes > 0) {
+    welcomeWithContext.value = t.value('pip.welcomeBack', { n: writtenScenes, s: writtenScenes > 1 ? 's' : '' });
+  } else {
+    welcomeWithContext.value = t.value('pip.welcomeHasOutline', { n: totalScenes, s: totalScenes > 1 ? 's' : '' });
+  }
+}
+
+// Re-run welcome message when locale changes (t is a computed ref)
+watchEffect(() => { computeWelcomeMessage(storyGaps.value); });
 
 async function loadStoryContext() {
   contextLoading.value = true;
@@ -154,7 +193,10 @@ async function loadStoryContext() {
     // Lock this story ID so every action applied in this session targets
     // the same story, even if the user switches stories while Pip is open.
     contextStoryId.value = storyId;
-    if (!storyId) return;
+    if (!storyId) {
+      computeWelcomeMessage(null);
+      return;
+    }
 
     const [story, ideas, characters, chapters, scenes] = await Promise.all([
       getStoryById(storyId),
@@ -164,8 +206,11 @@ async function loadStoryContext() {
       getScenes(storyId),
     ]);
 
-    if (!story) return;
-    storyTitle.value = truncate(story.title || 'Untitled story', 28);
+    if (!story) {
+      computeWelcomeMessage(null);
+      return;
+    }
+    storyTitle.value = truncate(story.oneSentence || t.value('sidebar.untitledStory'), 28);
 
     const lines = [];
 
@@ -228,26 +273,51 @@ async function loadStoryContext() {
       hasStoryContent.value = true;
     }
 
-    storyContext.value = lines.join('\n');
+    // Compute template-aware gaps
+    const template = WRITING_TEMPLATES[story.templateId ?? DEFAULT_TEMPLATE_ID] ?? WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID];
+    const filledFields = template.fields.filter((f) => story[f.key]?.trim());
+    const missingFields = template.fields.filter((f) => !story[f.key]?.trim());
+    const nextMissingField = missingFields[0] ?? null;
+    const writtenScenes = (scenes || []).filter((s) => s.prose?.trim()).length;
+    const totalScenes = (scenes || []).length;
+
+    storyGaps.value = {
+      template,
+      filledCount: filledFields.length,
+      totalFields: template.fields.length,
+      nextMissingField,
+      hasCharacters: (characters?.length || 0) > 0,
+      hasChapters: (chapters?.length || 0) > 0,
+      writtenScenes,
+      totalScenes,
+    };
+
+    // Append template-aware status block to context (Pip reads this during conversation)
+    const statusLines = [
+      `\n## Writing Template: ${template.name}`,
+      `## Story Status`,
+      `- Structure: ${filledFields.length}/${template.fields.length} fields filled${missingFields.length ? ` (${missingFields.map((f) => f.label).join(', ')} still needed)` : ' (complete)'}`,
+      `- Characters defined: ${characters?.length || 0}`,
+      `- Chapters planned: ${chapters?.length || 0} | Scenes planned: ${totalScenes} | Scenes written: ${writtenScenes}`,
+    ];
+    if (nextMissingField) {
+      statusLines.push(`- Coaching priority: Ask about "${nextMissingField.label}" next`);
+    }
+
+    storyContext.value = lines.join('\n') + statusLines.join('\n');
     contextLoaded.value = true;
 
-    if (hasStoryContent.value) {
-      const spineCount = spineFields.length;
-      const charCount = characters?.length || 0;
-      const chapterCount = chapters?.length || 0;
-      const writtenScenes = (scenes || []).filter((s) => s.prose?.trim()).length;
-      const totalScenes = (scenes || []).length;
-
-      const parts = [];
-      if (spineCount >= 3) parts.push('a solid story spine');
-      else if (spineCount > 0) parts.push('a story spine in progress');
-      if (charCount > 0) parts.push(`${charCount} character${charCount > 1 ? 's' : ''}`);
-      if (chapterCount > 0) parts.push(`${chapterCount} chapter${chapterCount > 1 ? 's' : ''}`);
-      if (writtenScenes > 0) parts.push(`${writtenScenes}/${totalScenes} scenes written`);
-
-      const summary = parts.length ? `I can see you have ${parts.join(', ')}. ` : '';
-      welcomeWithContext.value = `Hi! I'm Pip 🦦 — I've read your story. ${summary}What would you like to work on?`;
+    // Restore chat history from DB (only if no in-memory messages for this session)
+    if (messages.value.length === 0) {
+      const history = await getChatMessages(storyId);
+      if (history.length > 0) {
+        messages.value = history.map((m) => ({ role: m.role, content: m.content, actions: [] }));
+        await scrollToBottom();
+      }
     }
+
+    // Set proactive welcome message (shown only when messages is empty)
+    computeWelcomeMessage(storyGaps.value);
   } finally {
     contextLoading.value = false;
   }
@@ -257,20 +327,12 @@ watch(() => props.open, (val) => {
   if (val) loadStoryContext();
 });
 
-// When the user switches stories while Pip is open, reload context so the
-// system prompt and storyTitle stay accurate.  Any already-generated pending
-// actions keep their own storyId stamp and still apply to the correct story.
+// When the user switches stories while Pip is open, clear current messages and
+// reload context (which will restore the new story's chat history from DB).
+// Pending actions already carry a storyId stamp and still apply to the correct story.
 function onStorySwitched() {
+  messages.value = [];
   loadStoryContext();
-  // Surface a brief in-chat notice so the user knows Pip has re-read their project.
-  if (messages.value.length > 0) {
-    messages.value.push({
-      role: 'assistant',
-      content: "I noticed you switched stories — I've updated my context to your current story. Any pending saves above still apply to the story they were created for. 🦦",
-      actions: [],
-    });
-    scrollToBottom();
-  }
 }
 
 onMounted(() => {
@@ -451,6 +513,10 @@ async function confirmAction(actionObj) {
     actionObj.status = 'applied';
     loadStoryContext();
     reloadOutline();
+    // Notify CharactersView (and sidebar) to reload when a character was saved
+    if (actionObj.raw?.type === 'upsert_character') {
+      window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+    }
   } catch (e) {
     actionObj.resultLabel = e?.message || 'Failed';
     actionObj.status = 'error';
@@ -460,6 +526,13 @@ async function confirmAction(actionObj) {
 function skipAction(actionObj) {
   if (actionObj.status !== 'pending') return;
   actionObj.status = 'skipped';
+}
+
+async function clearChat() {
+  const storyId = contextStoryId.value;
+  if (storyId) await clearChatHistory(storyId);
+  messages.value = [];
+  computeWelcomeMessage(storyGaps.value);
 }
 
 // ---- System prompt (Phase 3) ----
@@ -485,10 +558,11 @@ Stay focused on the writer's story. If they go off-topic, warmly redirect back t
 You can save changes directly to the writer's project by embedding action tags in your response. The tags are invisible to the user — only the confirmation chips appear.
 
 IMPORTANT RULES:
-- Only emit an action when the writer has clearly agreed to save something (e.g. "yes save it", "looks good", "go ahead")
+- Only emit an action when the writer has clearly agreed to save something (e.g. "yes save it", "looks good", "go ahead", or "add this character")
 - Never emit an action speculatively or without the writer's approval
 - You may include multiple action tags in one response
-- After saving, briefly confirm what was saved and ask what to work on next
+- After emitting an action, tell the writer to click "Save" on the chip to confirm — never say "I've saved X" or "I've added X" unless you emitted a save action in the same response
+- If you haven't emitted an action, say "Want me to save this?" or "Say 'save it' and I'll add the action chip" — never claim to have saved something you haven't
 
 ### Update story spine fields
 Emit this to save one or more spine fields (only include fields you want to change):
@@ -684,6 +758,12 @@ async function send() {
     }));
 
     messages.value.push({ role: 'assistant', content: cleanText, actions: pendingActions });
+
+    // Persist this exchange to DB so it survives page refresh
+    if (contextStoryId.value) {
+      await saveChatMessage(contextStoryId.value, 'user', text);
+      await saveChatMessage(contextStoryId.value, 'assistant', cleanText);
+    }
   } catch (e) {
     messages.value.push({
       role: 'assistant',
@@ -783,6 +863,25 @@ async function send() {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+.otter-header-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.otter-clear-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  padding: 2px var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: color 0.15s, background 0.15s;
+}
+.otter-clear-btn:hover {
+  color: var(--text);
+  background: var(--border);
 }
 .otter-close-btn {
   background: none;

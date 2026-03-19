@@ -305,9 +305,11 @@ async function doDelete() {
 onMounted(() => {
   load();
   window.addEventListener('inkflow-story-switched', load);
+  window.addEventListener('inkflow-characters-changed', load);
 });
 onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', load);
+  window.removeEventListener('inkflow-characters-changed', load);
 });
 </script>
 
