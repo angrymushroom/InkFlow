@@ -84,6 +84,18 @@ db.version(4).stores({
   story_facts: "id, storyId, factType, createdAt",
 });
 
+db.version(5).stores({
+  story: "id, updatedAt",
+  stories: "id, updatedAt, createdAt",
+  ideas: "id, storyId, type, createdAt",
+  characters: "id, storyId, createdAt",
+  chapters: "id, storyId, order, createdAt",
+  scenes: "id, chapterId, order, createdAt",
+  idea_custom_types: "id, createdAt",
+  story_facts: "id, storyId, factType, createdAt",
+  character_relationships: "id, storyId, fromCharId, toCharId, createdAt",
+});
+
 function createStorageError(message, cause) {
   const err = new Error(message);
   err.code = "STORAGE_ERROR";
@@ -177,22 +189,26 @@ export async function getStory() {
   }
 }
 
+// Snowflake Method core fields — always present, default to empty string
+const STORY_CORE_FIELDS = ["oneSentence", "setup", "disaster1", "disaster2", "disaster3", "ending"];
+
 export async function saveStory(data) {
   try {
     const id = data.id || getCurrentStoryId() || "story";
     const updatedAt = Date.now();
     const existing = await db.stories.get(id);
+    // Merge: existing record first, then incoming data, then lock system fields.
+    // This preserves any extra story fields (e.g. title, discoveryPhase) without a whitelist.
     const payload = {
+      ...(existing || {}),
+      ...data,
       id,
-      oneSentence: data.oneSentence ?? "",
-      setup: data.setup ?? "",
-      disaster1: data.disaster1 ?? "",
-      disaster2: data.disaster2 ?? "",
-      disaster3: data.disaster3 ?? "",
-      ending: data.ending ?? "",
       updatedAt,
       createdAt: existing?.createdAt ?? updatedAt,
     };
+    for (const f of STORY_CORE_FIELDS) {
+      if (payload[f] == null) payload[f] = "";
+    }
     await db.stories.put(payload);
     return payload;
   } catch (e) {
@@ -207,13 +223,14 @@ export async function createStory(overrides = {}) {
   const id = crypto.randomUUID();
   const now = Date.now();
   const story = {
+    oneSentence: "",
+    setup: "",
+    disaster1: "",
+    disaster2: "",
+    disaster3: "",
+    ending: "",
+    ...overrides,
     id,
-    oneSentence: overrides.oneSentence ?? "",
-    setup: overrides.setup ?? "",
-    disaster1: overrides.disaster1 ?? "",
-    disaster2: overrides.disaster2 ?? "",
-    disaster3: overrides.disaster3 ?? "",
-    ending: overrides.ending ?? "",
     updatedAt: now,
     createdAt: now,
   };
@@ -236,6 +253,7 @@ export async function deleteStory(id) {
   await db.ideas.where("storyId").equals(id).delete();
   await db.characters.where("storyId").equals(id).delete();
   if (db.story_facts) await db.story_facts.where("storyId").equals(id).delete();
+  if (db.character_relationships) await db.character_relationships.where("storyId").equals(id).delete();
   await db.stories.delete(id);
 
   let switchedToId = null;
@@ -260,8 +278,9 @@ export async function addIdea(idea) {
   const id = crypto.randomUUID();
   const createdAt = Date.now();
   const storyId = idea.storyId ?? getCurrentStoryId();
-  await db.ideas.add({ id, ...idea, storyId, createdAt });
-  return { id, ...idea, storyId, createdAt };
+  const record = { ...idea, id, storyId, createdAt };
+  await db.ideas.add(record);
+  return record;
 }
 
 export async function updateIdea(id, data) {
@@ -290,6 +309,16 @@ export async function addCustomIdeaType(name) {
   return { id, name: trimmed, createdAt };
 }
 
+export async function deleteCustomIdeaType(id) {
+  await db.idea_custom_types.delete(id);
+}
+
+export async function renameCustomIdeaType(id, name) {
+  const trimmed = (name || "").trim();
+  if (!trimmed) return;
+  await db.idea_custom_types.update(id, { name: trimmed, updatedAt: Date.now() });
+}
+
 // Characters (scoped by current story)
 export async function getCharacters(storyId) {
   const sid = storyId ?? getCurrentStoryId();
@@ -300,8 +329,9 @@ export async function addCharacter(char) {
   const id = crypto.randomUUID();
   const createdAt = Date.now();
   const storyId = char.storyId ?? getCurrentStoryId();
-  await db.characters.add({ id, ...char, storyId, createdAt });
-  return { id, ...char, storyId, createdAt };
+  const record = { ...char, id, storyId, createdAt };
+  await db.characters.add(record);
+  return record;
 }
 
 export async function updateCharacter(id, data) {
@@ -311,7 +341,46 @@ export async function updateCharacter(id, data) {
 
 
 export async function deleteCharacter(id) {
+  // Nullify POV references in scenes so they don't hold orphaned character ids
+  await db.scenes.filter((s) => s.povCharacterId === id).modify({ povCharacterId: null });
+  // Delete all relationships involving this character
+  if (db.character_relationships) {
+    await db.character_relationships
+      .filter((r) => r.fromCharId === id || r.toCharId === id)
+      .delete();
+  }
   await db.characters.delete(id);
+}
+
+// Character relationships (explicit edges between characters within a story)
+export async function getCharacterRelationships(storyId) {
+  const sid = storyId ?? getCurrentStoryId();
+  return db.character_relationships.where("storyId").equals(sid).toArray();
+}
+
+export async function addCharacterRelationship(rel) {
+  const id = crypto.randomUUID();
+  const createdAt = Date.now();
+  const storyId = rel.storyId ?? getCurrentStoryId();
+  const record = {
+    id,
+    storyId,
+    fromCharId: rel.fromCharId,
+    toCharId: rel.toCharId,
+    label: rel.label ?? "",
+    description: rel.description ?? "",
+    createdAt,
+  };
+  await db.character_relationships.add(record);
+  return record;
+}
+
+export async function updateCharacterRelationship(id, data) {
+  await db.character_relationships.update(id, { ...data, updatedAt: Date.now() });
+}
+
+export async function deleteCharacterRelationship(id) {
+  await db.character_relationships.delete(id);
 }
 
 // Chapters (scoped by current story)
@@ -326,8 +395,9 @@ export async function addChapter(chapter) {
   const storyId = chapter.storyId ?? getCurrentStoryId();
   const count = await db.chapters.where("storyId").equals(storyId).count();
   const order = chapter.order ?? count;
-  await db.chapters.add({ id, ...chapter, storyId, order, createdAt });
-  return { id, ...chapter, storyId, order, createdAt };
+  const record = { ...chapter, id, storyId, order, createdAt };
+  await db.chapters.add(record);
+  return record;
 }
 
 export async function updateChapter(id, data) {
@@ -351,12 +421,16 @@ export async function deleteChapter(id) {
 // Scenes (when storyId given, only scenes whose chapter belongs to that story)
 export async function getScenes(storyId) {
   if (storyId != null) {
-    const chapterIds = await db.chapters.where("storyId").equals(storyId).primaryKeys();
-    if (chapterIds.length === 0) return [];
+    // Fetch chapters with their order so we can sort scenes correctly.
+    // Sorting by chapterId (UUID string) is wrong — it must follow chapter.order.
+    const chapters = await db.chapters.where("storyId").equals(storyId).toArray();
+    if (chapters.length === 0) return [];
+    const chapterOrderMap = new Map(chapters.map((ch) => [ch.id, ch.order ?? 0]));
+    const chapterIds = chapters.map((ch) => ch.id);
     const list = await db.scenes.where("chapterId").anyOf(chapterIds).toArray();
     return list.sort((a, b) => {
-      const c = (a.chapterId || "").localeCompare(b.chapterId || "");
-      return c !== 0 ? c : (a.order ?? 0) - (b.order ?? 0);
+      const co = (chapterOrderMap.get(a.chapterId) ?? 0) - (chapterOrderMap.get(b.chapterId) ?? 0);
+      return co !== 0 ? co : (a.order ?? 0) - (b.order ?? 0);
     });
   }
   const list = await db.scenes.toArray();
@@ -380,8 +454,9 @@ export async function addScene(scene) {
   const order =
     scene.order ??
     (await db.scenes.where("chapterId").equals(scene.chapterId).count());
-  await db.scenes.add({ id, ...scene, order, createdAt });
-  return { id, ...scene, order, createdAt };
+  const record = { ...scene, id, order, createdAt };
+  await db.scenes.add(record);
+  return record;
 }
 
 export async function updateScene(id, data) {
@@ -503,16 +578,20 @@ export async function loadExampleStory(locale = 'en') {
   }
 }
 
-// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts)
+// Export/Import (full project; v2+ stories; v3+ ideaCustomTypes; v4+ storyFacts; v5+ characterRelationships)
 export async function exportProject() {
   try {
     let ideaCustomTypes = [];
     let storyFacts = [];
+    let characterRelationships = [];
     try {
       if (db.idea_custom_types) ideaCustomTypes = await db.idea_custom_types.toArray();
     } catch (_) {}
     try {
       if (db.story_facts) storyFacts = await db.story_facts.toArray();
+    } catch (_) {}
+    try {
+      if (db.character_relationships) characterRelationships = await db.character_relationships.toArray();
     } catch (_) {}
     const [stories, ideas, characters, chapters, scenes] = await Promise.all([
       db.stories.toArray(),
@@ -522,7 +601,7 @@ export async function exportProject() {
       db.scenes.toArray(),
     ]);
     return {
-      version: 4,
+      version: 5,
       exportedAt: new Date().toISOString(),
       stories,
       ideas,
@@ -531,6 +610,7 @@ export async function exportProject() {
       scenes,
       ideaCustomTypes,
       storyFacts,
+      characterRelationships,
     };
   } catch (e) {
     throw createStorageError(
@@ -572,6 +652,9 @@ export function validateImportData(data) {
   if (data.storyFacts != null && !Array.isArray(data.storyFacts)) {
     throw createImportValidationError("Invalid backup format: storyFacts must be an array.");
   }
+  if (data.characterRelationships != null && !Array.isArray(data.characterRelationships)) {
+    throw createImportValidationError("Invalid backup format: characterRelationships must be an array.");
+  }
 }
 
 export async function importProject(data) {
@@ -580,6 +663,7 @@ export async function importProject(data) {
     const stores = [db.stories, db.ideas, db.characters, db.chapters, db.scenes];
     if (db.idea_custom_types) stores.push(db.idea_custom_types);
     if (db.story_facts) stores.push(db.story_facts);
+    if (db.character_relationships) stores.push(db.character_relationships);
     await db.transaction("rw", stores, async () => {
       await db.stories.clear();
       await db.ideas.clear();
@@ -588,6 +672,7 @@ export async function importProject(data) {
       await db.scenes.clear();
       if (db.idea_custom_types) await db.idea_custom_types.clear();
       if (db.story_facts) await db.story_facts.clear();
+      if (db.character_relationships) await db.character_relationships.clear();
       const isV2 = data.version >= 2 && Array.isArray(data.stories);
       if (isV2 && data.stories?.length) {
         for (const s of data.stories) await db.stories.add(s);
@@ -600,6 +685,9 @@ export async function importProject(data) {
         }
         if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
           for (const f of data.storyFacts) await db.story_facts.add(f);
+        }
+        if (db.character_relationships && Array.isArray(data.characterRelationships)) {
+          for (const r of data.characterRelationships) await db.character_relationships.add(r);
         }
         if (data.stories[0]?.id) setCurrentStoryId(data.stories[0].id);
       } else {
@@ -615,6 +703,9 @@ export async function importProject(data) {
         }
         if (db.story_facts && Array.isArray(data.storyFacts) && data.storyFacts.length > 0) {
           for (const f of data.storyFacts) await db.story_facts.add(f);
+        }
+        if (db.character_relationships && Array.isArray(data.characterRelationships)) {
+          for (const r of data.characterRelationships) await db.character_relationships.add(r);
         }
         setCurrentStoryId(storyId);
       }

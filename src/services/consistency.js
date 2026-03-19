@@ -24,9 +24,11 @@ Text to check:
 Does the text contradict any of the established facts? List contradictions only. If none, say: No contradictions.`;
 
 /**
- * Extract facts from scene prose via AI. Returns array of { factType, content, sourceSceneId, sourceChapterId }.
+ * Extract facts from scene prose via AI.
+ * Returns array of { factType, content, sourceSceneId, sourceChapterId } on success,
+ * or null if the AI response could not be parsed (so the caller can skip replacing existing facts).
  * @param {{ sceneText: string, sceneId: string, chapterId?: string, storyId: string }}
- * @returns {Promise<{ factType: string, content: string, sourceSceneId: string, sourceChapterId?: string }[]>}
+ * @returns {Promise<{ factType: string, content: string, sourceSceneId: string, sourceChapterId?: string }[] | null>}
  */
 export async function extractFactsFromProse({ sceneText, sceneId, chapterId, storyId }) {
   if (!sceneText?.trim()) return [];
@@ -37,10 +39,10 @@ export async function extractFactsFromProse({ sceneText, sceneId, chapterId, sto
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 600,
   });
-  const facts = [];
   try {
     const cleaned = (raw || "").replace(/```\w*\n?/g, "").trim();
     const json = JSON.parse(cleaned);
+    const facts = [];
     const chars = Array.isArray(json.characters) ? json.characters : [];
     for (const c of chars) {
       const name = c?.name ?? "";
@@ -70,16 +72,11 @@ export async function extractFactsFromProse({ sceneText, sceneId, chapterId, sto
         sourceChapterId: chapterId ?? null,
       });
     }
+    return facts;
   } catch (_) {
-    // If parse fails, still append one raw fact so user sees something happened
-    facts.push({
-      factType: "event",
-      content: (raw || "").slice(0, 500),
-      sourceSceneId: sceneId,
-      sourceChapterId: chapterId ?? null,
-    });
+    // Parse failed — return null so callers know NOT to replace existing facts with garbage
+    return null;
   }
-  return facts;
 }
 
 /**
@@ -100,6 +97,8 @@ export async function updateStoryFactsFromScenes(storyId, scenes) {
       chapterId: scene.chapterId,
       storyId,
     });
+    // null means parse failed — skip this scene so existing facts are not clobbered
+    if (extracted === null) continue;
     processedSceneIds.push(scene.id);
     allNewFacts.push(...extracted);
   }

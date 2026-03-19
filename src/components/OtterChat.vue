@@ -1,5 +1,11 @@
 <template>
-  <div class="otter-panel" :class="{ 'otter-panel--open': open }">
+  <div
+    class="otter-panel"
+    :class="{ 'otter-panel--open': open, 'otter-panel--resizing': isResizing }"
+    :style="panelStyle"
+  >
+    <!-- Resize handle (desktop only) -->
+    <div class="otter-resize-handle" @mousedown.prevent="startResize" />
     <!-- Header -->
     <div class="otter-header">
       <div class="otter-header-left">
@@ -65,27 +71,32 @@
       <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">Go to Settings</router-link>
     </div>
 
-    <!-- Input -->
-    <div v-else class="otter-input-row">
-      <textarea
-        ref="inputEl"
-        v-model="inputText"
-        class="otter-textarea"
-        :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
-        :disabled="isLoading"
-        rows="2"
-        @keydown.enter.exact.prevent="send"
-      />
-      <button
-        type="button"
-        class="otter-send-btn"
-        :disabled="isLoading || !inputText.trim()"
-        aria-label="Send message"
-        @click="send"
-      >
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
-      </button>
-    </div>
+    <!-- Input resize handle + input (shown when API key is set) -->
+    <template v-if="hasApiKey">
+      <div class="otter-input-drag-bar" @mousedown.prevent="startTextareaResize" />
+      <div class="otter-input-row">
+        <textarea
+          ref="inputEl"
+          v-model="inputText"
+          class="otter-textarea"
+          :style="textareaManualHeight ? { height: textareaManualHeight + 'px' } : {}"
+          :placeholder="isLoading ? 'Pip is thinking…' : 'Talk to Pip…'"
+          :disabled="isLoading"
+          rows="1"
+          @input="autoGrow"
+          @keydown.enter.exact.prevent="send"
+        />
+        <button
+          type="button"
+          class="otter-send-btn"
+          :disabled="isLoading || !inputText.trim()"
+          aria-label="Send message"
+          @click="send"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
+        </button>
+      </div>
+    </template>
   </div>
 
   <!-- Scrim (all screen sizes) -->
@@ -100,19 +111,22 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
+import { useOutline } from '@/composables/useOutline';
 import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
-  getChapters, addChapter, updateChapter,
-  getScenes, addScene, updateScene,
+  getChapters, addChapter, updateChapter, reorderChapters,
+  getScenes, getScenesByChapter, addScene, updateScene,
 } from '@/db';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
 
 const HISTORY_LIMIT = 20;
+
+const { load: reloadOutline } = useOutline();
 
 // ---- Story context (Phase 2) ----
 const storyContext = ref('');
@@ -121,6 +135,11 @@ const contextLoading = ref(false);
 const contextLoaded = ref(false);
 const hasStoryContent = ref(false);
 const welcomeWithContext = ref('');
+// Locked story ID for the current Pip session.
+// Set once when context is loaded; used by all action handlers so that
+// a mid-session story switch never silently redirects writes to a
+// different story.
+const contextStoryId = ref(null);
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
@@ -132,6 +151,9 @@ async function loadStoryContext() {
 
   try {
     const storyId = getCurrentStoryId();
+    // Lock this story ID so every action applied in this session targets
+    // the same story, even if the user switches stories while Pip is open.
+    contextStoryId.value = storyId;
     if (!storyId) return;
 
     const [story, ideas, characters, chapters, scenes] = await Promise.all([
@@ -195,6 +217,7 @@ async function loadStoryContext() {
       for (const ch of chapters.slice(0, 20)) {
         const beat = ch.beat ? ` [${ch.beat}]` : '';
         lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`);
+        if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`);
         const scs = scenesByChapter.get(ch.id) || [];
         for (const sc of scs.slice(0, 6)) {
           const written = sc.prose?.trim() ? ' ✓' : '';
@@ -234,6 +257,30 @@ watch(() => props.open, (val) => {
   if (val) loadStoryContext();
 });
 
+// When the user switches stories while Pip is open, reload context so the
+// system prompt and storyTitle stay accurate.  Any already-generated pending
+// actions keep their own storyId stamp and still apply to the correct story.
+function onStorySwitched() {
+  loadStoryContext();
+  // Surface a brief in-chat notice so the user knows Pip has re-read their project.
+  if (messages.value.length > 0) {
+    messages.value.push({
+      role: 'assistant',
+      content: "I noticed you switched stories — I've updated my context to your current story. Any pending saves above still apply to the story they were created for. 🦦",
+      actions: [],
+    });
+    scrollToBottom();
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('inkflow-story-switched', onStorySwitched);
+});
+
+onUnmounted(() => {
+  window.removeEventListener('inkflow-story-switched', onStorySwitched);
+});
+
 // ---- Action parsing and applying (Phase 3) ----
 const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
 
@@ -258,14 +305,24 @@ function actionLabel(action) {
   if (action.type === 'upsert_character') return `Character "${action.name}"`;
   if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
   if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
-  if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
+  if (action.type === 'add_scene') return action.after_scene_title
+    ? `Add scene "${action.title}" after "${action.after_scene_title}"`
+    : `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
   return action.type;
 }
 
-async function applySingleAction(action) {
+// Each actionObj carries the storyId that was active when the AI generated it.
+// This prevents a mid-session story switch from silently redirecting writes.
+async function applySingleAction(actionObj) {
+  const action = actionObj.raw;
+  // Use the per-action locked storyId; fall back to current only if somehow missing.
+  const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
+
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    const current = await getStory();
+    // Use getStoryById with the locked storyId — not getStory() which re-reads
+    // getCurrentStoryId() and may point to a different story by apply-time.
+    const current = await getStoryById(storyId);
     if (!current) throw new Error('No story found');
     const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
     const patch = {};
@@ -277,7 +334,6 @@ async function applySingleAction(action) {
     return `Story spine updated (${Object.keys(patch).join(', ')})`;
   }
   if (action.type === 'upsert_character' && action.name) {
-    const storyId = getCurrentStoryId();
     const name = String(action.name).trim();
     const existing = await getCharacters(storyId);
     const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
@@ -295,7 +351,6 @@ async function applySingleAction(action) {
     }
   }
   if (action.type === 'add_chapter' && action.title) {
-    const storyId = getCurrentStoryId();
     const title = String(action.title).trim();
     const CHAPTER_KEYS = ['beat', 'summary'];
     const fields = {};
@@ -303,11 +358,26 @@ async function applySingleAction(action) {
       if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
       else if (action[key] != null) fields[key] = String(action[key]);
     }
-    await addChapter({ storyId, title, ...fields });
+    const newChapter = await addChapter({ storyId, title, ...fields });
+    // If a position is specified, reorder so the new chapter sits after the named one
+    if (action.after_chapter_title) {
+      const allChapters = await getChapters(storyId);
+      const afterIdx = allChapters.findIndex(
+        (c) => c.id !== newChapter.id && c.title?.toLowerCase() === String(action.after_chapter_title).toLowerCase()
+      );
+      if (afterIdx >= 0) {
+        const withoutNew = allChapters.filter((c) => c.id !== newChapter.id);
+        const reordered = [
+          ...withoutNew.slice(0, afterIdx + 1),
+          newChapter,
+          ...withoutNew.slice(afterIdx + 1),
+        ];
+        await reorderChapters(storyId, reordered.map((c) => c.id));
+      }
+    }
     return `Chapter "${title}" added`;
   }
   if (action.type === 'update_chapter' && action.title_match) {
-    const storyId = getCurrentStoryId();
     const existing = await getChapters(storyId);
     const match = existing.find((c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase());
     if (!match) throw new Error(`Chapter not found: "${action.title_match}"`);
@@ -321,7 +391,6 @@ async function applySingleAction(action) {
     return `Chapter "${match.title}" updated`;
   }
   if (action.type === 'add_scene' && action.title && action.chapter_title_match) {
-    const storyId = getCurrentStoryId();
     const chapters = await getChapters(storyId);
     const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
     if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`);
@@ -332,11 +401,24 @@ async function applySingleAction(action) {
       if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
       else if (action[key] != null) fields[key] = String(action[key]);
     }
+    if (action.after_scene_title) {
+      const scenesInChapter = await getScenesByChapter(chapter.id);
+      const afterScene = scenesInChapter.find(
+        (s) => s.title?.toLowerCase() === String(action.after_scene_title).toLowerCase()
+      );
+      if (afterScene) {
+        const insertOrder = afterScene.order + 1;
+        for (const s of scenesInChapter) {
+          if (s.order >= insertOrder) await updateScene(s.id, { order: s.order + 1 });
+        }
+        await addScene({ chapterId: chapter.id, title, order: insertOrder, ...fields });
+        return `Scene "${title}" inserted after "${afterScene.title}" in "${chapter.title}"`;
+      }
+    }
     await addScene({ chapterId: chapter.id, title, ...fields });
     return `Scene "${title}" added to "${chapter.title}"`;
   }
   if (action.type === 'update_scene' && action.title_match) {
-    const storyId = getCurrentStoryId();
     const allScenes = await getScenes(storyId);
     let match = null;
     if (action.chapter_title_match) {
@@ -364,9 +446,11 @@ async function confirmAction(actionObj) {
   if (actionObj.status !== 'pending') return;
   actionObj.status = 'applying';
   try {
-    actionObj.resultLabel = await applySingleAction(actionObj.raw);
+    // Pass the full actionObj so applySingleAction can read the locked storyId.
+    actionObj.resultLabel = await applySingleAction(actionObj);
     actionObj.status = 'applied';
     loadStoryContext();
+    reloadOutline();
   } catch (e) {
     actionObj.resultLabel = e?.message || 'Failed';
     actionObj.status = 'error';
@@ -416,7 +500,8 @@ Emit this to create a new character or update an existing one (matched by name, 
 
 ### Add a chapter
 Emit this to add a new chapter. beat must be one of: setup, disaster1, disaster2, disaster3, ending.
-<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","fields":{"summary":"Brief chapter summary"}}</pip-action>
+Use "after_chapter_title" to insert the chapter after a specific existing chapter (matched case-insensitively). If omitted, the chapter is appended at the end.
+<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
 
 ### Update a chapter
 Emit this to update an existing chapter matched by title (case-insensitive). Only include fields you want to change.
@@ -424,7 +509,9 @@ Emit this to update an existing chapter matched by title (case-insensitive). Onl
 
 ### Add a scene to a chapter
 Emit this to add a scene to a chapter matched by title (case-insensitive).
-<pip-action>{"type":"add_scene","chapter_title_match":"Chapter title","title":"Scene title","fields":{"oneSentenceSummary":"What happens in one sentence","notes":"Any extra notes"}}</pip-action>
+To insert after a specific scene (rather than appending at the end), include after_scene_title.
+IMPORTANT: If the user says "after scene X" or "between scene X and Y", always include after_scene_title.
+<pip-action>{"type":"add_scene","chapter_title_match":"Chapter title","title":"Scene title","after_scene_title":"Title of scene to insert after","fields":{"oneSentenceSummary":"What happens in one sentence","notes":"Any extra notes"}}</pip-action>
 
 ### Update a scene
 Emit this to update a scene matched by title (case-insensitive). Optionally narrow by chapter title to avoid ambiguity.
@@ -435,6 +522,34 @@ const systemPrompt = computed(() => {
   return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`;
 });
 
+// ---- Panel resize ----
+const PANEL_WIDTH_KEY = 'inkflow_pip_width';
+const PANEL_MIN = 280;
+const PANEL_MAX = 680;
+const panelWidth = ref(parseInt(localStorage.getItem(PANEL_WIDTH_KEY) || '320', 10));
+const isResizing = ref(false);
+const panelStyle = computed(() => ({ width: `min(${panelWidth.value}px, 90vw)` }));
+
+function startResize(e) {
+  if (window.innerWidth <= 767) return;
+  isResizing.value = true;
+  const startX = e.clientX;
+  const startWidth = panelWidth.value;
+
+  function onMove(e) {
+    const delta = startX - e.clientX;
+    panelWidth.value = Math.min(PANEL_MAX, Math.max(PANEL_MIN, startWidth + delta));
+  }
+  function onUp() {
+    isResizing.value = false;
+    localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth.value));
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
+
 // ---- Chat ----
 const messages = ref([]);
 const inputText = ref('');
@@ -443,6 +558,42 @@ const messagesEl = ref(null);
 const inputEl = ref(null);
 
 const hasApiKey = computed(() => !!getApiKey()?.trim());
+
+// ---- Textarea resize ----
+const TEXTAREA_MIN = 40;
+const TEXTAREA_MAX = 400;
+const textareaManualHeight = ref(null); // null = auto-grow mode
+
+function autoGrow(e) {
+  if (textareaManualHeight.value !== null) return; // manual mode active
+  const el = e?.target ?? inputEl.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+}
+
+function resetTextareaHeight() {
+  textareaManualHeight.value = null;
+  nextTick(() => {
+    if (inputEl.value) inputEl.value.style.height = '';
+  });
+}
+
+function startTextareaResize(e) {
+  const startY = e.clientY;
+  const startHeight = textareaManualHeight.value ?? (inputEl.value?.offsetHeight ?? TEXTAREA_MIN);
+
+  function onMove(e) {
+    const delta = startY - e.clientY; // drag up = taller
+    textareaManualHeight.value = Math.min(TEXTAREA_MAX, Math.max(TEXTAREA_MIN, startHeight + delta));
+  }
+  function onUp() {
+    window.removeEventListener('mousemove', onMove);
+    window.removeEventListener('mouseup', onUp);
+  }
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+}
 
 function pipErrorMessage(e) {
   const type = classifyAiError(e);
@@ -459,6 +610,8 @@ function pipErrorMessage(e) {
   if (type === 'safety')
     return "My response was blocked by a content safety filter. Try rephrasing your message. 🦦";
   if (type === 'token_limit')
+    return "My response got too long for the model to finish. Try asking me to keep it shorter, or break the request into smaller steps. 🦦";
+  if (type === 'context_too_long')
     return "Our conversation got too long for the model to handle — I automatically trimmed older messages but it still didn't fit. Try starting a fresh chat. 🦦";
   if (type === 'empty')
     return "I got a blank response. Try sending your message again. 🦦";
@@ -480,6 +633,7 @@ async function send() {
 
   messages.value.push({ role: 'user', content: text });
   inputText.value = '';
+  resetTextareaHeight();
   isLoading.value = true;
   inputEl.value?.focus();
   await scrollToBottom();
@@ -503,14 +657,16 @@ async function send() {
         raw = await chatWithAi({
           messages: history,
           systemPrompt: useContext ? systemPrompt.value : BASE_SYSTEM_PROMPT,
-          tier: tierForContext(CONTEXTS.CHAT_WITH_TOOLS),
-          maxTokens: 600,
+          tier: tierForContext(hasStoryContent.value ? CONTEXTS.CHAT_WITH_TOOLS : CONTEXTS.CHAT),
+          maxTokens: 4096,
         });
         lastErr = null;
         break;
       } catch (e) {
         lastErr = e;
-        if (classifyAiError(e) !== 'token_limit') throw e;
+        const errType = classifyAiError(e);
+        if (errType !== 'token_limit' && errType !== 'context_too_long') throw e;
+        if (errType === 'token_limit') throw e; // output truncated — retrying won't help
       }
     }
     if (lastErr) throw lastErr;
@@ -521,6 +677,10 @@ async function send() {
       label: actionLabel(a),
       status: 'pending',
       resultLabel: null,
+      // Stamp the story that was active when the AI generated these actions.
+      // Ensures the user can switch stories mid-conversation without
+      // accidentally writing chapters/scenes into the wrong story.
+      storyId: contextStoryId.value,
     }));
 
     messages.value.push({ role: 'assistant', content: cleanText, actions: pendingActions });
@@ -545,7 +705,7 @@ async function send() {
   top: 0;
   right: 0;
   bottom: 0;
-  width: min(320px, 90vw);
+  width: min(320px, 90vw); /* fallback; overridden by inline style on desktop */
   background: var(--bg-elevated);
   border-left: 1px solid var(--border);
   box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
@@ -559,6 +719,29 @@ async function send() {
 }
 .otter-panel--open {
   transform: translateX(0);
+}
+.otter-panel--resizing {
+  transition: none;
+  user-select: none;
+}
+
+/* ---- Resize handle ---- */
+.otter-resize-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 5px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.otter-resize-handle:hover,
+.otter-panel--resizing .otter-resize-handle {
+  background: var(--accent);
+  opacity: 0.35;
+}
+@media (max-width: 767px) {
+  .otter-resize-handle { display: none; }
 }
 
 @media (max-width: 767px) {
@@ -779,6 +962,19 @@ async function send() {
   40% { opacity: 1; transform: scale(1); }
 }
 
+/* ---- Textarea drag bar ---- */
+.otter-input-drag-bar {
+  flex-shrink: 0;
+  height: 5px;
+  cursor: row-resize;
+  background: transparent;
+  transition: background 0.15s;
+}
+.otter-input-drag-bar:hover {
+  background: var(--accent);
+  opacity: 0.35;
+}
+
 /* ---- No API key ---- */
 .otter-no-key {
   flex-shrink: 0;
@@ -807,15 +1003,14 @@ async function send() {
 }
 .otter-textarea {
   flex: 1;
-  min-height: unset;
-  max-height: 120px;
+  min-height: 40px;
+  max-height: 400px;
   resize: none;
   border-radius: var(--radius-sm);
   font-size: 0.9rem;
   padding: var(--space-2) var(--space-3);
   line-height: 1.5;
   overflow-y: auto;
-  min-height: 40px !important;
 }
 .otter-send-btn {
   flex-shrink: 0;

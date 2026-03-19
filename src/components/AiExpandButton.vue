@@ -59,7 +59,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import { useRouter } from "vue-router";
-import { getApiKey, expandWithAi } from "@/services/ai";
+import { getApiKey, expandWithAi, friendlyAiError } from "@/services/ai";
 import { getStory, getIdeas, getCharacters } from "@/db";
 import { useI18n } from "@/composables/useI18n";
 
@@ -133,7 +133,7 @@ async function tryAgain() {
     const result = await fetchExpansion();
     editableResult.value = result;
   } catch (e) {
-    error.value = e?.message || "AI expand failed.";
+    error.value = friendlyAiError(e);
   } finally {
     expanding.value = false;
   }
@@ -147,7 +147,7 @@ async function runExpand() {
     editableResult.value = result;
     showResultModal.value = true;
   } catch (e) {
-    error.value = e?.message || "AI expand failed.";
+    error.value = friendlyAiError(e);
   } finally {
     expanding.value = false;
   }

@@ -152,6 +152,7 @@ import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
 import { getScene, getCharacters, getChapters, getScenes, updateScene, addIdea, addCharacter, addChapter, addScene, getCurrentStoryId } from '@/db';
 import { generateSceneProse } from '@/services/generation';
+import { friendlyAiError } from '@/services/ai';
 import { updateStoryFactsFromScenes, checkConsistency } from '@/services/consistency';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
@@ -340,7 +341,7 @@ async function onGenerateScene() {
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
   } catch (e) {
-    saveError.value = e?.message || t.value('scene.generateError');
+    saveError.value = friendlyAiError(e);
   } finally {
     generatingScene.value = false;
   }
@@ -357,7 +358,7 @@ async function onUpdateFacts() {
     consistencyMessage.value = '';
     toastSuccess(t.value('story.saved'));
   } catch (e) {
-    saveError.value = e?.message || t.value('scene.generateError');
+    saveError.value = friendlyAiError(e);
   } finally {
     updatingFacts.value = false;
   }
@@ -373,7 +374,7 @@ async function onCheckConsistency() {
     const result = await checkConsistency({ storyId, sceneId: scene.value.id });
     consistencyMessage.value = result || t.value('scene.noContradictions');
   } catch (e) {
-    saveError.value = e?.message || t.value('scene.generateError');
+    saveError.value = friendlyAiError(e);
   } finally {
     checkingConsistency.value = false;
   }
