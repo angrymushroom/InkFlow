@@ -90,12 +90,14 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getStory, saveStory, getStories, deleteStory } from '@/db';
 import { useI18n } from '@/composables/useI18n';
+import { useToast } from '@/composables/useToast';
 import { storyDirty } from '@/stores/unsaved';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
 import { TEMPLATES, getSpineFieldValue, setSpineFieldPatch } from '@/data/templates';
 
 const { t } = useI18n();
+const { success: toastSuccess } = useToast();
 const router = useRouter();
 
 const storyCount = ref(1);
@@ -138,6 +140,7 @@ async function switchTemplate(newTemplateId) {
   if (!story.value.templateFields) story.value.templateFields = {};
   await save();
   window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
+  toastSuccess(t.value(`templates.${newTemplateId}.name`));
 }
 
 function storySnapshot() {

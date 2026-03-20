@@ -309,7 +309,7 @@ export default {
       change: 'The transformation is complete — they are not who they were at the start.',
     },
     spineLabel: 'Story spine note for this section',
-    spineNotFilled: 'This part of the story spine is not filled yet. You can still outline, but consider adding it in Story → Snowflake.',
+    spineNotFilled: 'This part of the story spine is not filled yet. You can still outline, but consider filling it in the Story page.',
     noChaptersInSection: 'No chapters yet in this section. Add one or let AI draft suggestions.',
     aiDraftAll: 'AI draft outline from spine',
     aiDraftSection: 'AI draft this section',

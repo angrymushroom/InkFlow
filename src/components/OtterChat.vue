@@ -114,16 +114,9 @@
 import { ref, computed, watch, nextTick, onMounted, onUnmounted } from 'vue';
 import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
 import { useOutline } from '@/composables/useOutline';
-import {
-  getCurrentStoryId, getStoryById, getStory, saveStory,
-  getIdeas, getCharacters, addCharacter, updateCharacter,
-  getChapters, addChapter, updateChapter, reorderChapters,
-  getScenes, addScene, updateScene,
-} from '@/db';
-import {
-  TEMPLATES, getTemplate, getSpineFieldValue, setSpineFieldPatch,
-  buildSpineSummary, getValidBeatKeys,
-} from '@/data/templates';
+import { getCurrentStoryId } from '@/db';
+import { loadPipContext } from '@/services/pipContext';
+import { parseActions, actionLabel, applySingleAction } from '@/services/pipActions';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
@@ -132,22 +125,16 @@ const HISTORY_LIMIT = 20;
 
 const { load: reloadOutline } = useOutline();
 
-// ---- Story context (Phase 2) ----
+// ---- Story context ----
 const storyContext = ref('');
 const storyTitle = ref('Story companion');
 const contextLoading = ref(false);
 const contextLoaded = ref(false);
 const hasStoryContent = ref(false);
 const welcomeWithContext = ref('');
-// Locked story ID for the current Pip session.
-// Set once when context is loaded; used by all action handlers so that
-// a mid-session story switch never silently redirects writes to a
-// different story.
+// Locked story ID for the current Pip session — prevents mid-session story
+// switches from silently redirecting writes to the wrong story.
 const contextStoryId = ref(null);
-// Cached story object for the current session (for template-aware actions).
-const contextStoryObj = ref(null);
-
-function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
 async function loadStoryContext() {
   contextLoading.value = true;
@@ -157,111 +144,15 @@ async function loadStoryContext() {
 
   try {
     const storyId = getCurrentStoryId();
-    // Lock this story ID so every action applied in this session targets
-    // the same story, even if the user switches stories while Pip is open.
     contextStoryId.value = storyId;
     if (!storyId) return;
 
-    const [story, ideas, characters, chapters, scenes] = await Promise.all([
-      getStoryById(storyId),
-      getIdeas(storyId),
-      getCharacters(storyId),
-      getChapters(storyId),
-      getScenes(storyId),
-    ]);
-
-    if (!story) return;
-    contextStoryObj.value = story;
-    storyTitle.value = truncate(story.title || 'Untitled story', 28);
-
-    const lines = [];
-
-    // Template-aware spine context
-    const tpl = getTemplate(story);
-    const spineFields = tpl.spineFields
-      .map((f) => [f.key, getSpineFieldValue(story, f.prop)])
-      .filter(([, v]) => v?.trim());
-
-    if (spineFields.length) {
-      lines.push(`=== STORY SPINE (Template: ${story.template ?? 'snowflake'}) ===`);
-      for (const [key, val] of spineFields) {
-        lines.push(`${key}: ${truncate(val, 300)}`);
-      }
-      hasStoryContent.value = true;
-    }
-
-    if (characters?.length) {
-      lines.push('\n=== CHARACTERS ===');
-      for (const c of characters.slice(0, 10)) {
-        const parts = [`- ${c.name || 'Unnamed'}`];
-        if (c.oneSentence) parts.push(truncate(c.oneSentence, 120));
-        if (c.goal) parts.push(`Goal: ${truncate(c.goal, 80)}`);
-        if (c.epiphany) parts.push(`Epiphany: ${truncate(c.epiphany, 80)}`);
-        lines.push(parts.join(' | '));
-      }
-      hasStoryContent.value = true;
-    }
-
-    if (ideas?.length) {
-      lines.push('\n=== IDEAS ===');
-      for (const idea of ideas.slice(0, 15)) {
-        lines.push(`- [${idea.type}] ${idea.title || 'Untitled'}: ${truncate(idea.body, 120)}`);
-      }
-      hasStoryContent.value = true;
-    }
-
-    if (chapters?.length) {
-      lines.push('\n=== OUTLINE ===');
-      const scenesByChapter = new Map();
-      for (const sc of scenes || []) {
-        const list = scenesByChapter.get(sc.chapterId) || [];
-        list.push(sc);
-        scenesByChapter.set(sc.chapterId, list);
-      }
-      for (const ch of chapters.slice(0, 20)) {
-        const beat = ch.beat ? ` [${ch.beat}]` : '';
-        lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`);
-        if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`);
-        const scs = scenesByChapter.get(ch.id) || [];
-        for (const sc of scs.slice(0, 6)) {
-          const written = sc.prose?.trim() ? ' ✓' : '';
-          lines.push(`  Scene: ${truncate(sc.title || 'Untitled', 60)}${written}`);
-          if (sc.oneSentenceSummary) lines.push(`    ${truncate(sc.oneSentenceSummary, 100)}`);
-        }
-      }
-      hasStoryContent.value = true;
-    }
-
-    // Append template meta for Pip's instructions
-    const validBeats = getValidBeatKeys(story);
-    const spineFieldKeys = tpl.spineFields.map((f) => f.key);
-    lines.push(
-      `\n=== TEMPLATE INFO ===`,
-      `Active template: ${story.template ?? 'snowflake'}`,
-      `Valid beat values for add_chapter/update_chapter: ${validBeats.join(', ')}`,
-      `Spine field names for update_spine: ${spineFieldKeys.join(', ')}`,
-    );
-
-    storyContext.value = lines.join('\n');
+    const result = await loadPipContext(storyId);
+    storyTitle.value = result.title;
+    storyContext.value = result.context;
+    hasStoryContent.value = result.hasContent;
+    welcomeWithContext.value = result.welcomeMessage;
     contextLoaded.value = true;
-
-    if (hasStoryContent.value) {
-      const spineCount = spineFields.length;
-      const charCount = characters?.length || 0;
-      const chapterCount = chapters?.length || 0;
-      const writtenScenes = (scenes || []).filter((s) => s.prose?.trim()).length;
-      const totalScenes = (scenes || []).length;
-
-      const parts = [];
-      if (spineCount >= 3) parts.push('a solid story spine');
-      else if (spineCount > 0) parts.push('a story spine in progress');
-      if (charCount > 0) parts.push(`${charCount} character${charCount > 1 ? 's' : ''}`);
-      if (chapterCount > 0) parts.push(`${chapterCount} chapter${chapterCount > 1 ? 's' : ''}`);
-      if (writtenScenes > 0) parts.push(`${writtenScenes}/${totalScenes} scenes written`);
-
-      const summary = parts.length ? `I can see you have ${parts.join(', ')}. ` : '';
-      welcomeWithContext.value = `Hi! I'm Pip 🦦 — I've read your story. ${summary}What would you like to work on?`;
-    }
   } finally {
     contextLoading.value = false;
   }
@@ -295,177 +186,11 @@ onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', onStorySwitched);
 });
 
-// ---- Action parsing and applying (Phase 3) ----
-const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
-
-function parseActions(text) {
-  const actions = [];
-  const cleanText = text.replace(ACTION_RE, (_, json) => {
-    try {
-      actions.push(JSON.parse(json.trim()));
-    } catch {
-      // ignore malformed action blocks
-    }
-    return '';
-  }).replace(/\n{3,}/g, '\n\n').trim();
-  return { cleanText, actions };
-}
-
-function actionLabel(action) {
-  if (action.type === 'update_spine') {
-    const keys = Object.keys(action.fields || {});
-    return `Update story spine${keys.length ? ` (${keys.join(', ')})` : ''}`;
-  }
-  if (action.type === 'upsert_character') return `Character "${action.name}"`;
-  if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
-  if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
-  if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
-  if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
-  if (action.type === 'recommend_template') {
-    const name = TEMPLATES[action.template]?.id ?? action.template;
-    return `Switch to ${action.template} template`;
-  }
-  return action.type;
-}
-
-// Each actionObj carries the storyId that was active when the AI generated it.
-// This prevents a mid-session story switch from silently redirecting writes.
-async function applySingleAction(actionObj) {
-  const action = actionObj.raw;
-  // Use the per-action locked storyId; fall back to current only if somehow missing.
-  const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
-
-  if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    const current = await getStoryById(storyId);
-    if (!current) throw new Error('No story found');
-    const tpl = getTemplate(current);
-    const validKeys = tpl.spineFields.map((f) => f.key);
-    let merged = { ...current };
-    const updatedKeys = [];
-    for (const [key, val] of Object.entries(action.fields)) {
-      if (!validKeys.includes(key)) continue;
-      const field = tpl.spineFields.find((f) => f.key === key);
-      if (!field) continue;
-      const patch = setSpineFieldPatch(merged, field.prop, String(val));
-      merged = { ...merged, ...patch };
-      updatedKeys.push(key);
-    }
-    if (updatedKeys.length === 0) throw new Error('No valid spine fields to update');
-    await saveStory(merged);
-    return `Story spine updated (${updatedKeys.join(', ')})`;
-  }
-  if (action.type === 'recommend_template' && action.template) {
-    const templateId = String(action.template);
-    if (!TEMPLATES[templateId]) throw new Error(`Unknown template: "${templateId}"`);
-    const current = await getStoryById(storyId);
-    if (!current) throw new Error('No story found');
-    await saveStory({ ...current, template: templateId, templateFields: current.templateFields ?? {} });
-    // Reload Pip's context so system prompt reflects the new template
-    loadStoryContext();
-    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
-    const tplName = templateId.replace(/_/g, ' ');
-    return `Switched to ${tplName} template`;
-  }
-  if (action.type === 'upsert_character' && action.name) {
-    const name = String(action.name).trim();
-    const existing = await getCharacters(storyId);
-    const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
-    const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany'];
-    const fields = {};
-    for (const key of CHAR_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-    }
-    if (match) {
-      await updateCharacter(match.id, { name, ...fields });
-      return `Character "${name}" updated`;
-    } else {
-      await addCharacter({ storyId, name, ...fields });
-      return `Character "${name}" created`;
-    }
-  }
-  if (action.type === 'add_chapter' && action.title) {
-    const title = String(action.title).trim();
-    const CHAPTER_KEYS = ['beat', 'summary'];
-    const fields = {};
-    for (const key of CHAPTER_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-      else if (action[key] != null) fields[key] = String(action[key]);
-    }
-    const newChapter = await addChapter({ storyId, title, ...fields });
-    // If a position is specified, reorder so the new chapter sits after the named one
-    if (action.after_chapter_title) {
-      const allChapters = await getChapters(storyId);
-      const afterIdx = allChapters.findIndex(
-        (c) => c.id !== newChapter.id && c.title?.toLowerCase() === String(action.after_chapter_title).toLowerCase()
-      );
-      if (afterIdx >= 0) {
-        const withoutNew = allChapters.filter((c) => c.id !== newChapter.id);
-        const reordered = [
-          ...withoutNew.slice(0, afterIdx + 1),
-          newChapter,
-          ...withoutNew.slice(afterIdx + 1),
-        ];
-        await reorderChapters(storyId, reordered.map((c) => c.id));
-      }
-    }
-    return `Chapter "${title}" added`;
-  }
-  if (action.type === 'update_chapter' && action.title_match) {
-    const existing = await getChapters(storyId);
-    const match = existing.find((c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase());
-    if (!match) throw new Error(`Chapter not found: "${action.title_match}"`);
-    const CHAPTER_KEYS = ['title', 'beat', 'summary'];
-    const fields = {};
-    for (const key of CHAPTER_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-    }
-    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
-    await updateChapter(match.id, fields);
-    return `Chapter "${match.title}" updated`;
-  }
-  if (action.type === 'add_scene' && action.title && action.chapter_title_match) {
-    const chapters = await getChapters(storyId);
-    const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
-    if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`);
-    const title = String(action.title).trim();
-    const SCENE_KEYS = ['oneSentenceSummary', 'notes'];
-    const fields = {};
-    for (const key of SCENE_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-      else if (action[key] != null) fields[key] = String(action[key]);
-    }
-    await addScene({ chapterId: chapter.id, title, ...fields });
-    return `Scene "${title}" added to "${chapter.title}"`;
-  }
-  if (action.type === 'update_scene' && action.title_match) {
-    const allScenes = await getScenes(storyId);
-    let match = null;
-    if (action.chapter_title_match) {
-      const chapters = await getChapters(storyId);
-      const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
-      if (chapter) {
-        match = allScenes.find((s) => s.chapterId === chapter.id && s.title?.toLowerCase() === String(action.title_match).toLowerCase());
-      }
-    }
-    if (!match) match = allScenes.find((s) => s.title?.toLowerCase() === String(action.title_match).toLowerCase());
-    if (!match) throw new Error(`Scene not found: "${action.title_match}"`);
-    const SCENE_KEYS = ['title', 'oneSentenceSummary', 'notes'];
-    const fields = {};
-    for (const key of SCENE_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-    }
-    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
-    await updateScene(match.id, fields);
-    return `Scene "${match.title}" updated`;
-  }
-  throw new Error(`Unknown action: ${action.type}`);
-}
-
+// ---- Action confirm / skip ----
 async function confirmAction(actionObj) {
   if (actionObj.status !== 'pending') return;
   actionObj.status = 'applying';
   try {
-    // Pass the full actionObj so applySingleAction can read the locked storyId.
     actionObj.resultLabel = await applySingleAction(actionObj);
     actionObj.status = 'applied';
     loadStoryContext();
