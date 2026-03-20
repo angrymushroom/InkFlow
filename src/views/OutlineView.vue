@@ -161,6 +161,7 @@
       :default-beat="panelDefaultBeat"
       :default-chapter-id="panelDefaultChapterId"
       :extra-context="panelExtraContext"
+      :available-beats="templateConfig.beats"
       @close="panelOpen = false"
       @save="onPanelSave"
     />
@@ -174,6 +175,7 @@
       @close="draftOpen = false"
       @apply="applyDraft"
     />
+    <!-- beats is a computed array here, passed reactively -->
 
     <!-- Delete modals -->
     <ConfirmModal
@@ -219,6 +221,7 @@ import { draftOutlineFromSpine } from '@/services/outlineAi';
 import { friendlyAiError } from '@/services/ai';
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
 import { useToast } from '@/composables/useToast';
+import { getTemplate, getSpineTextForBeat, getBeatColor } from '@/data/templates';
 
 const { t } = useI18n();
 const { error: toastError } = useToast();
@@ -228,18 +231,13 @@ const saveError = ref('');
 const characters = ref([]);
 const story = ref(null);
 
-const beats = ['setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-const beatOrder = [...beats, 'ungrouped'];
-const allBeatSections = [...beats, 'ungrouped'];
+// Template-driven beats — recomputed whenever the story changes
+const templateConfig = computed(() => getTemplate(story.value));
+const beats = computed(() => templateConfig.value.beats.map((b) => b.key));
+const beatOrder = computed(() => [...beats.value, 'ungrouped']);
+const allBeatSections = computed(() => [...beats.value, 'ungrouped']);
 
-const BEAT_COLORS = {
-  setup: '#6366f1',
-  disaster1: '#f97316',
-  disaster2: '#ef4444',
-  disaster3: '#a855f7',
-  ending: '#16a34a',
-};
-function beatColor(b) { return BEAT_COLORS[b] || '#a1a1aa'; }
+function beatColor(b) { return getBeatColor(story.value, b); }
 
 const sortableInstances = [];
 
@@ -262,7 +260,7 @@ function toggleChapter(chId) {
 
 function chaptersForBeat(beat) {
   if (beat === 'ungrouped') {
-    return (chapters.value || []).filter((c) => !c.beat || !beats.includes(c.beat));
+    return (chapters.value || []).filter((c) => !c.beat || !beats.value.includes(c.beat));
   }
   return (chapters.value || []).filter((c) => c.beat === beat);
 }
@@ -280,16 +278,15 @@ function sceneDotsForChapter(chapterId) {
 }
 
 function spineTextForBeat(beat) {
-  const s = story.value || {};
-  const text = { setup: s.setup, disaster1: s.disaster1, disaster2: s.disaster2, disaster3: s.disaster3, ending: s.ending }[beat] || '';
-  return text?.trim() || '';
+  return getSpineTextForBeat(story.value, beat);
 }
 
 // --- Data loading ---
 async function loadAll() {
   await load();
-  characters.value = await getCharacters();
-  story.value = await getStory();
+  const [chars, s] = await Promise.all([getCharacters(), getStory()]);
+  characters.value = chars;
+  story.value = s;
 }
 
 // --- Edit panel state ---
@@ -333,8 +330,8 @@ function buildSceneContext(chapterId) {
   return out;
 }
 
-function openNewChapterPanel(beat = 'setup') {
-  const b = beat || 'setup';
+function openNewChapterPanel(beat = null) {
+  const b = beat || beats.value[0] || 'setup';
   if (collapsedBeats[b]) collapsedBeats[b] = false;
   panelType.value = 'chapter';
   panelData.value = null;
@@ -346,8 +343,8 @@ function openNewChapterPanel(beat = 'setup') {
 function openEditChapterPanel(ch) {
   panelType.value = 'chapter';
   panelData.value = { ...ch };
-  panelDefaultBeat.value = ch.beat || 'setup';
-  panelExtraContext.value = buildChapterContext(ch.beat || 'setup');
+  panelDefaultBeat.value = ch.beat || beats.value[0] || 'setup';
+  panelExtraContext.value = buildChapterContext(ch.beat || beats.value[0] || 'setup');
   panelOpen.value = true;
 }
 
@@ -490,7 +487,7 @@ async function draftAll() {
 async function applyDraft(payload) {
   try {
     const sections = payload?.sections || {};
-    for (const beat of beats) {
+    for (const beat of beats.value) {
       const chaptersList = Array.isArray(sections[beat]) ? sections[beat] : [];
       for (const ch of chaptersList) {
         const created = await addChapter({ title: ch.chapterTitle ?? '', summary: ch.chapterSummary ?? '', beat });
@@ -525,12 +522,12 @@ function initSortables() {
         if (ids.length === 0) return;
         const byBeat = {};
         for (const ch of chapters.value) {
-          const b = ch.beat && beatOrder.includes(ch.beat) ? ch.beat : 'ungrouped';
+          const b = ch.beat && beatOrder.value.includes(ch.beat) ? ch.beat : 'ungrouped';
           if (!byBeat[b]) byBeat[b] = [];
           byBeat[b].push(ch);
         }
         byBeat[beat] = ids.map((id) => chapters.value.find((c) => c.id === id)).filter(Boolean);
-        const fullOrder = beatOrder.flatMap((b) => (byBeat[b] || []).map((c) => c.id));
+        const fullOrder = beatOrder.value.flatMap((b) => (byBeat[b] || []).map((c) => c.id));
         reorderChapters(getCurrentStoryId(), fullOrder).then(async () => {
           await loadAll();
           window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));

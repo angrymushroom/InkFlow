@@ -98,24 +98,26 @@ const props = defineProps({
   defaultBeat: { type: String, default: 'setup' },
   defaultChapterId: { type: String, default: '' },
   extraContext: { type: String, default: '' },
+  // Array of { key: string, color: string } from templates config
+  availableBeats: { type: Array, default: () => [
+    { key: 'setup',     color: '#6366f1' },
+    { key: 'disaster1', color: '#f97316' },
+    { key: 'disaster2', color: '#ef4444' },
+    { key: 'disaster3', color: '#a855f7' },
+    { key: 'ending',    color: '#16a34a' },
+  ]},
 });
 
 const emit = defineEmits(['close', 'save']);
 const { t } = useI18n();
 const firstInputRef = ref(null);
 
-const BEATS = ['setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-const allBeats = [...BEATS, ''];
+// All beat buttons: template beats + ungrouped (empty string)
+const allBeats = computed(() => [...props.availableBeats.map((b) => b.key), '']);
 
-const BEAT_COLORS = {
-  setup: '#6366f1',
-  disaster1: '#f97316',
-  disaster2: '#ef4444',
-  disaster3: '#a855f7',
-  ending: '#16a34a',
-};
-
-function beatColor(b) { return BEAT_COLORS[b] || '#a1a1aa'; }
+function beatColor(b) {
+  return props.availableBeats.find((x) => x.key === b)?.color ?? '#a1a1aa';
+}
 function beatLabel(b) {
   if (!b) return t.value('outline.section.ungrouped');
   return t.value(`outline.section.${b}`);
@@ -127,11 +129,12 @@ const form = ref({});
 
 function resetForm() {
   if (props.type === 'chapter') {
+    const firstBeat = props.availableBeats[0]?.key ?? 'setup';
     form.value = {
       id: props.initialData?.id || null,
       title: props.initialData?.title ?? '',
       summary: props.initialData?.summary ?? '',
-      beat: props.initialData?.beat ?? props.defaultBeat ?? 'setup',
+      beat: props.initialData?.beat ?? props.defaultBeat ?? firstBeat,
     };
   } else {
     form.value = {

@@ -189,7 +189,9 @@ export async function getStory() {
   }
 }
 
-// Snowflake Method core fields — always present, default to empty string
+// Core story fields always present on every story record, defaulting to empty string.
+// Snowflake Method fields (setup/disaster*/ending) are kept for all stories for
+// backwards compatibility; non-Snowflake templates store their data in templateFields.
 const STORY_CORE_FIELDS = ["oneSentence", "setup", "disaster1", "disaster2", "disaster3", "ending"];
 
 export async function saveStory(data) {
@@ -229,6 +231,8 @@ export async function createStory(overrides = {}) {
     disaster2: "",
     disaster3: "",
     ending: "",
+    template: "snowflake",
+    templateFields: {},
     ...overrides,
     id,
     updatedAt: now,

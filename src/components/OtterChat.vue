@@ -120,6 +120,10 @@ import {
   getChapters, addChapter, updateChapter, reorderChapters,
   getScenes, addScene, updateScene,
 } from '@/db';
+import {
+  TEMPLATES, getTemplate, getSpineFieldValue, setSpineFieldPatch,
+  buildSpineSummary, getValidBeatKeys,
+} from '@/data/templates';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
@@ -140,6 +144,8 @@ const welcomeWithContext = ref('');
 // a mid-session story switch never silently redirects writes to a
 // different story.
 const contextStoryId = ref(null);
+// Cached story object for the current session (for template-aware actions).
+const contextStoryObj = ref(null);
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
@@ -165,23 +171,21 @@ async function loadStoryContext() {
     ]);
 
     if (!story) return;
+    contextStoryObj.value = story;
     storyTitle.value = truncate(story.title || 'Untitled story', 28);
 
     const lines = [];
 
-    const spineFields = [
-      ['One-sentence summary', story.oneSentence],
-      ['Setup', story.setup],
-      ['Disaster 1', story.disaster1],
-      ['Disaster 2', story.disaster2],
-      ['Disaster 3', story.disaster3],
-      ['Ending', story.ending],
-    ].filter(([, v]) => v?.trim());
+    // Template-aware spine context
+    const tpl = getTemplate(story);
+    const spineFields = tpl.spineFields
+      .map((f) => [f.key, getSpineFieldValue(story, f.prop)])
+      .filter(([, v]) => v?.trim());
 
     if (spineFields.length) {
-      lines.push('=== STORY SPINE ===');
-      for (const [label, val] of spineFields) {
-        lines.push(`${label}: ${truncate(val, 300)}`);
+      lines.push(`=== STORY SPINE (Template: ${story.template ?? 'snowflake'}) ===`);
+      for (const [key, val] of spineFields) {
+        lines.push(`${key}: ${truncate(val, 300)}`);
       }
       hasStoryContent.value = true;
     }
@@ -227,6 +231,16 @@ async function loadStoryContext() {
       }
       hasStoryContent.value = true;
     }
+
+    // Append template meta for Pip's instructions
+    const validBeats = getValidBeatKeys(story);
+    const spineFieldKeys = tpl.spineFields.map((f) => f.key);
+    lines.push(
+      `\n=== TEMPLATE INFO ===`,
+      `Active template: ${story.template ?? 'snowflake'}`,
+      `Valid beat values for add_chapter/update_chapter: ${validBeats.join(', ')}`,
+      `Spine field names for update_spine: ${spineFieldKeys.join(', ')}`,
+    );
 
     storyContext.value = lines.join('\n');
     contextLoaded.value = true;
@@ -307,6 +321,10 @@ function actionLabel(action) {
   if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
   if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
+  if (action.type === 'recommend_template') {
+    const name = TEMPLATES[action.template]?.id ?? action.template;
+    return `Switch to ${action.template} template`;
+  }
   return action.type;
 }
 
@@ -318,18 +336,35 @@ async function applySingleAction(actionObj) {
   const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
 
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    // Use getStoryById with the locked storyId — not getStory() which re-reads
-    // getCurrentStoryId() and may point to a different story by apply-time.
     const current = await getStoryById(storyId);
     if (!current) throw new Error('No story found');
-    const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-    const patch = {};
-    for (const key of SPINE_KEYS) {
-      if (action.fields[key] != null) patch[key] = String(action.fields[key]);
+    const tpl = getTemplate(current);
+    const validKeys = tpl.spineFields.map((f) => f.key);
+    let merged = { ...current };
+    const updatedKeys = [];
+    for (const [key, val] of Object.entries(action.fields)) {
+      if (!validKeys.includes(key)) continue;
+      const field = tpl.spineFields.find((f) => f.key === key);
+      if (!field) continue;
+      const patch = setSpineFieldPatch(merged, field.prop, String(val));
+      merged = { ...merged, ...patch };
+      updatedKeys.push(key);
     }
-    if (Object.keys(patch).length === 0) throw new Error('No fields to update');
-    await saveStory({ ...current, ...patch });
-    return `Story spine updated (${Object.keys(patch).join(', ')})`;
+    if (updatedKeys.length === 0) throw new Error('No valid spine fields to update');
+    await saveStory(merged);
+    return `Story spine updated (${updatedKeys.join(', ')})`;
+  }
+  if (action.type === 'recommend_template' && action.template) {
+    const templateId = String(action.template);
+    if (!TEMPLATES[templateId]) throw new Error(`Unknown template: "${templateId}"`);
+    const current = await getStoryById(storyId);
+    if (!current) throw new Error('No story found');
+    await saveStory({ ...current, template: templateId, templateFields: current.templateFields ?? {} });
+    // Reload Pip's context so system prompt reflects the new template
+    loadStoryContext();
+    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
+    const tplName = templateId.replace(/_/g, ' ');
+    return `Switched to ${tplName} template`;
   }
   if (action.type === 'upsert_character' && action.name) {
     const name = String(action.name).trim();
@@ -447,7 +482,7 @@ function skipAction(actionObj) {
 }
 
 // ---- System prompt (Phase 3) ----
-const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a writing app that uses the Snowflake Method to build stories step by step.
+const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a story writing app that supports multiple writing templates.
 
 Your personality:
 - Warm, encouraging, and a little playful — express genuine enthusiasm for stories
@@ -456,11 +491,18 @@ Your personality:
 - Occasionally use gentle otter-flavored language ("floating on this idea", "diving into the details") but don't overdo it
 
 Your role:
-- Help the writer shape their story through conversation: premise, spine (setup, three disasters, ending), characters, chapters, and scenes
-- Use Snowflake Method framing when helpful: start with one sentence → expand the spine → develop characters → detail the scenes
+- Help the writer shape their story through conversation: premise, story spine, characters, chapters, and scenes
+- **Proactively recommend the best writing template** as you learn about the story — don't wait to be asked
+- When the writer shares their story idea, listen for: is it plot-driven or character-driven? Does it have a clear villain/conflict or internal journey? How structured do they want to be?
+- Based on what you learn, naturally suggest a template and explain why it fits
 - When the writer is stuck, offer 2–3 concrete options or a gentle nudge
 - Celebrate progress — every piece of the story they define is worth acknowledging
 - You have been given the writer's current story data — use it to give specific, personalised advice
+
+## Available writing templates
+- **snowflake**: Snowflake Method — one sentence → setup → three escalating disasters → ending. Best for plotters who want top-down structure.
+- **save_the_cat**: Save the Cat (Blake Snyder) — logline, Act 1, Act 2A (fun & games), midpoint, Act 2B (all is lost), Act 3. Best for commercial fiction and strongly paced stories.
+- **story_circle**: Story Circle (Dan Harmon) — 8 segments: you → need → go → search → find → take → return → change. Best for character-driven stories centered on inner transformation.
 
 Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.
 
@@ -473,23 +515,29 @@ IMPORTANT RULES:
 - Never emit an action speculatively or without the writer's approval
 - You may include multiple action tags in one response
 - After saving, briefly confirm what was saved and ask what to work on next
+- The TEMPLATE INFO section (appended below from story data) tells you the active template, valid beat values, and valid spine field names — always use those exact values
+
+### Recommend a writing template
+When you believe a template fits the writer's story better than the current one, emit this. Only emit it once you have enough information about their story to make a confident recommendation.
+<pip-action>{"type":"recommend_template","template":"story_circle","reason":"Your story centers on inner transformation..."}</pip-action>
+template must be one of: snowflake, save_the_cat, story_circle
 
 ### Update story spine fields
-Emit this to save one or more spine fields (only include fields you want to change):
-<pip-action>{"type":"update_spine","fields":{"oneSentence":"...","setup":"...","disaster1":"...","disaster2":"...","disaster3":"...","ending":"..."}}</pip-action>
+Emit this to save one or more spine fields. Use ONLY the field names listed in "Spine field names for update_spine" from the TEMPLATE INFO — different templates have different field names.
+<pip-action>{"type":"update_spine","fields":{"fieldName":"...","otherField":"..."}}</pip-action>
 
 ### Create or update a character
 Emit this to create a new character or update an existing one (matched by name, case-insensitive):
 <pip-action>{"type":"upsert_character","name":"CharacterName","fields":{"oneSentence":"...","goal":"...","motivation":"...","conflict":"...","epiphany":"..."}}</pip-action>
 
 ### Add a chapter
-Emit this to add a new chapter. beat must be one of: setup, disaster1, disaster2, disaster3, ending.
+Emit this to add a new chapter. beat must be one of the values in "Valid beat values" from the TEMPLATE INFO.
 Use "after_chapter_title" to insert the chapter after a specific existing chapter (matched case-insensitively). If omitted, the chapter is appended at the end.
-<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
+<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"BEAT_FROM_TEMPLATE_INFO","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
 
 ### Update a chapter
 Emit this to update an existing chapter matched by title (case-insensitive). Only include fields you want to change.
-<pip-action>{"type":"update_chapter","title_match":"Existing chapter title","fields":{"title":"New title","beat":"disaster1","summary":"Updated summary"}}</pip-action>
+<pip-action>{"type":"update_chapter","title_match":"Existing chapter title","fields":{"title":"New title","beat":"BEAT_FROM_TEMPLATE_INFO","summary":"Updated summary"}}</pip-action>
 
 ### Add a scene to a chapter
 Emit this to add a scene to a chapter matched by title (case-insensitive).

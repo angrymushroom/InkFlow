@@ -8,6 +8,7 @@ import {
   updateScene,
 } from "@/db";
 import { completeWithAi, TIERS, CONTEXTS, tierForContext } from "@/services/ai";
+import { buildSpineSummary } from "@/data/templates";
 
 const PRIOR_SCENE_TAIL_CHARS = 800;
 const LAST_LINES_CHARS = 400;
@@ -37,17 +38,10 @@ export async function buildSceneContext(storyId, sceneId) {
   if (sceneIndex < 0) throw new Error("Scene not found in this story.");
   const currentScene = scenes[sceneIndex];
 
-  // --- Story spine ---
-  const spineLines = [
-    story.oneSentence && `One-sentence: ${story.oneSentence}`,
-    story.setup && `Setup: ${story.setup}`,
-    story.disaster1 && `Disaster 1: ${story.disaster1}`,
-    story.disaster2 && `Disaster 2: ${story.disaster2}`,
-    story.disaster3 && `Disaster 3: ${story.disaster3}`,
-    story.ending && `Ending: ${story.ending}`,
-  ].filter(Boolean);
-  const spineBlock = spineLines.length
-    ? `Story spine:\n${spineLines.join("\n")}`
+  // --- Story spine (template-aware) ---
+  const spineSummary = buildSpineSummary(story);
+  const spineBlock = spineSummary !== '(Story spine not filled yet)'
+    ? `Story spine (${story.template ?? 'snowflake'}):\n${spineSummary}`
     : "Story spine: (not filled yet)";
 
   // --- Characters ---

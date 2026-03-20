@@ -1,48 +1,55 @@
 <template>
   <div class="page">
     <h1 class="page-title">{{ t('story.title') }}</h1>
-    <p class="page-subtitle">{{ t('story.subtitle') }}</p>
+    <p class="page-subtitle">{{ t(`templates.${templateId}.subtitle`) }}</p>
 
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
+
+    <!-- Template selector -->
+    <div class="template-selector card">
+      <span class="template-selector-label">{{ t('story.templateLabel') }}</span>
+      <div class="template-selector-options">
+        <button
+          v-for="(tpl, key) in TEMPLATES"
+          :key="key"
+          type="button"
+          class="template-selector-btn"
+          :class="{ active: templateId === key }"
+          @click="switchTemplate(key)"
+        >
+          {{ t(`templates.${key}.name`) }}
+        </button>
+      </div>
+    </div>
+
     <div class="card form-card">
-      <div class="form-group">
-        <label>{{ t('story.oneSentence') }}</label>
+      <div
+        v-for="field in currentTemplate.spineFields"
+        :key="field.key"
+        class="form-group"
+      >
+        <label>{{ t(`templates.${templateId}.fields.${field.key}`) }}</label>
         <input
-          v-model="story.oneSentence"
+          v-if="field.type === 'input'"
+          :value="getFieldValue(field.prop)"
           type="text"
-          :placeholder="t('story.oneSentencePlaceholder')"
+          :placeholder="t(`templates.${templateId}.placeholders.${field.key}`)"
+          @input="setFieldValue(field.prop, $event.target.value)"
+        />
+        <ResizableTextarea
+          v-else
+          :model-value="getFieldValue(field.prop)"
+          :placeholder="t(`templates.${templateId}.placeholders.${field.key}`)"
+          :rows="field.key === 'you' || field.key === 'setup' || field.key === 'oneSentence' ? 3 : 2"
+          @update:model-value="setFieldValue(field.prop, $event)"
         />
         <AiExpandButton
-          :current-value="story.oneSentence"
-          :field-name="t('story.fieldOneSentence')"
-          @expanded="story.oneSentence = $event"
+          :current-value="getFieldValue(field.prop)"
+          :field-name="t(`templates.${templateId}.fields.${field.key}`)"
+          @expanded="setFieldValue(field.prop, $event)"
         />
       </div>
-      <div class="form-group">
-        <label>{{ t('story.setup') }}</label>
-        <ResizableTextarea v-model="story.setup" :placeholder="t('story.setupPlaceholder')" :rows="3" />
-        <AiExpandButton :current-value="story.setup" :field-name="t('story.fieldSetup')" @expanded="story.setup = $event" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('story.disaster1') }}</label>
-        <ResizableTextarea v-model="story.disaster1" :placeholder="t('story.disaster1Placeholder')" :rows="2" />
-        <AiExpandButton :current-value="story.disaster1" :field-name="t('story.fieldDisaster1')" @expanded="story.disaster1 = $event" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('story.disaster2') }}</label>
-        <ResizableTextarea v-model="story.disaster2" :placeholder="t('story.disaster2Placeholder')" :rows="2" />
-        <AiExpandButton :current-value="story.disaster2" :field-name="t('story.fieldDisaster2')" @expanded="story.disaster2 = $event" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('story.disaster3') }}</label>
-        <ResizableTextarea v-model="story.disaster3" :placeholder="t('story.disaster3Placeholder')" :rows="2" />
-        <AiExpandButton :current-value="story.disaster3" :field-name="t('story.fieldDisaster3')" @expanded="story.disaster3 = $event" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('story.ending') }}</label>
-        <ResizableTextarea v-model="story.ending" :placeholder="t('story.endingPlaceholder')" :rows="2" />
-        <AiExpandButton :current-value="story.ending" :field-name="t('story.fieldEnding')" @expanded="story.ending = $event" />
-      </div>
+
       <div class="story-actions">
         <button class="btn btn-primary" @click="save">{{ t('story.saveStory') }}</button>
         <span v-if="savedHint" class="saved-hint">{{ t('story.saved') }}</span>
@@ -79,13 +86,14 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getStory, saveStory, getStories, deleteStory } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { storyDirty } from '@/stores/unsaved';
 import AiExpandButton from '@/components/AiExpandButton.vue';
 import ResizableTextarea from '@/components/ResizableTextarea.vue';
+import { TEMPLATES, getSpineFieldValue, setSpineFieldPatch } from '@/data/templates';
 
 const { t } = useI18n();
 const router = useRouter();
@@ -96,6 +104,8 @@ const deleteInProgress = ref(false);
 
 const story = ref({
   id: '',
+  template: 'snowflake',
+  templateFields: {},
   oneSentence: '',
   setup: '',
   disaster1: '',
@@ -110,9 +120,31 @@ const loadError = ref('');
 const saveTimeout = ref(null);
 const beforeUnloadHandler = ref(null);
 
+const templateId = computed(() => story.value.template ?? 'snowflake');
+const currentTemplate = computed(() => TEMPLATES[templateId.value] ?? TEMPLATES.snowflake);
+
+function getFieldValue(prop) {
+  return getSpineFieldValue(story.value, prop);
+}
+
+function setFieldValue(prop, value) {
+  const patch = setSpineFieldPatch(story.value, prop, value);
+  Object.assign(story.value, patch);
+}
+
+async function switchTemplate(newTemplateId) {
+  if (newTemplateId === templateId.value) return;
+  story.value.template = newTemplateId;
+  if (!story.value.templateFields) story.value.templateFields = {};
+  await save();
+  window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
+}
+
 function storySnapshot() {
   return JSON.stringify({
     id: story.value.id ?? '',
+    template: story.value.template ?? 'snowflake',
+    templateFields: story.value.templateFields ?? {},
     oneSentence: story.value.oneSentence ?? '',
     setup: story.value.setup ?? '',
     disaster1: story.value.disaster1 ?? '',
@@ -148,6 +180,8 @@ async function load() {
     if (s) {
       story.value = {
         id: s.id ?? 'story',
+        template: s.template ?? 'snowflake',
+        templateFields: s.templateFields ?? {},
         oneSentence: s.oneSentence ?? '',
         setup: s.setup ?? '',
         disaster1: s.disaster1 ?? '',
@@ -254,6 +288,50 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: var(--danger);
 }
+
+/* Template selector */
+.template-selector {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  flex-wrap: wrap;
+}
+.template-selector-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.template-selector-options {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.template-selector-btn {
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.template-selector-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.template-selector-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-subtle);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Danger zone */
 .story-danger-zone {
   margin-top: var(--space-6);
   padding-top: var(--space-4);
