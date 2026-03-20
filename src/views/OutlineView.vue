@@ -217,7 +217,7 @@ import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
 import { getTemplate, getSpineTextForBeat, getBeatColor } from '@/data/templates';
 
 const { t } = useI18n();
-const { chapters, scenes, load, loadError, getScenesForChapter } = useOutline();
+const { chapters, load, loadError, getScenesForChapter } = useOutline();
 
 const characters = ref([]);
 const story = ref(null);
