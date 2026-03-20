@@ -228,6 +228,11 @@ export default {
     aiDrafting: 'Esquematizando…',
     aiExtraContextChapterPrefix: 'Este capítulo debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
     aiExtraContextScenePrefix: 'Esta escena debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
+    editInStory: 'Editar en Historia →',
+    spineRefLabel: 'Eje de la historia',
+    addFirstScene: 'Añadir primera escena',
+    sceneWrittenAria: 'Escrita',
+    sceneEmptyAria: 'Sin escribir',
   },
   write: {
     title: 'Escribir',

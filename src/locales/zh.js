@@ -228,6 +228,11 @@ export default {
     aiDrafting: '正在起草…',
     aiExtraContextChapterPrefix: '本章节需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
     aiExtraContextScenePrefix: '本场景需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
+    editInStory: '在故事页面编辑 →',
+    spineRefLabel: '故事骨架',
+    addFirstScene: '添加第一个场景',
+    sceneWrittenAria: '已写',
+    sceneEmptyAria: '未写',
   },
   write: {
     title: '写作',

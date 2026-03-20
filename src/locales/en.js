@@ -230,6 +230,11 @@ export default {
     aiDrafting: 'Drafting…',
     aiExtraContextChapterPrefix: 'This chapter should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
     aiExtraContextScenePrefix: 'This scene should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
+    editInStory: 'Edit in Story →',
+    spineRefLabel: 'Story spine',
+    addFirstScene: 'Add first scene',
+    sceneWrittenAria: 'Written',
+    sceneEmptyAria: 'Not written',
   },
   write: {
     title: 'Write',
