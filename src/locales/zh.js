@@ -489,8 +489,8 @@ export default {
     welcomeProgress: '进展不错！继续加油——{question}',
     welcomeNeedCharacters: '故事结构已完成！现在让我们赋予角色生命。谁是你的主角？',
     welcomeNeedChapters: '基础很棒！想开始规划章节吗？',
-    welcomeBack: '欢迎回来！你已写了 {n} 个场景{s}。要继续写还是关注某个具体环节？',
-    welcomeHasOutline: '大纲已就绪，共 {n} 个场景{s}。准备开写了吗？',
+    welcomeBack: '欢迎回来！你已写了 {chapters} 个章节 {n} 个场景。要继续写还是关注某个具体环节？',
+    welcomeHasOutline: '大纲已就绪，共 {chapters} 个章节 {n} 个场景。准备开写了吗？',
     coachQuestion: {
       snowflake: {
         oneSentence: '请告诉我你的故事构想——哪怕只有一句话也够。',

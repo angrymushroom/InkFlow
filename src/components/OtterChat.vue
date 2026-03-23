@@ -159,7 +159,7 @@ function computeWelcomeMessage(gaps) {
     welcomeWithContext.value = t.value('pip.welcomeDefault');
     return;
   }
-  const { template, filledCount, nextMissingField, hasCharacters, hasChapters, writtenScenes, totalScenes } = gaps;
+  const { template, filledCount, nextMissingField, hasCharacters, hasChapters, totalChapters, writtenScenes, totalScenes } = gaps;
   if (filledCount === 0) {
     const question = t.value(template.fields[0].coachQuestionKey);
     welcomeWithContext.value = t.value('pip.welcomeEmpty', { question });
@@ -171,9 +171,9 @@ function computeWelcomeMessage(gaps) {
   } else if (!hasChapters) {
     welcomeWithContext.value = t.value('pip.welcomeNeedChapters');
   } else if (writtenScenes > 0) {
-    welcomeWithContext.value = t.value('pip.welcomeBack', { n: writtenScenes, s: writtenScenes > 1 ? 's' : '' });
+    welcomeWithContext.value = t.value('pip.welcomeBack', { chapters: totalChapters, n: writtenScenes });
   } else {
-    welcomeWithContext.value = t.value('pip.welcomeHasOutline', { n: totalScenes, s: totalScenes > 1 ? 's' : '' });
+    welcomeWithContext.value = t.value('pip.welcomeHasOutline', { chapters: totalChapters, n: totalScenes });
   }
 }
 
@@ -285,6 +285,7 @@ async function loadStoryContext() {
       nextMissingField,
       hasCharacters: (characters?.length || 0) > 0,
       hasChapters: (chapters?.length || 0) > 0,
+      totalChapters: chapters?.length || 0,
       writtenScenes,
       totalScenes,
     };

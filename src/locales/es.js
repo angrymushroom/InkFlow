@@ -396,8 +396,8 @@ export default {
     welcomeProgress: "¡Buen progreso! Sigamos — {question}",
     welcomeNeedCharacters: "¡La estructura de tu historia está completa! Ahora démosles vida a tus personajes. ¿Quién es tu protagonista?",
     welcomeNeedChapters: "¡Buena base! ¿Quieres empezar a planificar tus capítulos?",
-    welcomeBack: "¡Bienvenido de vuelta! Has escrito {n} escena{s}. ¿Quieres continuar o centrarte en algo específico?",
-    welcomeHasOutline: "Tu esquema está listo con {n} escena{s}. ¿Listo para empezar a escribir?",
+    welcomeBack: "¡Bienvenido de vuelta! Has escrito {n} escenas en {chapters} capítulos. ¿Quieres continuar o centrarte en algo específico?",
+    welcomeHasOutline: "Tu esquema está listo: {chapters} capítulos, {n} escenas. ¿Listo para empezar a escribir?",
     coachQuestion: {
       snowflake: {
         oneSentence: "Cuéntame tu idea de historia — incluso una frase es suficiente para empezar.",
