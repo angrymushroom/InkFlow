@@ -6,63 +6,17 @@
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
     <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
-    <div v-if="story" class="outline-spine-oneline card">
-      <label class="outline-spine-oneline-label">{{ t('story.oneSentence') }}</label>
-      <input
-        v-model="storyDraft.oneSentence"
-        type="text"
-        class="outline-spine-oneline-input"
-        :placeholder="t('story.oneSentencePlaceholder')"
-      />
-      <AiExpandButton
-        :current-value="storyDraft.oneSentence"
-        :field-name="t('story.fieldOneSentence')"
-        @expanded="storyDraft.oneSentence = $event"
-      />
+    <!-- One-sentence story reference (read-only) -->
+    <div v-if="story" class="outline-spine-ref card">
+      <span class="outline-spine-ref-label">{{ t('outline.spineRefLabel') }}</span>
+      <p class="outline-spine-ref-text">{{ story.oneSentence || t('outline.spineNotFilled') }}</p>
+      <router-link to="/story" class="outline-spine-ref-link">{{ t('outline.editInStory') }}</router-link>
     </div>
 
-    <div v-if="showSceneForm && !editingSceneId" class="card form-card">
-      <h2 class="form-title">{{ t('outline.newScene') }}</h2>
-      <div class="form-group">
-        <label>{{ t('outline.chapter') }}</label>
-        <select v-model="sceneForm.chapterId" required>
-          <option value="">{{ t('outline.selectChapter') }}</option>
-          <option v-for="ch in chapters" :key="ch.id" :value="ch.id">{{ ch.title || t('ideas.untitled') }}</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>{{ t('outline.sceneTitle') }}</label>
-        <input v-model="sceneForm.title" type="text" :placeholder="t('outline.sceneTitlePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('outline.oneSentenceSummary') }}</label>
-        <ResizableTextarea v-model="sceneForm.oneSentenceSummary" :placeholder="t('outline.oneSentencePlaceholder')" :rows="1" :min-height="40" auto-expand />
-        <AiExpandButton :current-value="sceneForm.oneSentenceSummary" :field-name="t('outline.sceneOneSentence')" :extra-context="sceneExtraContext" @expanded="sceneForm.oneSentenceSummary = $event" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('outline.povCharacter') }}</label>
-        <select v-model="sceneForm.povCharacterId">
-          <option value="">—</option>
-          <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>{{ t('outline.notes') }}</label>
-        <ResizableTextarea v-model="sceneForm.notes" :placeholder="t('outline.notesPlaceholder')" :rows="2" />
-        <AiExpandButton :current-value="sceneForm.notes" :field-name="t('outline.sceneNotes')" :extra-context="sceneExtraContext" @expanded="sceneForm.notes = $event" />
-      </div>
-      <div class="form-actions">
-        <button type="button" class="btn btn-ghost" @click="cancelSceneForm">{{ t('ideas.cancel') }}</button>
-        <button type="button" class="btn btn-primary" @click="saveScene">{{ t('ideas.add') }}</button>
-      </div>
-    </div>
-
+    <!-- Top-level actions -->
     <div class="outline-actions">
-      <button type="button" class="btn btn-primary" @click="openNewChapter()">
+      <button type="button" class="btn btn-primary" @click="openNewChapterPanel()">
         + {{ t('outline.newChapter') }}
-      </button>
-      <button type="button" class="btn btn-ghost" @click="openNewScene" :disabled="!chapters.length">
-        + {{ t('outline.newScene') }}
       </button>
       <button type="button" class="btn btn-ghost" @click="draftAll" :disabled="drafting">
         {{ drafting ? t('outline.aiDrafting') : t('outline.aiDraftAll') }}
@@ -71,314 +25,148 @@
 
     <p v-if="!chapters.length" class="outline-empty-hint">{{ t('outline.empty') }}</p>
 
+    <!-- Beat sections (unified loop including ungrouped) -->
     <div class="outline-sections">
-      <section v-for="b in beats" :key="b" class="card outline-section">
-        <!-- Section header (clickable to collapse) -->
-        <button type="button" class="outline-section-header" @click="toggleBeat(b)">
+      <section
+        v-for="beat in allBeatSections"
+        :key="beat"
+        class="card outline-section"
+        :class="{ 'outline-section--ungrouped': beat === 'ungrouped', 'outline-section--empty': !chaptersForBeat(beat).length }"
+      >
+        <!-- Section header -->
+        <button type="button" class="outline-section-header" @click="toggleBeat(beat)">
           <div class="outline-section-titleblock">
-            <h2 class="outline-section-title">{{ t(`outline.section.${b}`) }}</h2>
-            <p class="outline-section-tip">{{ t(`outline.sectionTip.${b}`) }}</p>
+            <div class="outline-section-title-row">
+              <span v-if="beat !== 'ungrouped'" class="outline-beat-badge" :style="`background:${beatColor(beat)}`"></span>
+              <h2 class="outline-section-title">{{ t(`outline.section.${beat}`) }}</h2>
+              <span class="outline-section-count">{{ chaptersForBeat(beat).length }}</span>
+            </div>
+            <p class="outline-section-tip">{{ t(`outline.sectionTip.${beat}`) }}</p>
           </div>
           <div class="outline-section-header-right">
-            <div class="outline-section-actions" @click.stop>
-              <button type="button" class="btn btn-primary btn-sm" @click="openNewChapter(b)">
+            <div v-if="beat !== 'ungrouped'" class="outline-section-actions" @click.stop>
+              <button type="button" class="btn btn-primary btn-sm" @click="openNewChapterPanel(beat)">
                 + {{ t('outline.newChapter') }}
               </button>
-              <button type="button" class="btn btn-ghost btn-sm" @click="draftForBeat(b)" :disabled="drafting">
+              <button type="button" class="btn btn-ghost btn-sm" @click="draftForBeat(beat)" :disabled="drafting">
                 {{ t('outline.aiDraftSection') }}
               </button>
             </div>
-            <span class="outline-section-chevron" :class="{ collapsed: collapsedBeats[b] }">▾</span>
+            <span class="outline-section-chevron" :class="{ collapsed: collapsedBeats[beat] }">▾</span>
           </div>
         </button>
 
-        <div v-show="!collapsedBeats[b]" class="outline-section-body">
-          <!-- Story spine reference for this beat -->
-          <div class="outline-section-spine card">
-            <div class="outline-section-spine-label">{{ t('outline.spineLabel') }}</div>
-            <ResizableTextarea
-              v-model="storyDraft[b]"
-              :placeholder="t(`story.${b}Placeholder`)"
-              :rows="b === 'setup' ? 3 : 2"
-            />
-            <AiExpandButton
-              :current-value="storyDraft[b]"
-              :field-name="t(spineFieldKey(b))"
-              @expanded="storyDraft[b] = $event"
-            />
-            <div class="outline-section-spine-actions">
-              <button type="button" class="btn btn-primary btn-sm" @click="saveSpine">
-                {{ t('story.saveStory') }}
-              </button>
-              <span v-if="spineSavedHint" class="outline-spine-saved-hint">{{ t('story.saved') }}</span>
-            </div>
+        <div v-show="!collapsedBeats[beat]" class="outline-section-body">
+          <!-- Story spine reference for this beat (read-only) -->
+          <div v-if="beat !== 'ungrouped' && spineTextForBeat(beat)" class="outline-beat-spine">
+            <span class="outline-beat-spine-label">{{ t('outline.spineRefLabel') }}</span>
+            <p class="outline-beat-spine-text">{{ spineTextForBeat(beat) }}</p>
           </div>
 
-          <!-- New chapter form inline -->
-          <div
-            v-if="activeChapterForm?.mode === 'new' && activeChapterForm?.beat === b"
-            ref="chapterFormRef"
-            class="card form-card outline-inline-chapter-form"
-          >
-            <h2 class="form-title">{{ t('outline.newChapter') }}</h2>
-            <div class="form-group">
-              <label>{{ t('outline.sectionLabel') }}</label>
-              <select v-model="chapterForm.beat">
-                <option v-for="beat in beats" :key="beat" :value="beat">{{ t(`outline.section.${beat}`) }}</option>
-                <option value="">{{ t('outline.section.ungrouped') }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>{{ t('outline.chapterTitle') }}</label>
-              <input v-model="chapterForm.title" type="text" :placeholder="t('outline.chapterTitlePlaceholder')" />
-            </div>
-            <div class="form-group">
-              <label>{{ t('outline.summary') }}</label>
-              <ResizableTextarea v-model="chapterForm.summary" :placeholder="t('outline.summaryPlaceholder')" :rows="2" />
-              <AiExpandButton :current-value="chapterForm.summary" :field-name="t('outline.chapterSummary')" :extra-context="chapterExtraContext" @expanded="chapterForm.summary = $event" />
-            </div>
-            <div class="form-actions">
-              <button type="button" class="btn btn-ghost" @click="cancelChapterForm">{{ t('ideas.cancel') }}</button>
-              <button type="button" class="btn btn-primary" @click="saveChapter">{{ t('ideas.add') }}</button>
-            </div>
-          </div>
-
-          <div v-if="chaptersForBeat(b).length === 0 && !(activeChapterForm?.mode === 'new' && activeChapterForm?.beat === b)" class="outline-section-empty">
+          <div v-if="!chaptersForBeat(beat).length" class="outline-section-empty">
             {{ t('outline.noChaptersInSection') }}
           </div>
 
-          <div v-else class="outline-list" :data-sortable-chapter-list="b">
-            <div v-for="ch in chaptersForBeat(b)" :key="ch.id" :id="'chapter-' + ch.id" class="card chapter-card">
-              <span class="chapter-drag-handle" aria-label="Reorder chapter" title="Drag to reorder">≡</span>
-              <!-- Edit chapter form inline -->
-              <div
-                v-if="activeChapterForm?.mode === 'edit' && activeChapterForm?.chapterId === ch.id"
-                ref="chapterFormRef"
-                class="form-card outline-inline-chapter-form"
-              >
-                <h2 class="form-title">{{ t('outline.editChapter') }}</h2>
-                <div class="form-group">
-                  <label>{{ t('outline.sectionLabel') }}</label>
-                  <select v-model="chapterForm.beat">
-                    <option v-for="beat in beats" :key="beat" :value="beat">{{ t(`outline.section.${beat}`) }}</option>
-                    <option value="">{{ t('outline.section.ungrouped') }}</option>
-                  </select>
-                </div>
-                <div class="form-group">
-                  <label>{{ t('outline.chapterTitle') }}</label>
-                  <input v-model="chapterForm.title" type="text" :placeholder="t('outline.chapterTitlePlaceholder')" />
-                </div>
-                <div class="form-group">
-                  <label>{{ t('outline.summary') }}</label>
-                  <ResizableTextarea v-model="chapterForm.summary" :placeholder="t('outline.summaryPlaceholder')" :rows="2" />
-                  <AiExpandButton :current-value="chapterForm.summary" :field-name="t('outline.chapterSummary')" :extra-context="chapterExtraContext" @expanded="chapterForm.summary = $event" />
-                </div>
-                <div class="form-actions">
-                  <button type="button" class="btn btn-ghost" @click="cancelChapterForm">{{ t('ideas.cancel') }}</button>
-                  <button type="button" class="btn btn-primary" @click="saveChapter">{{ t('ideas.save') }}</button>
+          <!-- Chapter list (sortable) -->
+          <div class="outline-chapter-list" :data-sortable-chapter-list="beat">
+            <div
+              v-for="ch in chaptersForBeat(beat)"
+              :key="ch.id"
+              :id="'chapter-' + ch.id"
+              class="outline-chapter"
+            >
+              <!-- Chapter row -->
+              <div class="outline-chapter-row">
+                <span class="chapter-drag-handle" aria-label="Reorder chapter" title="Drag to reorder">≡</span>
+
+                <!-- Title + scene dots (tap to expand/collapse) -->
+                <button type="button" class="outline-chapter-toggle" @click="toggleChapter(ch.id)">
+                  <div class="outline-chapter-info">
+                    <span class="outline-chapter-title">{{ ch.title || t('outline.untitledChapter') }}</span>
+                    <span v-if="ch.summary" class="outline-chapter-summary">{{ ch.summary }}</span>
+                  </div>
+                  <div class="outline-chapter-progress">
+                    <span
+                      v-for="(written, i) in sceneDotsForChapter(ch.id)"
+                      :key="i"
+                      class="scene-dot"
+                      :class="{ 'scene-dot--written': written }"
+                      :title="written ? t('outline.sceneWrittenAria') : t('outline.sceneEmptyAria')"
+                    ></span>
+                    <span v-if="scenesByChapter(ch.id).length > 8" class="scene-dots-more">+{{ scenesByChapter(ch.id).length - 8 }}</span>
+                  </div>
+                  <span class="outline-chapter-chevron" :class="{ collapsed: collapsedChapters[ch.id] }">▾</span>
+                </button>
+
+                <!-- Chapter actions -->
+                <div class="outline-chapter-actions">
+                  <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.edit')" @click.stop="openEditChapterPanel(ch)">✏️</button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('outline.addScene')" @click.stop="openAddScenePanel(ch.id, beat)">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+                  </button>
+                  <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.delete')" @click.stop="confirmDeleteChapter(ch)">🗑️</button>
                 </div>
               </div>
 
-              <template v-else>
-                <div class="chapter-header">
-                  <h3 class="chapter-title chapter-title-link" @click="scrollToChapter(ch.id)">
-                    {{ ch.title || t('outline.untitledChapter') }}
-                  </h3>
-                  <div class="chapter-actions">
-                    <select class="chapter-beat-select" :value="ch.beat || ''" @change="assignBeat(ch, $event)">
-                      <option v-for="beat in beats" :key="beat" :value="beat">{{ t(`outline.section.${beat}`) }}</option>
-                      <option value="">{{ t('outline.section.ungrouped') }}</option>
-                    </select>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="editChapter(ch)" :title="t('ideas.edit')">✏️</button>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="addSceneToChapter(ch.id)" :title="t('outline.addScene')" :disabled="addingSceneForChapter === ch.id">➕</button>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="confirmDeleteChapter(ch)" :title="t('ideas.delete')">🗑️</button>
-                  </div>
-                </div>
-                <p v-if="ch.summary" class="chapter-summary">{{ ch.summary }}</p>
-                <div class="scenes" :data-sortable-scene-list="ch.id" :data-chapter-id="ch.id">
-                  <div
-                    v-for="scene in scenesByChapter(ch.id)"
-                    :key="scene.id"
-                    :id="'scene-' + scene.id"
-                    class="scene-card"
-                    @click="editingSceneId !== scene.id && scrollToScene(scene.id)"
-                  >
-                    <span class="scene-drag-handle" aria-label="Reorder scene" title="Drag to reorder">≡</span>
-                    <div v-if="editingSceneId === scene.id" class="outline-inline-scene-form card form-card" @click.stop>
-                      <h3 class="form-title">{{ t('outline.editScene') }}</h3>
-                      <div class="form-group">
-                        <label>{{ t('outline.chapter') }}</label>
-                        <select v-model="sceneForm.chapterId" required>
-                          <option value="">{{ t('outline.selectChapter') }}</option>
-                          <option v-for="c in chapters" :key="c.id" :value="c.id">{{ c.title || t('ideas.untitled') }}</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.sceneTitle') }}</label>
-                        <input v-model="sceneForm.title" type="text" :placeholder="t('outline.sceneTitlePlaceholder')" />
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.oneSentenceSummary') }}</label>
-                        <ResizableTextarea v-model="sceneForm.oneSentenceSummary" :placeholder="t('outline.oneSentencePlaceholder')" :rows="1" :min-height="40" auto-expand />
-                        <AiExpandButton :current-value="sceneForm.oneSentenceSummary" :field-name="t('outline.sceneOneSentence')" :extra-context="sceneExtraContext" @expanded="sceneForm.oneSentenceSummary = $event" />
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.povCharacter') }}</label>
-                        <select v-model="sceneForm.povCharacterId">
-                          <option value="">—</option>
-                          <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.notes') }}</label>
-                        <ResizableTextarea v-model="sceneForm.notes" :placeholder="t('outline.notesPlaceholder')" :rows="2" />
-                        <AiExpandButton :current-value="sceneForm.notes" :field-name="t('outline.sceneNotes')" :extra-context="sceneExtraContext" @expanded="sceneForm.notes = $event" />
-                      </div>
-                      <div class="form-actions">
-                        <button type="button" class="btn btn-ghost" @click="cancelSceneForm">{{ t('ideas.cancel') }}</button>
-                        <button type="button" class="btn btn-primary" @click="saveScene">{{ t('ideas.save') }}</button>
-                      </div>
-                    </div>
-                    <template v-else>
-                      <div class="scene-card-main">
-                        <span class="scene-card-title">{{ scene.title || t('outline.untitledScene') }}</span>
-                        <span v-if="scene.oneSentenceSummary" class="scene-card-summary">{{ scene.oneSentenceSummary }}</span>
-                      </div>
-                      <div class="scene-card-actions" @click.stop>
-                        <router-link :to="`/write/${scene.id}`" class="btn btn-primary btn-sm">{{ t('outline.writeScene') }}</router-link>
-                        <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="editScene(scene)" :title="t('ideas.edit')">✏️</button>
-                        <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="confirmDeleteScene(scene)" :title="t('ideas.delete')">🗑️</button>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Ungrouped chapters -->
-      <section v-if="ungroupedChapters.length" class="card outline-section outline-section--ungrouped">
-        <button type="button" class="outline-section-header" @click="toggleBeat('ungrouped')">
-          <div class="outline-section-titleblock">
-            <h2 class="outline-section-title">{{ t('outline.section.ungrouped') }}</h2>
-            <p class="outline-section-tip">{{ t('outline.sectionTip.ungrouped') }}</p>
-          </div>
-          <span class="outline-section-chevron" :class="{ collapsed: collapsedBeats['ungrouped'] }">▾</span>
-        </button>
-
-        <div v-show="!collapsedBeats['ungrouped']" class="outline-section-body">
-          <div class="outline-list" data-sortable-chapter-list="ungrouped">
-            <div v-for="ch in ungroupedChapters" :key="ch.id" :id="'chapter-' + ch.id" class="card chapter-card">
-              <span class="chapter-drag-handle" aria-label="Reorder chapter" title="Drag to reorder">≡</span>
+              <!-- Scene list (expandable) -->
               <div
-                v-if="activeChapterForm?.mode === 'edit' && activeChapterForm?.chapterId === ch.id"
-                ref="chapterFormRef"
-                class="form-card outline-inline-chapter-form"
+                v-show="!collapsedChapters[ch.id]"
+                class="outline-scenes"
+                :data-sortable-scene-list="ch.id"
+                :data-chapter-id="ch.id"
               >
-                <h2 class="form-title">{{ t('outline.editChapter') }}</h2>
-                <div class="form-group">
-                  <label>{{ t('outline.sectionLabel') }}</label>
-                  <select v-model="chapterForm.beat">
-                    <option v-for="beat in beats" :key="beat" :value="beat">{{ t(`outline.section.${beat}`) }}</option>
-                    <option value="">{{ t('outline.section.ungrouped') }}</option>
-                  </select>
+                <div
+                  v-for="scene in scenesByChapter(ch.id)"
+                  :key="scene.id"
+                  :id="'scene-' + scene.id"
+                  class="outline-scene-row"
+                >
+                  <span class="scene-drag-handle" aria-label="Reorder scene" title="Drag to reorder">≡</span>
+                  <span
+                    class="scene-status-indicator"
+                    :class="{ 'scene-status-indicator--written': isSceneWritten(scene) }"
+                    :title="isSceneWritten(scene) ? t('outline.sceneWrittenAria') : t('outline.sceneEmptyAria')"
+                  ></span>
+                  <div class="outline-scene-info">
+                    <span class="outline-scene-title">{{ scene.title || t('outline.untitledScene') }}</span>
+                    <span v-if="scene.oneSentenceSummary" class="outline-scene-summary">{{ scene.oneSentenceSummary }}</span>
+                  </div>
+                  <div class="outline-scene-actions">
+                    <router-link :to="`/write/${scene.id}`" class="btn btn-primary btn-sm">{{ t('outline.writeScene') }}</router-link>
+                    <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.edit')" @click.stop="openEditScenePanel(scene)">✏️</button>
+                    <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.delete')" @click.stop="confirmDeleteScene(scene)">🗑️</button>
+                  </div>
                 </div>
-                <div class="form-group">
-                  <label>{{ t('outline.chapterTitle') }}</label>
-                  <input v-model="chapterForm.title" type="text" :placeholder="t('outline.chapterTitlePlaceholder')" />
-                </div>
-                <div class="form-group">
-                  <label>{{ t('outline.summary') }}</label>
-                  <ResizableTextarea v-model="chapterForm.summary" :placeholder="t('outline.summaryPlaceholder')" :rows="2" />
-                  <AiExpandButton :current-value="chapterForm.summary" :field-name="t('outline.chapterSummary')" :extra-context="chapterExtraContext" @expanded="chapterForm.summary = $event" />
-                </div>
-                <div class="form-actions">
-                  <button type="button" class="btn btn-ghost" @click="cancelChapterForm">{{ t('ideas.cancel') }}</button>
-                  <button type="button" class="btn btn-primary" @click="saveChapter">{{ t('ideas.save') }}</button>
+
+                <!-- Empty chapter: invite to add first scene -->
+                <div v-if="!scenesByChapter(ch.id).length" class="outline-scenes-empty">
+                  <button type="button" class="btn btn-ghost btn-sm" @click="openAddScenePanel(ch.id, beat)">
+                    + {{ t('outline.addFirstScene') }}
+                  </button>
                 </div>
               </div>
-              <template v-else>
-                <div class="chapter-header">
-                  <h3 class="chapter-title chapter-title-link" @click="scrollToChapter(ch.id)">
-                    {{ ch.title || t('outline.untitledChapter') }}
-                  </h3>
-                  <div class="chapter-actions">
-                    <select class="chapter-beat-select" :value="ch.beat || ''" @change="assignBeat(ch, $event)">
-                      <option v-for="beat in beats" :key="beat" :value="beat">{{ t(`outline.section.${beat}`) }}</option>
-                      <option value="">{{ t('outline.section.ungrouped') }}</option>
-                    </select>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="editChapter(ch)" :title="t('ideas.edit')">✏️</button>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="addSceneToChapter(ch.id)" :title="t('outline.addScene')" :disabled="addingSceneForChapter === ch.id">➕</button>
-                    <button type="button" class="btn btn-ghost btn-sm btn-icon" @click.stop="confirmDeleteChapter(ch)" :title="t('ideas.delete')">🗑️</button>
-                  </div>
-                </div>
-                <p v-if="ch.summary" class="chapter-summary">{{ ch.summary }}</p>
-                <div class="scenes" :data-sortable-scene-list="ch.id" :data-chapter-id="ch.id">
-                  <div
-                    v-for="scene in scenesByChapter(ch.id)"
-                    :key="scene.id"
-                    :id="'scene-' + scene.id"
-                    class="scene-card"
-                    @click="editingSceneId !== scene.id && scrollToScene(scene.id)"
-                  >
-                    <span class="scene-drag-handle" aria-label="Reorder scene" title="Drag to reorder">≡</span>
-                    <div v-if="editingSceneId === scene.id" class="outline-inline-scene-form card form-card" @click.stop>
-                      <h3 class="form-title">{{ t('outline.editScene') }}</h3>
-                      <div class="form-group">
-                        <label>{{ t('outline.chapter') }}</label>
-                        <select v-model="sceneForm.chapterId" required>
-                          <option value="">{{ t('outline.selectChapter') }}</option>
-                          <option v-for="c in chapters" :key="c.id" :value="c.id">{{ c.title || t('ideas.untitled') }}</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.sceneTitle') }}</label>
-                        <input v-model="sceneForm.title" type="text" :placeholder="t('outline.sceneTitlePlaceholder')" />
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.oneSentenceSummary') }}</label>
-                        <ResizableTextarea v-model="sceneForm.oneSentenceSummary" :placeholder="t('outline.oneSentencePlaceholder')" :rows="1" :min-height="40" auto-expand />
-                        <AiExpandButton :current-value="sceneForm.oneSentenceSummary" :field-name="t('outline.sceneOneSentence')" :extra-context="sceneExtraContext" @expanded="sceneForm.oneSentenceSummary = $event" />
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.povCharacter') }}</label>
-                        <select v-model="sceneForm.povCharacterId">
-                          <option value="">—</option>
-                          <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
-                        </select>
-                      </div>
-                      <div class="form-group">
-                        <label>{{ t('outline.notes') }}</label>
-                        <ResizableTextarea v-model="sceneForm.notes" :placeholder="t('outline.notesPlaceholder')" :rows="2" />
-                        <AiExpandButton :current-value="sceneForm.notes" :field-name="t('outline.sceneNotes')" :extra-context="sceneExtraContext" @expanded="sceneForm.notes = $event" />
-                      </div>
-                      <div class="form-actions">
-                        <button type="button" class="btn btn-ghost" @click="cancelSceneForm">{{ t('ideas.cancel') }}</button>
-                        <button type="button" class="btn btn-primary" @click="saveScene">{{ t('ideas.save') }}</button>
-                      </div>
-                    </div>
-                    <template v-else>
-                      <div class="scene-card-main">
-                        <span class="scene-card-title">{{ scene.title || t('outline.untitledScene') }}</span>
-                        <span v-if="scene.oneSentenceSummary" class="scene-card-summary">{{ scene.oneSentenceSummary }}</span>
-                      </div>
-                      <div class="scene-card-actions" @click.stop>
-                        <router-link :to="`/write/${scene.id}`" class="btn btn-primary btn-sm">{{ t('outline.writeScene') }}</router-link>
-                        <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="editScene(scene)" :title="t('ideas.edit')">✏️</button>
-                        <button type="button" class="btn btn-ghost btn-sm btn-icon" @click="confirmDeleteScene(scene)" :title="t('ideas.delete')">🗑️</button>
-                      </div>
-                    </template>
-                  </div>
-                </div>
-              </template>
             </div>
           </div>
         </div>
       </section>
     </div>
 
+    <!-- Edit panel (chapter or scene) -->
+    <OutlineEditPanel
+      :open="panelOpen"
+      :type="panelType"
+      :initial-data="panelData"
+      :chapters="chapters"
+      :characters="characters"
+      :default-beat="panelDefaultBeat"
+      :default-chapter-id="panelDefaultChapterId"
+      :extra-context="panelExtraContext"
+      :available-beats="templateConfig.beats"
+      @close="panelOpen = false"
+      @save="onPanelSave"
+    />
+
+    <!-- AI draft modal -->
     <OutlineDraftModal
       :open="draftOpen"
       :draft="draftData"
@@ -387,6 +175,7 @@
       @close="draftOpen = false"
       @apply="applyDraft"
     />
+    <!-- beats is a computed array here, passed reactively -->
 
     <!-- Delete modals -->
     <ConfirmModal
@@ -414,181 +203,89 @@ import Sortable from 'sortablejs';
 import {
   getCharacters,
   getStory,
-  saveStory,
   getCurrentStoryId,
-  addChapter,
-  updateChapter,
-  deleteChapter,
-  addScene,
-  updateScene,
-  deleteScene,
   reorderChapters,
   reorderScenesInChapter,
 } from '@/db';
 import { useI18n } from '@/composables/useI18n';
 import { useOutline } from '@/composables/useOutline';
-import AiExpandButton from '@/components/AiExpandButton.vue';
-import ResizableTextarea from '@/components/ResizableTextarea.vue';
+import { useOutlinePanel } from '@/composables/useOutlinePanel';
+import { useOutlineDraft } from '@/composables/useOutlineDraft';
 import ConfirmModal from '@/components/ConfirmModal.vue';
-import { draftOutlineFromSpine } from '@/services/outlineAi';
-import { friendlyAiError } from '@/services/ai';
+import OutlineEditPanel from '@/components/OutlineEditPanel.vue';
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
-import { useToast } from '@/composables/useToast';
+import { getTemplate, getSpineTextForBeat, getBeatColor } from '@/data/templates';
 
 const { t } = useI18n();
-const { error: toastError } = useToast();
-const { chapters, scenes, load, loadError, getScenesForChapter } = useOutline();
-const saveError = ref('');
+const { chapters, load, loadError, getScenesForChapter } = useOutline();
 
 const characters = ref([]);
 const story = ref(null);
-const storyDraft = ref({
-  id: '', oneSentence: '', setup: '', disaster1: '', disaster2: '', disaster3: '', ending: '',
-});
-const spineSavedHint = ref(false);
-const activeChapterForm = ref(null);
-const chapterFormRef = ref(null);
-const showSceneForm = ref(false);
-const editingSceneId = ref(null);
-const addingSceneForChapter = ref(null);
-const chapterForm = ref({ title: '', summary: '', beat: 'setup' });
-const sceneForm = ref({ chapterId: '', title: '', oneSentenceSummary: '', povCharacterId: '', notes: '' });
 
-const beats = ['setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-const beatOrder = [...beats, 'ungrouped'];
+// Template-driven beats — recomputed whenever the story changes
+const templateConfig = computed(() => getTemplate(story.value));
+const beats = computed(() => templateConfig.value.beats.map((b) => b.key));
+const beatOrder = computed(() => [...beats.value, 'ungrouped']);
+const allBeatSections = computed(() => [...beats.value, 'ungrouped']);
+
+function beatColor(b) { return getBeatColor(story.value, b); }
 
 const sortableInstances = [];
 
-// Collapsed state for each beat + ungrouped
+// Beat section collapse (persisted)
 const COLLAPSE_KEY = 'inkflow_outline_collapsed';
 function loadCollapsed() {
   try { return JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '{}'); } catch { return {}; }
 }
 const collapsedBeats = reactive(loadCollapsed());
-
 function toggleBeat(b) {
   collapsedBeats[b] = !collapsedBeats[b];
   try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify({ ...collapsedBeats })); } catch {}
 }
 
-const ungroupedChapters = computed(() =>
-  (chapters.value || []).filter((c) => !c.beat || !beats.includes(c.beat))
-);
+// Chapter collapse (session only)
+const collapsedChapters = reactive({});
+function toggleChapter(chId) { collapsedChapters[chId] = !collapsedChapters[chId]; }
 
-function scenesByChapter(chapterId) {
-  return getScenesForChapter(chapterId);
+function chaptersForBeat(beat) {
+  if (beat === 'ungrouped') return (chapters.value || []).filter((c) => !c.beat || !beats.value.includes(c.beat));
+  return (chapters.value || []).filter((c) => c.beat === beat);
 }
+function scenesByChapter(chapterId) { return getScenesForChapter(chapterId); }
+function isSceneWritten(scene) { return !!(scene.content?.trim()); }
+function sceneDotsForChapter(chapterId) { return scenesByChapter(chapterId).slice(0, 8).map((s) => isSceneWritten(s)); }
+function spineTextForBeat(beat) { return getSpineTextForBeat(story.value, beat); }
 
-async function loadCharacters() {
-  characters.value = await getCharacters();
-}
-
+// --- Data loading ---
 async function loadAll() {
   await load();
-  await loadCharacters();
-  story.value = await getStory();
-  const s = story.value;
-  if (s) {
-    storyDraft.value = {
-      id: s.id ?? '', oneSentence: s.oneSentence ?? '', setup: s.setup ?? '',
-      disaster1: s.disaster1 ?? '', disaster2: s.disaster2 ?? '',
-      disaster3: s.disaster3 ?? '', ending: s.ending ?? '',
-    };
-  }
+  const [chars, s] = await Promise.all([getCharacters(), getStory()]);
+  characters.value = chars;
+  story.value = s;
 }
 
-async function saveSpine() {
-  saveError.value = '';
-  try {
-    await saveStory(storyDraft.value);
-    story.value = await getStory();
-    spineSavedHint.value = true;
-    setTimeout(() => { spineSavedHint.value = false; }, 2000);
-    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
+// --- After-change hook: reload data, notify, re-init sortables ---
+async function onAfterChange() {
+  await loadAll();
+  window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
+  await nextTick();
+  initSortables();
 }
 
-function openNewChapter(beat = 'setup') {
-  const b = beat || 'setup';
-  // Auto-expand the section when adding a chapter
-  if (collapsedBeats[b]) collapsedBeats[b] = false;
-  activeChapterForm.value = { mode: 'new', beat: b, chapterId: null };
-  chapterForm.value = { title: '', summary: '', beat: b };
-  showSceneForm.value = false;
-  nextTick(() => {
-    chapterFormRef.value?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
-    chapterFormRef.value?.querySelector('input[type="text"]')?.focus();
-  });
-}
+// --- Edit panel + delete modals (via composable) ---
+const {
+  panelOpen, panelType, panelData, panelDefaultBeat, panelDefaultChapterId, panelExtraContext,
+  saveError,
+  deleteChapterModal, deleteSceneModal,
+  openNewChapterPanel, openEditChapterPanel, openAddScenePanel, openEditScenePanel,
+  onPanelSave, confirmDeleteChapter, doDeleteChapter, confirmDeleteScene, doDeleteScene,
+} = useOutlinePanel({ chapters, beats, story, collapsedBeats, getScenesForChapter, onAfterChange });
 
-function editChapter(ch) {
-  if (collapsedBeats[ch.beat || 'setup']) collapsedBeats[ch.beat || 'setup'] = false;
-  activeChapterForm.value = { mode: 'edit', beat: ch.beat ?? 'setup', chapterId: ch.id };
-  chapterForm.value = { title: ch.title ?? '', summary: ch.summary ?? '', beat: ch.beat ?? '' };
-  showSceneForm.value = false;
-  nextTick(() => {
-    chapterFormRef.value?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
-    chapterFormRef.value?.querySelector('input[type="text"]')?.focus();
-  });
-}
+// --- AI outline draft (via composable) ---
+const { draftOpen, drafting, draftData, draftScope, draftForBeat, draftAll, applyDraft } =
+  useOutlineDraft({ story, beats, onAfterChange });
 
-function cancelChapterForm() { activeChapterForm.value = null; }
-
-async function saveChapter() {
-  saveError.value = '';
-  try {
-    if (activeChapterForm.value?.mode === 'edit' && activeChapterForm.value.chapterId) {
-      await updateChapter(activeChapterForm.value.chapterId, chapterForm.value);
-    } else {
-      await addChapter(chapterForm.value);
-    }
-    await loadAll();
-    cancelChapterForm();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
-}
-
-// Delete chapter with modal
-const deleteChapterModal = ref({ open: false, chapter: null });
-function confirmDeleteChapter(ch) { deleteChapterModal.value = { open: true, chapter: ch }; }
-async function doDeleteChapter() {
-  const ch = deleteChapterModal.value.chapter;
-  if (!ch) return;
-  deleteChapterModal.value.open = false;
-  saveError.value = '';
-  try {
-    await deleteChapter(ch.id);
-    await loadAll();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
-}
-
-// Delete scene with modal
-const deleteSceneModal = ref({ open: false, scene: null });
-function confirmDeleteScene(scene) { deleteSceneModal.value = { open: true, scene }; }
-async function doDeleteScene() {
-  const scene = deleteSceneModal.value.scene;
-  if (!scene) return;
-  deleteSceneModal.value.open = false;
-  saveError.value = '';
-  try {
-    await deleteScene(scene.id);
-    await loadAll();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
-}
-
-function scrollToChapter(chapterId) {
-  document.getElementById('chapter-' + chapterId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
-function scrollToScene(sceneId) {
-  document.getElementById('scene-' + sceneId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+// --- Sidebar focus ---
 function onSidebarFocus(e) {
   const { chapterId, sceneId } = e.detail || {};
   if (sceneId) {
@@ -598,181 +295,7 @@ function onSidebarFocus(e) {
   }
 }
 
-function openNewScene() {
-  editingSceneId.value = null;
-  sceneForm.value = { chapterId: chapters.value[0]?.id ?? '', title: '', oneSentenceSummary: '', povCharacterId: '', notes: '' };
-  showSceneForm.value = true;
-  activeChapterForm.value = null;
-}
-
-async function addSceneToChapter(chapterId) {
-  if (!chapterId) return;
-  addingSceneForChapter.value = chapterId;
-  saveError.value = '';
-  try {
-    await addScene({ chapterId, title: '', oneSentenceSummary: '', povCharacterId: '', notes: '' });
-    await loadAll();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  } finally {
-    addingSceneForChapter.value = null;
-  }
-}
-
-function editScene(scene) {
-  editingSceneId.value = scene.id;
-  sceneForm.value = {
-    chapterId: scene.chapterId,
-    title: scene.title ?? '',
-    oneSentenceSummary: scene.oneSentenceSummary ?? '',
-    povCharacterId: scene.povCharacterId ?? '',
-    notes: scene.notes ?? '',
-  };
-  showSceneForm.value = true;
-  activeChapterForm.value = null;
-}
-
-function cancelSceneForm() {
-  showSceneForm.value = false;
-  editingSceneId.value = null;
-}
-
-async function saveScene() {
-  if (!sceneForm.value.chapterId) return;
-  saveError.value = '';
-  try {
-    if (editingSceneId.value) {
-      await updateScene(editingSceneId.value, sceneForm.value);
-    } else {
-      await addScene(sceneForm.value);
-    }
-    await loadAll();
-    cancelSceneForm();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
-}
-
-const chapterExtraContext = computed(() => {
-  const beat = chapterForm.value.beat || 'setup';
-  const label = t.value(`outline.section.${beat}`);
-  const spine = spineTextForBeat(beat);
-  let out = `${t.value('outline.aiExtraContextChapterPrefix', { section: label })}\n${spine}`;
-  const editingChapterId = activeChapterForm.value?.mode === 'edit' ? activeChapterForm.value.chapterId : null;
-  const chapterList = (chapters.value || []).filter((c) => c.id !== editingChapterId);
-  if (chapterList.length > 0) {
-    const sectionLabel = (b) => (b ? t.value(`outline.section.${b}`) : t.value('outline.section.ungrouped'));
-    const lines = chapterList.map((c, i) => {
-      const title = (c.title || '').trim() || t.value('outline.untitledChapter');
-      const sum = (c.summary || '').trim().slice(0, 80);
-      return `${i + 1}. [${sectionLabel(c.beat || '')}] ${title}${sum ? ` — ${sum}${c.summary?.length > 80 ? '…' : ''}` : ''}`;
-    });
-    out += `\n\nExisting chapters:\n${lines.join('\n')}`;
-  }
-  return out;
-});
-
-const sceneExtraContext = computed(() => {
-  const chId = sceneForm.value.chapterId;
-  const ch = (chapters.value || []).find((c) => c.id === chId) || null;
-  const beat = ch?.beat || 'setup';
-  const label = t.value(`outline.section.${beat}`);
-  const spine = spineTextForBeat(beat);
-  let out = `${t.value('outline.aiExtraContextScenePrefix', { section: label })}\n${spine}`;
-  if (ch?.summary?.trim()) out += `\n\nChapter summary:\n${ch.summary.trim()}`;
-  const sceneList = (scenes.value || [])
-    .filter((s) => s.chapterId === chId && s.id !== editingSceneId.value)
-    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-  if (sceneList.length > 0) {
-    const lines = sceneList.map((s, i) => {
-      const title = (s.title || '').trim() || t.value('outline.untitledScene');
-      const one = (s.oneSentenceSummary || '').trim().slice(0, 80);
-      return `${i + 1}. ${title}${one ? ` — ${one}${s.oneSentenceSummary?.length > 80 ? '…' : ''}` : ''}`;
-    });
-    out += `\n\nOther scenes in this chapter:\n${lines.join('\n')}`;
-  }
-  return out;
-});
-
-function spineFieldKey(beat) {
-  const m = { setup: 'story.fieldSetup', disaster1: 'story.fieldDisaster1', disaster2: 'story.fieldDisaster2', disaster3: 'story.fieldDisaster3', ending: 'story.fieldEnding' };
-  return m[beat] || 'story.fieldSetup';
-}
-
-function spineTextForBeat(beat) {
-  const s = story.value || {};
-  const text = { setup: s.setup, disaster1: s.disaster1, disaster2: s.disaster2, disaster3: s.disaster3, ending: s.ending }[beat] || '';
-  return text?.trim() ? text : t.value('outline.spineNotFilled');
-}
-
-function chaptersForBeat(beat) {
-  return (chapters.value || []).filter((c) => c.beat === beat);
-}
-
-async function assignBeat(ch, evt) {
-  const value = evt?.target?.value ?? '';
-  saveError.value = '';
-  try {
-    await updateChapter(ch.id, { beat: value || null });
-    await loadAll();
-  } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
-  }
-}
-
-const draftOpen = ref(false);
-const drafting = ref(false);
-const draftData = ref(null);
-const draftScope = ref('all');
-
-async function draftForBeat(beat) {
-  drafting.value = true;
-  try {
-    const storyId = story.value?.id || getCurrentStoryId();
-    draftData.value = await draftOutlineFromSpine({ storyId, scope: beat });
-    draftScope.value = beat;
-    draftOpen.value = true;
-  } catch (e) {
-    toastError(friendlyAiError(e));
-  } finally {
-    drafting.value = false;
-  }
-}
-
-async function draftAll() {
-  drafting.value = true;
-  try {
-    const storyId = story.value?.id || getCurrentStoryId();
-    draftData.value = await draftOutlineFromSpine({ storyId, scope: 'all' });
-    draftScope.value = 'all';
-    draftOpen.value = true;
-  } catch (e) {
-    toastError(friendlyAiError(e));
-  } finally {
-    drafting.value = false;
-  }
-}
-
-async function applyDraft(payload) {
-  try {
-    const sections = payload?.sections || {};
-    for (const beat of beats) {
-      const chaptersList = Array.isArray(sections[beat]) ? sections[beat] : [];
-      for (const ch of chaptersList) {
-        const created = await addChapter({ title: ch.chapterTitle ?? '', summary: ch.chapterSummary ?? '', beat });
-        for (const sc of (Array.isArray(ch.scenes) ? ch.scenes : [])) {
-          await addScene({ chapterId: created.id, title: sc.title ?? '', oneSentenceSummary: sc.oneSentence ?? '', notes: sc.notes ?? '', povCharacterId: '' });
-        }
-      }
-    }
-    await loadAll();
-    draftOpen.value = false;
-    draftData.value = null;
-  } catch (e) {
-    toastError(friendlyAiError(e));
-  }
-}
-
+// --- Sortable drag & drop ---
 function initSortables() {
   sortableInstances.forEach((s) => s.destroy());
   sortableInstances.length = 0;
@@ -787,18 +310,13 @@ function initSortables() {
         if (ids.length === 0) return;
         const byBeat = {};
         for (const ch of chapters.value) {
-          const b = ch.beat && beatOrder.includes(ch.beat) ? ch.beat : 'ungrouped';
+          const b = ch.beat && beatOrder.value.includes(ch.beat) ? ch.beat : 'ungrouped';
           if (!byBeat[b]) byBeat[b] = [];
           byBeat[b].push(ch);
         }
         byBeat[beat] = ids.map((id) => chapters.value.find((c) => c.id === id)).filter(Boolean);
-        const fullOrder = beatOrder.flatMap((b) => (byBeat[b] || []).map((c) => c.id));
-        reorderChapters(getCurrentStoryId(), fullOrder).then(async () => {
-          await loadAll();
-          window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
-          await nextTick();
-          initSortables();
-        });
+        const fullOrder = beatOrder.value.flatMap((b) => (byBeat[b] || []).map((c) => c.id));
+        reorderChapters(getCurrentStoryId(), fullOrder).then(() => onAfterChange());
       },
     });
     sortableInstances.push(sortable);
@@ -813,12 +331,7 @@ function initSortables() {
       onEnd() {
         const ids = [...el.querySelectorAll('[id^="scene-"]')].map((node) => node.id.replace('scene-', ''));
         if (ids.length === 0) return;
-        reorderScenesInChapter(chapterId, ids).then(async () => {
-          await loadAll();
-          window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
-          await nextTick();
-          initSortables();
-        });
+        reorderScenesInChapter(chapterId, ids).then(() => onAfterChange());
       },
     });
     sortableInstances.push(sortable);
@@ -847,19 +360,38 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-.form-card { margin-bottom: var(--space-5); }
-.outline-inline-chapter-form { margin-top: var(--space-3); margin-bottom: var(--space-3); }
-.outline-inline-scene-form { margin: 0; width: 100%; }
-.outline-inline-scene-form .form-title { font-size: 1rem; }
-.form-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--space-4); }
-.form-group { margin-bottom: var(--space-4); }
-.form-actions { display: flex; gap: var(--space-2); margin-top: var(--space-4); }
+.save-error { margin-bottom: var(--space-2); font-size: 0.875rem; color: var(--danger); }
+
+/* One-sentence reference */
+.outline-spine-ref {
+  padding: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+  background: var(--accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+.outline-spine-ref-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.outline-spine-ref-text { margin: 0; font-size: 0.9375rem; color: var(--text); line-height: 1.5; }
+.outline-spine-ref-link { font-size: 0.8125rem; color: var(--accent); align-self: flex-start; }
+
+/* Actions bar */
 .outline-actions { display: flex; gap: var(--space-2); margin-bottom: var(--space-5); flex-wrap: wrap; }
 .outline-empty-hint { color: var(--text-muted); font-size: 0.9375rem; margin: 0 0 var(--space-4); }
-.outline-sections { display: flex; flex-direction: column; gap: var(--space-5); }
-.outline-section { padding: 0; overflow: hidden; }
 
-/* Collapsible section header */
+/* Sections */
+.outline-sections { display: flex; flex-direction: column; gap: var(--space-4); }
+.outline-section { padding: 0; overflow: hidden; }
+.outline-section--ungrouped { border-color: rgba(220, 38, 38, 0.25); }
+
+/* Section header */
 .outline-section-header {
   display: flex;
   align-items: flex-start;
@@ -874,93 +406,169 @@ onUnmounted(() => {
   font: inherit;
   color: inherit;
 }
-.outline-section-header:hover {
-  background: rgba(0,0,0,0.02);
-}
-.outline-section-header-right {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--space-3);
-  flex-shrink: 0;
-}
+.outline-section-header:hover { background: rgba(0,0,0,0.02); }
 .outline-section-titleblock { flex: 1; min-width: 0; }
-.outline-section-title { margin: 0; font-size: 1.125rem; font-weight: 700; }
-.outline-section-tip { margin: var(--space-1) 0 0; color: var(--text-muted); font-size: 0.9375rem; line-height: 1.4; }
-.outline-section-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
-.outline-section-chevron {
-  font-size: 1.125rem;
+.outline-section-title-row { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-1); }
+.outline-beat-badge { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.outline-section-title { margin: 0; font-size: 1.0625rem; font-weight: 700; }
+.outline-section-count {
+  font-size: 0.75rem;
+  font-weight: 600;
   color: var(--text-muted);
-  transition: transform 0.2s ease;
-  line-height: 1.5;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 99px;
+  padding: 1px 7px;
+  line-height: 1.6;
 }
+.outline-section-tip { margin: 0; color: var(--text-muted); font-size: 0.875rem; line-height: 1.4; }
+.outline-section-header-right { display: flex; align-items: flex-start; gap: var(--space-3); flex-shrink: 0; }
+.outline-section-actions { display: flex; gap: var(--space-2); flex-wrap: wrap; justify-content: flex-end; }
+.outline-section-chevron { font-size: 1.125rem; color: var(--text-muted); transition: transform 0.2s ease; line-height: 1.5; }
 .outline-section-chevron.collapsed { transform: rotate(-90deg); }
 
+/* Section body */
 .outline-section-body { padding: 0 var(--space-4) var(--space-4); }
+.outline-section-empty { padding: var(--space-3) 0 var(--space-1); color: var(--text-muted); font-size: 0.875rem; }
 
-.outline-section-spine {
-  padding: var(--space-3);
-  margin-bottom: var(--space-4);
-  background: var(--bg-elevated);
+/* Beat spine reference (read-only, inside section) */
+.outline-beat-spine {
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-3);
+  background: var(--bg);
   border: 1px dashed var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
-.outline-section-spine-label {
-  font-size: 0.75rem;
-  font-weight: 700;
-  color: var(--text-muted);
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
-  margin-bottom: var(--space-2);
+.outline-beat-spine-label { font-size: 0.6875rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.06em; }
+.outline-beat-spine-text { margin: 0; font-size: 0.875rem; color: var(--text-muted); line-height: 1.5; }
+
+/* Chapter list */
+.outline-chapter-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.outline-chapter {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  transition: box-shadow 0.15s;
 }
-.outline-section-spine-actions { display: flex; align-items: center; gap: var(--space-2); margin-top: var(--space-3); }
-.outline-spine-saved-hint { font-size: 0.875rem; color: var(--text-muted); }
-.outline-spine-oneline { padding: var(--space-4); margin-bottom: var(--space-4); }
-.outline-spine-oneline-label { display: block; font-weight: 600; margin-bottom: var(--space-2); }
-.outline-spine-oneline-input { width: 100%; padding: var(--space-2); margin-bottom: var(--space-2); border: 1px solid var(--border); border-radius: var(--radius); }
-.outline-section-empty { padding: var(--space-3) 0 var(--space-1); color: var(--text-muted); }
-.outline-section--ungrouped { border: 1px solid rgba(220, 38, 38, 0.25); }
-.outline-list { display: flex; flex-direction: column; gap: var(--space-4); }
-.chapter-card { position: relative; padding: var(--space-4); padding-right: var(--space-6); }
+.outline-chapter:hover { box-shadow: var(--shadow); }
+
+.outline-chapter-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-3);
+  min-height: 52px;
+}
+
 .chapter-drag-handle {
-  position: absolute;
-  top: var(--space-2);
-  right: var(--space-2);
   cursor: grab;
   color: var(--text-muted);
   padding: var(--space-1);
   font-size: 1rem;
   line-height: 1;
   user-select: none;
+  flex-shrink: 0;
 }
 .chapter-drag-handle:active { cursor: grabbing; }
-.chapter-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: var(--space-2); }
-.chapter-title { font-size: 1.125rem; font-weight: 600; margin: 0; }
-.chapter-summary { font-size: 0.9375rem; color: var(--text-muted); margin: 0 0 var(--space-3); }
-.chapter-actions { display: flex; gap: var(--space-1); align-items: center; flex-wrap: wrap; justify-content: flex-end; }
-.chapter-beat-select { min-width: 160px; font-size: 0.8125rem; padding: var(--space-1) var(--space-2); }
-.scenes { margin-top: var(--space-3); border-top: 1px solid var(--border); padding-top: var(--space-3); }
-.chapter-title-link { cursor: pointer; transition: color 0.15s; }
-.chapter-title-link:hover { color: var(--accent); }
-.scene-card {
-  display: flex; justify-content: space-between; align-items: flex-start;
-  gap: var(--space-3); padding: var(--space-4); margin-bottom: var(--space-3);
-  background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius);
-  cursor: pointer; transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+
+.outline-chapter-toggle {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  padding: 0;
+  min-width: 0;
 }
+
+.outline-chapter-info { flex: 1; min-width: 0; }
+.outline-chapter-title { font-weight: 600; font-size: 0.9375rem; display: block; }
+.outline-chapter-summary { display: block; font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
+
+/* Scene progress dots in chapter header */
+.outline-chapter-progress { display: flex; align-items: center; gap: 3px; flex-shrink: 0; }
+.scene-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.scene-dot--written { background: var(--accent); border-color: var(--accent); }
+.scene-dots-more { font-size: 0.6875rem; color: var(--text-muted); }
+
+.outline-chapter-chevron { font-size: 0.875rem; color: var(--text-muted); transition: transform 0.2s ease; flex-shrink: 0; }
+.outline-chapter-chevron.collapsed { transform: rotate(-90deg); }
+
+.outline-chapter-actions { display: flex; gap: var(--space-1); align-items: center; flex-shrink: 0; }
+
+/* Scene list */
+.outline-scenes {
+  border-top: 1px solid var(--border);
+  padding: var(--space-2) var(--space-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.outline-scene-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  transition: background 0.12s;
+}
+.outline-scene-row:hover { background: var(--accent-subtle); }
+
 .scene-drag-handle {
   flex-shrink: 0;
   cursor: grab;
   color: var(--text-muted);
-  padding: var(--space-1);
-  font-size: 1rem;
+  font-size: 0.875rem;
   line-height: 1;
   user-select: none;
+  padding: 2px;
 }
 .scene-drag-handle:active { cursor: grabbing; }
-.scene-card:hover { background: var(--bg-elevated); border-color: var(--accent); box-shadow: var(--shadow); }
-.scene-card-main { flex: 1; min-width: 0; }
-.scene-card-title { font-weight: 600; font-size: 1rem; display: block; }
-.scene-card-summary { display: block; font-size: 0.875rem; color: var(--text-muted); margin-top: var(--space-1); }
-.scene-card-actions { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; }
-.scene-card-actions .btn-sm { white-space: nowrap; }
-.save-error { margin-bottom: var(--space-2); font-size: 0.875rem; color: var(--danger); }
+
+/* Scene written/empty indicator */
+.scene-status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--border);
+  background: transparent;
+  flex-shrink: 0;
+  transition: background 0.2s, border-color 0.2s;
+}
+.scene-status-indicator--written { background: var(--success); border-color: var(--success); }
+
+.outline-scene-info { flex: 1; min-width: 0; }
+.outline-scene-title { font-size: 0.875rem; font-weight: 500; display: block; }
+.outline-scene-summary { display: block; font-size: 0.8125rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 1px; }
+
+.outline-scene-actions { display: flex; align-items: center; gap: var(--space-1); flex-shrink: 0; }
+.outline-scene-actions .btn-sm { white-space: nowrap; }
+
+.outline-scenes-empty { padding: var(--space-1) var(--space-2) var(--space-2); }
+
+/* Mobile adjustments */
+@media (max-width: 480px) {
+  .outline-chapter-summary { display: none; }
+  .outline-scene-summary { display: none; }
+  .outline-section-actions { display: none; }
+}
 </style>

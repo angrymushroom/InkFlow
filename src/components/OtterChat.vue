@@ -140,17 +140,15 @@ const HISTORY_LIMIT = 20;
 const { load: reloadOutline } = useOutline();
 const { t } = useI18n();
 
-// ---- Story context (Phase 2) ----
+// ---- Story context ----
 const storyContext = ref('');
 const storyTitle = ref('');
 const contextLoading = ref(false);
 const contextLoaded = ref(false);
 const hasStoryContent = ref(false);
 const welcomeWithContext = ref('');
-// Locked story ID for the current Pip session.
-// Set once when context is loaded; used by all action handlers so that
-// a mid-session story switch never silently redirects writes to a
-// different story.
+// Locked story ID for the current Pip session — prevents mid-session story
+// switches from silently redirecting writes to the wrong story.
 const contextStoryId = ref(null);
 const storyGaps = ref(null);
 
@@ -182,6 +180,7 @@ function computeWelcomeMessage(gaps) {
 // Re-run welcome message when locale changes (t is a computed ref)
 watchEffect(() => { computeWelcomeMessage(storyGaps.value); });
 
+
 async function loadStoryContext() {
   contextLoading.value = true;
   contextLoaded.value = false;
@@ -190,8 +189,6 @@ async function loadStoryContext() {
 
   try {
     const storyId = getCurrentStoryId();
-    // Lock this story ID so every action applied in this session targets
-    // the same story, even if the user switches stories while Pip is open.
     contextStoryId.value = storyId;
     if (!storyId) {
       computeWelcomeMessage(null);
@@ -274,7 +271,7 @@ async function loadStoryContext() {
     }
 
     // Compute template-aware gaps
-    const template = WRITING_TEMPLATES[story.templateId ?? DEFAULT_TEMPLATE_ID] ?? WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID];
+    const template = WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ?? WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID];
     const filledFields = template.fields.filter((f) => story[f.key]?.trim());
     const missingFields = template.fields.filter((f) => !story[f.key]?.trim());
     const nextMissingField = missingFields[0] ?? null;
@@ -343,7 +340,7 @@ onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', onStorySwitched);
 });
 
-// ---- Action parsing and applying (Phase 3) ----
+// ---- Action parsing and applying ----
 const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
 
 function parseActions(text) {
@@ -371,6 +368,7 @@ function actionLabel(action) {
     ? `Add scene "${action.title}" after "${action.after_scene_title}"`
     : `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
+  if (action.type === 'recommend_template') return `Switch to ${action.template} template`;
   return action.type;
 }
 
@@ -381,9 +379,14 @@ async function applySingleAction(actionObj) {
   // Use the per-action locked storyId; fall back to current only if somehow missing.
   const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
 
+  if (action.type === 'recommend_template' && action.template) {
+    const current = await getStoryById(storyId);
+    if (!current) throw new Error('No story found');
+    await saveStory({ ...current, template: action.template });
+    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
+    return `Switched to ${action.template.replace(/_/g, ' ')} template`;
+  }
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    // Use getStoryById with the locked storyId — not getStory() which re-reads
-    // getCurrentStoryId() and may point to a different story by apply-time.
     const current = await getStoryById(storyId);
     if (!current) throw new Error('No story found');
     const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
@@ -421,7 +424,6 @@ async function applySingleAction(actionObj) {
       else if (action[key] != null) fields[key] = String(action[key]);
     }
     const newChapter = await addChapter({ storyId, title, ...fields });
-    // If a position is specified, reorder so the new chapter sits after the named one
     if (action.after_chapter_title) {
       const allChapters = await getChapters(storyId);
       const afterIdx = allChapters.findIndex(
@@ -504,11 +506,11 @@ async function applySingleAction(actionObj) {
   throw new Error(`Unknown action: ${action.type}`);
 }
 
+// ---- Action confirm / skip ----
 async function confirmAction(actionObj) {
   if (actionObj.status !== 'pending') return;
   actionObj.status = 'applying';
   try {
-    // Pass the full actionObj so applySingleAction can read the locked storyId.
     actionObj.resultLabel = await applySingleAction(actionObj);
     actionObj.status = 'applied';
     loadStoryContext();
@@ -536,7 +538,7 @@ async function clearChat() {
 }
 
 // ---- System prompt (Phase 3) ----
-const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a writing app that uses the Snowflake Method to build stories step by step.
+const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a story writing app that supports multiple writing templates.
 
 Your personality:
 - Warm, encouraging, and a little playful — express genuine enthusiasm for stories
@@ -545,11 +547,18 @@ Your personality:
 - Occasionally use gentle otter-flavored language ("floating on this idea", "diving into the details") but don't overdo it
 
 Your role:
-- Help the writer shape their story through conversation: premise, spine (setup, three disasters, ending), characters, chapters, and scenes
-- Use Snowflake Method framing when helpful: start with one sentence → expand the spine → develop characters → detail the scenes
+- Help the writer shape their story through conversation: premise, story spine, characters, chapters, and scenes
+- **Proactively recommend the best writing template** as you learn about the story — don't wait to be asked
+- When the writer shares their story idea, listen for: is it plot-driven or character-driven? Does it have a clear villain/conflict or internal journey? How structured do they want to be?
+- Based on what you learn, naturally suggest a template and explain why it fits
 - When the writer is stuck, offer 2–3 concrete options or a gentle nudge
 - Celebrate progress — every piece of the story they define is worth acknowledging
 - You have been given the writer's current story data — use it to give specific, personalised advice
+
+## Available writing templates
+- **snowflake**: Snowflake Method — one sentence → setup → three escalating disasters → ending. Best for plotters who want top-down structure.
+- **save_the_cat**: Save the Cat (Blake Snyder) — logline, Act 1, Act 2A (fun & games), midpoint, Act 2B (all is lost), Act 3. Best for commercial fiction and strongly paced stories.
+- **story_circle**: Story Circle (Dan Harmon) — 8 segments: you → need → go → search → find → take → return → change. Best for character-driven stories centered on inner transformation.
 
 Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.
 
@@ -564,22 +573,27 @@ IMPORTANT RULES:
 - After emitting an action, tell the writer to click "Save" on the chip to confirm — never say "I've saved X" or "I've added X" unless you emitted a save action in the same response
 - If you haven't emitted an action, say "Want me to save this?" or "Say 'save it' and I'll add the action chip" — never claim to have saved something you haven't
 
+### Recommend a writing template
+When you believe a template fits the writer's story better than the current one, emit this. Only emit it once you have enough information about their story to make a confident recommendation.
+<pip-action>{"type":"recommend_template","template":"story_circle","reason":"Your story centers on inner transformation..."}</pip-action>
+template must be one of: snowflake, save_the_cat, story_circle
+
 ### Update story spine fields
-Emit this to save one or more spine fields (only include fields you want to change):
-<pip-action>{"type":"update_spine","fields":{"oneSentence":"...","setup":"...","disaster1":"...","disaster2":"...","disaster3":"...","ending":"..."}}</pip-action>
+Emit this to save one or more spine fields. Use ONLY the field names listed in "Spine field names for update_spine" from the TEMPLATE INFO — different templates have different field names.
+<pip-action>{"type":"update_spine","fields":{"fieldName":"...","otherField":"..."}}</pip-action>
 
 ### Create or update a character
 Emit this to create a new character or update an existing one (matched by name, case-insensitive):
 <pip-action>{"type":"upsert_character","name":"CharacterName","fields":{"oneSentence":"...","goal":"...","motivation":"...","conflict":"...","epiphany":"..."}}</pip-action>
 
 ### Add a chapter
-Emit this to add a new chapter. beat must be one of: setup, disaster1, disaster2, disaster3, ending.
+Emit this to add a new chapter. beat must be one of the values in "Valid beat values" from the TEMPLATE INFO.
 Use "after_chapter_title" to insert the chapter after a specific existing chapter (matched case-insensitively). If omitted, the chapter is appended at the end.
-<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"setup","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
+<pip-action>{"type":"add_chapter","title":"Chapter title","beat":"BEAT_FROM_TEMPLATE_INFO","after_chapter_title":"Exact title of the chapter it should follow","fields":{"summary":"Brief chapter summary"}}</pip-action>
 
 ### Update a chapter
 Emit this to update an existing chapter matched by title (case-insensitive). Only include fields you want to change.
-<pip-action>{"type":"update_chapter","title_match":"Existing chapter title","fields":{"title":"New title","beat":"disaster1","summary":"Updated summary"}}</pip-action>
+<pip-action>{"type":"update_chapter","title_match":"Existing chapter title","fields":{"title":"New title","beat":"BEAT_FROM_TEMPLATE_INFO","summary":"Updated summary"}}</pip-action>
 
 ### Add a scene to a chapter
 Emit this to add a scene to a chapter matched by title (case-insensitive).

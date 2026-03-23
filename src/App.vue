@@ -133,6 +133,14 @@
             </template>
           </section>
         </nav>
+
+        <!-- Sidebar footer: feedback link -->
+        <div class="sidebar-footer">
+          <button type="button" class="sidebar-feedback-btn" @click="feedbackOpen = true">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            {{ t('feedback.button') }}
+          </button>
+        </div>
       </aside>
 
       <div
@@ -171,6 +179,7 @@
       @new="addNewStory"
     />
     <SearchModal v-model="searchOpen" />
+    <FeedbackModal :open="feedbackOpen" @close="feedbackOpen = false" />
     <AppToast />
   </div>
 </template>
@@ -186,6 +195,7 @@ import AppToast from '@/components/AppToast.vue';
 import StorySwitcher from '@/components/StorySwitcher.vue';
 import SearchModal from '@/components/SearchModal.vue';
 import OtterChat from '@/components/OtterChat.vue';
+import FeedbackModal from '@/components/FeedbackModal.vue';
 
 const { t, locale } = useI18n();
 const route = useRoute();
@@ -197,6 +207,7 @@ const otterOpen = ref(false);
 const isMobile = ref(false);
 const storySwitcherOpen = ref(false);
 const searchOpen = ref(false);
+const feedbackOpen = ref(false);
 const ideas = ref([]);
 const stories = ref([]);
 const currentStoryId = ref(getCurrentStoryId());
@@ -605,6 +616,32 @@ watch(
 }
 .sidebar-toggle:hover {
   background: var(--border);
+}
+
+/* Sidebar footer */
+.sidebar-footer {
+  flex-shrink: 0;
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--border);
+}
+.sidebar-feedback-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s;
+}
+.sidebar-feedback-btn:hover {
+  color: var(--text);
+  background: var(--bg);
 }
 
 /* Otter toggle button in nav */

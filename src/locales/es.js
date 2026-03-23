@@ -228,6 +228,11 @@ export default {
     aiDrafting: 'Esquematizando…',
     aiExtraContextChapterPrefix: 'Este capítulo debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
     aiExtraContextScenePrefix: 'Esta escena debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
+    editInStory: 'Editar en Historia →',
+    spineRefLabel: 'Eje de la historia',
+    addFirstScene: 'Añadir primera escena',
+    sceneWrittenAria: 'Escrita',
+    sceneEmptyAria: 'Sin escribir',
   },
   write: {
     title: 'Escribir',
@@ -404,5 +409,20 @@ export default {
       },
     },
   },
-
+  feedback: {
+    button: 'Enviar comentarios',
+    title: 'Enviar comentarios',
+    typeLabel: 'Tipo',
+    typeBug: 'Error',
+    typeSuggestion: 'Sugerencia',
+    typePraise: 'Cumplido',
+    typeOther: 'General',
+    bodyLabel: 'Tu comentario',
+    bodyPlaceholder: 'Cuéntanos qué piensas…',
+    submit: 'Enviar',
+    required: 'Por favor, escribe algún comentario.',
+    thankYou: '¡Gracias!',
+    thankYouMsg: 'Tu comentario ha sido copiado al portapapeles. Puedes pegarlo en un correo o en un issue de GitHub.',
+    done: 'Listo',
+  },
 }
