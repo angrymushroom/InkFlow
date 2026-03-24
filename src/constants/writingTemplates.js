@@ -47,21 +47,28 @@ export const WRITING_TEMPLATES = {
     ],
   },
 
-  // Future templates — uncomment and fill in when ready:
-  //
-  // threeAct: {
-  //   id: 'threeAct',
-  //   name: 'Three-Act Structure',
-  //   fields: [
-  //     { key: 'act1Setup',    label: 'Act 1 — Setup',    coachQuestion: '...' },
-  //     { key: 'act1Break',    label: 'Act 1 Break',      coachQuestion: '...' },
-  //     { key: 'act2Rising',   label: 'Act 2 — Rising',   coachQuestion: '...' },
-  //     { key: 'midpoint',     label: 'Midpoint',         coachQuestion: '...' },
-  //     { key: 'act2Break',    label: 'Act 2 Break',      coachQuestion: '...' },
-  //     { key: 'act3Climax',   label: 'Act 3 — Climax',   coachQuestion: '...' },
-  //     { key: 'resolution',   label: 'Resolution',       coachQuestion: '...' },
-  //   ],
-  // },
+  hero_journey: {
+    id: 'hero_journey',
+    name: "Hero's Journey",
+    fields: [
+      { key: 'premise', label: 'Story premise',          coachQuestionKey: 'pip.coachQuestion.hero_journey.premise' },
+      { key: 'call',    label: 'Call to Adventure',      coachQuestionKey: 'pip.coachQuestion.hero_journey.call'    },
+      { key: 'trials',  label: 'Road of Trials',         coachQuestionKey: 'pip.coachQuestion.hero_journey.trials'  },
+      { key: 'ordeal',  label: 'Supreme Ordeal',         coachQuestionKey: 'pip.coachQuestion.hero_journey.ordeal'  },
+      { key: 'elixir',  label: 'Return with the Elixir', coachQuestionKey: 'pip.coachQuestion.hero_journey.elixir'  },
+    ],
+  },
+
+  kishotenketsu: {
+    id: 'kishotenketsu',
+    name: '起承转合',
+    fields: [
+      { key: 'ki',    label: '起 — Introduction', coachQuestionKey: 'pip.coachQuestion.kishotenketsu.ki'    },
+      { key: 'sho',   label: '承 — Development',  coachQuestionKey: 'pip.coachQuestion.kishotenketsu.sho'   },
+      { key: 'ten',   label: '转 — Twist',         coachQuestionKey: 'pip.coachQuestion.kishotenketsu.ten'   },
+      { key: 'ketsu', label: '合 — Resolution',    coachQuestionKey: 'pip.coachQuestion.kishotenketsu.ketsu' },
+    ],
+  },
 }
 
 export const DEFAULT_TEMPLATE_ID = 'snowflake'

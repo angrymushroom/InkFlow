@@ -78,6 +78,43 @@ export const TEMPLATES = {
     aiDescription:
       "Dan Harmon's Story Circle (8 segments): You (stasis) → Need (what they lack) → Go (into unfamiliar situation) → Search (adapt, try) → Find (what they sought) → Take (pay the price) → Return (back to familiar world) → Change (transformed). Ideal for character-driven internal journeys.",
   },
+
+  hero_journey: {
+    id: 'hero_journey',
+    spineFields: [
+      { key: 'premise', prop: 'templateFields.premise', type: 'input'    },
+      { key: 'call',    prop: 'templateFields.call',    type: 'textarea' },
+      { key: 'trials',  prop: 'templateFields.trials',  type: 'textarea' },
+      { key: 'ordeal',  prop: 'templateFields.ordeal',  type: 'textarea' },
+      { key: 'elixir',  prop: 'templateFields.elixir',  type: 'textarea' },
+    ],
+    beats: [
+      { key: 'departure',      color: '#6366f1', spineRef: 'call'   },
+      { key: 'road_of_trials', color: '#f97316', spineRef: 'trials' },
+      { key: 'ordeal',         color: '#ef4444', spineRef: 'ordeal' },
+      { key: 'return',         color: '#16a34a', spineRef: 'elixir' },
+    ],
+    aiDescription:
+      "Hero's Journey (Campbell/Vogler): Premise → Call to Adventure → Road of Trials (tests, allies, enemies) → Supreme Ordeal (death/rebirth) → Return with the Elixir (transformed). Best for epic, adventure, fantasy, and quest narratives.",
+  },
+
+  kishotenketsu: {
+    id: 'kishotenketsu',
+    spineFields: [
+      { key: 'ki',    prop: 'templateFields.ki',    type: 'textarea' },
+      { key: 'sho',   prop: 'templateFields.sho',   type: 'textarea' },
+      { key: 'ten',   prop: 'templateFields.ten',   type: 'textarea' },
+      { key: 'ketsu', prop: 'templateFields.ketsu', type: 'textarea' },
+    ],
+    beats: [
+      { key: 'ki',    color: '#6366f1', spineRef: 'ki'    },
+      { key: 'sho',   color: '#3b82f6', spineRef: 'sho'   },
+      { key: 'ten',   color: '#f97316', spineRef: 'ten'   },
+      { key: 'ketsu', color: '#16a34a', spineRef: 'ketsu' },
+    ],
+    aiDescription:
+      '起承转合: 起 (introduce characters/world) → 承 (develop the situation) → 转 (unexpected twist or shift in perspective — NOT a conflict) → 合 (reconcile and resolve). Ideal for literary fiction, slice-of-life, cozy stories, and East Asian narratives that do not require conflict.',
+  },
 };
 
 /** Get the template config for a story (defaults to snowflake). */
