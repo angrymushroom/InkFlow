@@ -52,7 +52,7 @@ router.beforeEach((to, from, next) => {
 });
 
 router.afterEach((to) => {
-  document.title = to.meta.title ? `${to.meta.title} — InkFlow` : "InkFlow";
+  document.title = to.meta.title ? `${to.meta.title} — OtterFlow` : "OtterFlow";
 });
 
 export default router;

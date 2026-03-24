@@ -131,6 +131,7 @@ import {
   getChatMessages, saveChatMessage, clearChatHistory,
 } from '@/db';
 import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates';
+import { generateSceneProse } from '@/services/generation';
 
 const props = defineProps({ open: Boolean });
 const emit = defineEmits(['close']);
@@ -539,7 +540,7 @@ async function clearChat() {
 }
 
 // ---- System prompt (Phase 3) ----
-const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in InkFlow — a story writing app that supports multiple writing templates.
+const BASE_SYSTEM_PROMPT = `You are Pip, a friendly sea otter and creative writing companion in OtterFlow — a story writing app that supports multiple writing templates.
 
 Your personality:
 - Warm, encouraging, and a little playful — express genuine enthusiasm for stories

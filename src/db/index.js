@@ -658,7 +658,7 @@ export async function exportProject() {
 export function validateImportData(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw createImportValidationError(
-      "This file doesn't look like an InkFlow backup. Use a file you exported from this app."
+      "This file doesn't look like an OtterFlow backup. Use a file you exported from this app."
     );
   }
   const hasVersion = typeof data.version === "number";
@@ -666,7 +666,7 @@ export function validateImportData(data) {
   const hasLegacy = data.story != null || ["story", "ideas", "characters", "chapters", "scenes"].some((k) => k in data);
   if (!hasVersion && !hasStories && !hasLegacy) {
     throw createImportValidationError(
-      "This file doesn't look like an InkFlow backup. Use a file you exported from this app."
+      "This file doesn't look like an OtterFlow backup. Use a file you exported from this app."
     );
   }
   if (data.ideas != null && !Array.isArray(data.ideas)) {

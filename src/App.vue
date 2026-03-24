@@ -1,6 +1,10 @@
 <template>
   <div class="app">
     <nav class="nav" role="navigation" aria-label="Main navigation">
+      <router-link to="/" class="nav-brand" aria-label="OtterFlow home">
+        <img src="/img/icons/apple-touch-icon.png" alt="OtterFlow" class="nav-logo" />
+        <span class="nav-brand-name">OtterFlow</span>
+      </router-link>
       <router-link to="/ideas" class="nav-link" @click="onNavClick">
         <NavIcon name="ideas" />
         <span class="nav-link-text">{{ t('nav.ideas') }}</span>
@@ -642,6 +646,34 @@ watch(
 .sidebar-feedback-btn:hover {
   color: var(--text);
   background: var(--bg);
+}
+
+/* Nav brand / logo */
+.nav-brand {
+  display: none;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  margin-right: 8px;
+  flex-shrink: 0;
+}
+.nav-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  border-radius: 6px;
+}
+.nav-brand-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+@media (min-width: 768px) {
+  .nav-brand {
+    display: flex;
+  }
 }
 
 /* Otter toggle button in nav */
