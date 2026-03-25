@@ -5,13 +5,18 @@ import {
   getChapters,
   getScenes,
   getStoryFacts,
+  getOpenThreads,
+  getCharacterStateMap,
   updateScene,
 } from "@/db";
 import { completeWithAi, TIERS, CONTEXTS, tierForContext } from "@/services/ai";
 import { buildSpineSummary } from "@/data/templates";
+import { selectRelevantScenes } from "@/services/retrieval";
 
-const PRIOR_SCENE_TAIL_CHARS = 800;
 const LAST_LINES_CHARS = 400;
+const CHAPTER_SUMMARY_CAP = 300;
+const SCENE_SUMMARY_CAP = 200;
+const RECENT_SCENE_COUNT = 5;
 const SCENE_GENERATION_MAX_TOKENS = 1500;
 
 /**
@@ -24,13 +29,15 @@ const SCENE_GENERATION_MAX_TOKENS = 1500;
  * @returns {Promise<string>}
  */
 export async function buildSceneContext(storyId, sceneId) {
-  const [story, characters, ideas, chapters, scenes, storyFacts] = await Promise.all([
+  const [story, characters, ideas, chapters, scenes, storyFacts, openThreads, charStateMap] = await Promise.all([
     getStoryById(storyId),
     getCharacters(storyId),
     getIdeas(storyId),
     getChapters(storyId),
     getScenes(storyId),
     getStoryFacts(storyId),
+    getOpenThreads(storyId),
+    getCharacterStateMap(storyId),
   ]);
 
   if (!story) throw new Error("Story not found.");
@@ -44,10 +51,16 @@ export async function buildSceneContext(storyId, sceneId) {
     ? `Story spine (${story.template ?? 'snowflake'}):\n${spineSummary}`
     : "Story spine: (not filled yet)";
 
-  // --- Characters ---
+  // --- Characters (with latest state snapshot if available) ---
   const charsBlock =
     characters.length > 0
-      ? `Characters:\n${characters.map((c) => `- ${c.name || "Unnamed"}: ${(c.oneSentence || "").slice(0, 150)}`).join("\n")}`
+      ? `Characters:\n${characters.map((c) => {
+          const name = c.name || "Unnamed";
+          const bio = (c.oneSentence || "").slice(0, 150);
+          const state = charStateMap.get(name);
+          const stateSuffix = state ? ` [Last known: ${state.replace(/^[^:]+:\s*/, "").slice(0, 120)}]` : "";
+          return `- ${name}: ${bio}${stateSuffix}`;
+        }).join("\n")}`
       : "Characters: (none)";
 
   // --- Ideas ---
@@ -56,29 +69,51 @@ export async function buildSceneContext(storyId, sceneId) {
       ? `Idea cards:\n${ideas.map((i) => `- [${i.type}] ${i.title || "Untitled"}: ${(i.body || "").slice(0, 200)}`).join("\n")}`
       : "Idea cards: (none)";
 
-  // --- Established facts ---
+  // --- Established facts + unresolved open threads ---
   let factsBlock = "";
-  if (Array.isArray(storyFacts) && storyFacts.length > 0) {
-    factsBlock = `Established facts (never contradict):\n${storyFacts.map((f) => `[${f.factType}] ${f.content}`).join("\n")}`;
+  const coreFactTypes = ["character", "location", "event"];
+  const coreFacts = Array.isArray(storyFacts)
+    ? storyFacts.filter((f) => coreFactTypes.includes(f.factType))
+    : [];
+  const lines = [];
+  if (coreFacts.length > 0) {
+    lines.push(`Established facts (never contradict):\n${coreFacts.map((f) => `[${f.factType}] ${f.content}`).join("\n")}`);
+  }
+  if (openThreads.length > 0) {
+    lines.push(`Open plot threads (track or resolve — do not ignore):\n${openThreads.map((f) => `- ${f.content}`).join("\n")}`);
+  }
+  if (lines.length) factsBlock = lines.join("\n\n");
+
+  // --- Chapter summaries: O(1) — one aiSummary per chapter (never grows with scene count) ---
+  const chapterMap = new Map(chapters.map((c) => [c.id, c]));
+  const priorScenes = scenes.slice(0, sceneIndex);
+  const seenChapterIds = [...new Set(priorScenes.map((s) => s.chapterId).filter(Boolean))];
+
+  let chapterSummariesBlock = "";
+  if (seenChapterIds.length > 0) {
+    const lines = seenChapterIds.map((cid) => {
+      const ch = chapterMap.get(cid);
+      if (!ch) return null;
+      const label = ch.title || "Untitled chapter";
+      const summary = (ch.aiSummary || "").trim();
+      return summary
+        ? `Chapter "${label}": ${summary.slice(0, CHAPTER_SUMMARY_CAP)}`
+        : `Chapter "${label}": (generating summary…)`;
+    }).filter(Boolean);
+    if (lines.length) chapterSummariesBlock = `Chapter summaries (story so far):\n${lines.join("\n")}`;
   }
 
-  // --- Prior scenes (summaries / tails for context, excluding the immediately previous) ---
-  let priorScenesBlock = "";
-  if (sceneIndex > 1) {
-    const parts = [];
-    for (let i = 0; i < sceneIndex - 1; i++) {
-      const s = scenes[i];
-      const summary = s.oneSentenceSummary?.trim();
-      const content = (s.content || "").trim();
-      if (content.length > PRIOR_SCENE_TAIL_CHARS) {
-        parts.push(`Scene "${s.title || "Untitled"}": …${content.slice(-PRIOR_SCENE_TAIL_CHARS)}`);
-      } else if (content) {
-        parts.push(`Scene "${s.title || "Untitled"}": ${content}`);
-      } else if (summary) {
-        parts.push(`Scene "${s.title || "Untitled"}": [summary] ${summary}`);
-      }
-    }
-    if (parts.length) priorScenesBlock = `Earlier scenes (what happened so far):\n${parts.join("\n\n")}`;
+  // --- Relevant earlier scenes: BM25-selected, O(1) regardless of story length ---
+  let recentSceneSummariesBlock = "";
+  const earlierScenes = priorScenes.slice(0, Math.max(0, priorScenes.length - 1));
+  if (earlierScenes.length > 0) {
+    const withSummary = earlierScenes.filter((s) => (s.aiSummary || s.oneSentenceSummary || "").trim());
+    const relevant = selectRelevantScenes(withSummary, currentScene, RECENT_SCENE_COUNT);
+    const parts = relevant.map((s) => {
+      const sum = (s.aiSummary || s.oneSentenceSummary || "").trim();
+      return `"${s.title || "Untitled"}": ${sum.slice(0, SCENE_SUMMARY_CAP)}`;
+    });
+    if (parts.length) recentSceneSummariesBlock = `Relevant earlier scenes:\n${parts.join("\n")}`;
   }
 
   // --- Last lines of the immediately preceding scene (most prominent continuity signal) ---
@@ -123,7 +158,8 @@ export async function buildSceneContext(storyId, sceneId) {
     charsBlock,
     ideasBlock,
     factsBlock,
-    priorScenesBlock,
+    chapterSummariesBlock,
+    recentSceneSummariesBlock,
     lastLinesBlock,
     nextSceneBlock,
     currentBlock,

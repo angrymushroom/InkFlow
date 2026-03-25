@@ -185,6 +185,8 @@
     <SearchModal v-model="searchOpen" />
     <FeedbackModal :open="feedbackOpen" @close="feedbackOpen = false" />
     <AppToast />
+    <EntitySuggestionBanner />
+    <ConsistencyWarningBanner />
   </div>
 </template>
 
@@ -196,6 +198,8 @@ import { useOutline } from '@/composables/useOutline';
 import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId, seedExampleStoryOnce } from '@/db';
 import NavIcon from '@/components/NavIcon.vue';
 import AppToast from '@/components/AppToast.vue';
+import EntitySuggestionBanner from '@/components/EntitySuggestionBanner.vue';
+import ConsistencyWarningBanner from '@/components/ConsistencyWarningBanner.vue';
 import StorySwitcher from '@/components/StorySwitcher.vue';
 import SearchModal from '@/components/SearchModal.vue';
 import OtterChat from '@/components/OtterChat.vue';

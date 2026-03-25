@@ -1,0 +1,34 @@
+# --- Build & compiled output ---
+dist/
+dist-ssr/
+*.local
+
+# --- Dependencies (never read these) ---
+node_modules/
+
+# --- Lock files (3000+ lines, not useful for logic) ---
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+
+# --- Source maps ---
+**/*.map
+
+# --- Logs & temp ---
+*.log
+*.tmp
+*.cache
+.DS_Store
+
+# --- Large static/data files ---
+src/data/exampleStory.js
+public/audio/
+public/img/
+
+# --- Test fixtures (large data sets) ---
+src/**/__tests__/fixtures/
+
+# --- Locale files (read individually when needed, not for codebase scans) ---
+src/locales/es.js
+src/locales/fr.js
+src/locales/zh.js

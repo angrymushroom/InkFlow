@@ -4,7 +4,10 @@ import { getSpineTextForBeat } from '@/data/templates';
 import {
   addChapter, updateChapter, deleteChapter,
   addScene, updateScene, deleteScene,
+  getCurrentStoryId,
 } from '@/db';
+import { extractNewEntities } from '@/services/entityExtraction';
+import { useEntitySuggestions } from '@/composables/useEntitySuggestions';
 
 /**
  * Manages the slide-in edit panel (chapters + scenes) and delete confirmation modals.
@@ -125,6 +128,15 @@ export function useOutlinePanel({ chapters, beats, story, collapsedBeats, getSce
             povCharacterId: data.povCharacterId,
             notes: data.notes,
           });
+        }
+        // Scan outline text for new entities (fire-and-forget)
+        const scanText = [data.oneSentenceSummary, data.notes].filter(Boolean).join(' ');
+        if (scanText.trim()) {
+          const storyId = getCurrentStoryId();
+          const { setPending } = useEntitySuggestions();
+          extractNewEntities({ sceneText: scanText, storyId }).then((found) => {
+            if (found.length) setPending(found, storyId);
+          }).catch(() => {});
         }
       }
       panelOpen.value = false;

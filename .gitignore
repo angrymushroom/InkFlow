@@ -27,3 +27,4 @@ yarn.lock
 
 # Electron-builder output
 /dist_electron
+CLAUDE.md

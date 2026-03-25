@@ -109,6 +109,16 @@
       </div>
     </div>
 
+    <div class="card card-section about-section">
+      <div class="about-row">
+        <span class="about-name">InkFlow</span>
+        <span class="about-version">v{{ appVersion }}</span>
+        <button class="btn btn-ghost btn-sm" @click="showChangelog = true">{{ t('settings.whatsNew') }}</button>
+      </div>
+    </div>
+
+    <ChangelogModal v-if="showChangelog" @close="showChangelog = false" />
+
     <ConfirmModal
       v-model="importConfirmOpen"
       :title="t('export.importConfirmTitle')"
@@ -134,8 +144,12 @@ import {
 import { useI18n } from '@/composables/useI18n';
 import { LOCALES } from '@/locales';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import ChangelogModal from '@/components/ChangelogModal.vue';
+import { APP_VERSION } from '@/data/changelog';
 
 const { locale, t, setLocale } = useI18n();
+const appVersion = APP_VERSION;
+const showChangelog = ref(false);
 const { theme, setTheme } = useTheme();
 const { success: toastSuccess, error: toastError } = useToast();
 const localeOptions = LOCALES;
@@ -341,6 +355,10 @@ async function doImport() {
   margin-top: var(--space-1);
   margin-bottom: 0;
 }
+.about-section { padding: var(--space-3) var(--space-4); }
+.about-row { display: flex; align-items: center; gap: var(--space-3); }
+.about-name { font-weight: 600; color: var(--text); }
+.about-version { font-size: 0.875rem; color: var(--text-muted); }
 .import-divider {
   border-top: 1px solid var(--border);
   margin: var(--space-5) 0 var(--space-4);

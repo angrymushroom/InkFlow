@@ -407,6 +407,10 @@ export async function getChapters(storyId) {
   return db.chapters.where("storyId").equals(sid).sortBy("order");
 }
 
+export async function getChapterById(id) {
+  return db.chapters.get(id);
+}
+
 export async function addChapter(chapter) {
   const id = crypto.randomUUID();
   const createdAt = Date.now();
@@ -420,6 +424,14 @@ export async function addChapter(chapter) {
 
 export async function updateChapter(id, data) {
   await db.chapters.update(id, { ...data, updatedAt: Date.now() });
+}
+
+/**
+ * Write only AI-generated summary fields to a chapter.
+ * Does NOT touch updatedAt.
+ */
+export async function updateChapterSummary(id, aiSummary, aiSummaryAt) {
+  await db.chapters.update(id, { aiSummary, aiSummaryAt });
 }
 
 /**
@@ -489,6 +501,14 @@ export async function updateScene(id, data) {
 }
 
 /**
+ * Write only AI-generated summary fields to a scene.
+ * Does NOT touch updatedAt so the cache check (aiSummaryAt >= updatedAt) stays valid.
+ */
+export async function updateSceneSummary(id, aiSummary, aiSummaryAt) {
+  await db.scenes.update(id, { aiSummary, aiSummaryAt });
+}
+
+/**
  * Update scene order within a chapter. sceneIdsInOrder is the list of scene ids in desired order.
  */
 export async function reorderScenesInChapter(chapterId, sceneIdsInOrder) {
@@ -520,9 +540,55 @@ export async function addStoryFact(fact) {
     content: fact.content ?? "",
     sourceSceneId: fact.sourceSceneId ?? null,
     sourceChapterId: fact.sourceChapterId ?? null,
+    priority: fact.priority ?? "medium",
+    resolved: fact.resolved ?? null,
     createdAt,
   });
   return { id, ...fact, createdAt };
+}
+
+/**
+ * Return all unresolved open_thread facts for a story.
+ * @param {string} storyId
+ * @returns {Promise<object[]>}
+ */
+export async function getOpenThreads(storyId) {
+  if (!db.story_facts) return [];
+  const all = await db.story_facts.where("storyId").equals(storyId).toArray();
+  return all.filter((f) => f.factType === "open_thread" && !f.resolved);
+}
+
+/**
+ * Return the most recent character_state fact for each character name.
+ * Returns a Map<characterName, content> where characterName is the prefix before ":".
+ * @param {string} storyId
+ * @returns {Promise<Map<string, string>>}
+ */
+export async function getCharacterStateMap(storyId) {
+  if (!db.story_facts) return new Map();
+  const all = await db.story_facts.where("storyId").equals(storyId).toArray();
+  const states = all.filter((f) => f.factType === "character_state");
+  const map = new Map();
+  for (const f of states) {
+    const colonIdx = (f.content || "").indexOf(":");
+    if (colonIdx < 1) continue;
+    const name = f.content.slice(0, colonIdx).trim();
+    if (!name) continue;
+    const existing = map.get(name);
+    if (!existing || f.createdAt > existing.createdAt) {
+      map.set(name, { content: f.content, createdAt: f.createdAt });
+    }
+  }
+  return new Map([...map.entries()].map(([k, v]) => [k, v.content]));
+}
+
+/**
+ * Mark an open_thread fact as resolved.
+ * @param {string} factId
+ */
+export async function resolveOpenThread(factId) {
+  if (!db.story_facts) return;
+  await db.story_facts.update(factId, { resolved: true });
 }
 
 export async function deleteStoryFactsForStory(storyId) {
@@ -549,6 +615,8 @@ export async function replaceStoryFactsForScenes(storyId, sceneIds, newFacts) {
       content: typeof f.content === "string" ? f.content : JSON.stringify(f.content),
       sourceSceneId: f.sourceSceneId ?? null,
       sourceChapterId: f.sourceChapterId ?? null,
+      priority: f.priority ?? "medium",
+      resolved: f.resolved ?? null,
     });
   }
 }

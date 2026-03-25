@@ -129,9 +129,7 @@
           <button type="button" class="btn btn-ghost btn-sm" :disabled="generatingScene" @click="onGenerateScene">
             {{ generatingScene ? t('scene.generatingScene') : t('scene.generateThisScene') }}
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" :disabled="updatingFacts" @click="onUpdateFacts">
-            {{ updatingFacts ? t('scene.updatingFacts') : t('scene.updateFacts') }}
-          </button>
+
           <button type="button" class="btn btn-ghost btn-sm" :disabled="checkingConsistency" @click="onCheckConsistency">
             {{ checkingConsistency ? t('scene.checkingConsistency') : t('scene.checkConsistency') }}
           </button>
@@ -150,10 +148,14 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
 import { useRoute } from 'vue-router';
-import { getScene, getCharacters, getChapters, getScenes, updateScene, addIdea, addCharacter, addChapter, addScene, getCurrentStoryId } from '@/db';
+import { getScene, getCharacters, getChapters, updateScene, addIdea, addCharacter, addChapter, addScene, getCurrentStoryId } from '@/db';
 import { generateSceneProse } from '@/services/generation';
 import { friendlyAiError } from '@/services/ai';
-import { updateStoryFactsFromScenes, checkConsistency } from '@/services/consistency';
+import { checkConsistency, quickConsistencyCheck, updateSceneFacts } from '@/services/consistency';
+import { extractNewEntities } from '@/services/entityExtraction';
+import { runSummaryPipeline } from '@/services/summarization';
+import { useEntitySuggestions } from '@/composables/useEntitySuggestions';
+import { useConsistencyWarnings } from '@/composables/useConsistencyWarnings';
 import { useI18n } from '@/composables/useI18n';
 import { useIdeaTypes } from '@/composables/useIdeaTypes';
 import { useToast } from '@/composables/useToast';
@@ -177,7 +179,7 @@ const saveError = ref('');
 const saveTimeout = ref(null);
 const beforeUnloadHandler = ref(null);
 const generatingScene = ref(false);
-const updatingFacts = ref(false);
+
 const checkingConsistency = ref(false);
 const consistencyMessage = ref('');
 const focusMode = ref(false);
@@ -340,6 +342,7 @@ async function onGenerateScene() {
     clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
+    triggerEntityScan(prose, storyId);
   } catch (e) {
     saveError.value = friendlyAiError(e);
   } finally {
@@ -347,22 +350,6 @@ async function onGenerateScene() {
   }
 }
 
-async function onUpdateFacts() {
-  if (!scene.value) return;
-  const storyId = getCurrentStoryId();
-  updatingFacts.value = true;
-  saveError.value = '';
-  try {
-    const allScenes = await getScenes(storyId);
-    await updateStoryFactsFromScenes(storyId, allScenes);
-    consistencyMessage.value = '';
-    toastSuccess(t.value('story.saved'));
-  } catch (e) {
-    saveError.value = friendlyAiError(e);
-  } finally {
-    updatingFacts.value = false;
-  }
-}
 
 async function onCheckConsistency() {
   if (!scene.value) return;
@@ -396,6 +383,16 @@ async function save() {
   }
 }
 
+const { setPending: setEntitySuggestions } = useEntitySuggestions();
+const { setWarnings: setConsistencyWarnings } = useConsistencyWarnings();
+
+function triggerEntityScan(text, storyId) {
+  // Fire-and-forget: do not await, never block the UI
+  extractNewEntities({ sceneText: text, storyId }).then((found) => {
+    if (found.length) setEntitySuggestions(found, storyId);
+  }).catch(() => {});
+}
+
 async function autoSave() {
   if (!scene.value || !isDirty()) return;
   try {
@@ -405,6 +402,17 @@ async function autoSave() {
     clearBeforeUnload();
     savedHint.value = true;
     setTimeout(() => { savedHint.value = false; }, 2000);
+    triggerEntityScan(content.value, getCurrentStoryId());
+    const _sid = scene.value.id;
+    const _chapterId = scene.value.chapterId;
+    const _storyId = getCurrentStoryId();
+    const _title = scene.value.title || '';
+    const _text = content.value;
+    runSummaryPipeline(_sid, _chapterId).catch(() => {});
+    updateSceneFacts({ sceneId: _sid, chapterId: _chapterId, storyId: _storyId, sceneText: _text }).catch(() => {});
+    quickConsistencyCheck({ sceneId: _sid, storyId: _storyId })
+      .then((issues) => { if (issues?.length) setConsistencyWarnings(issues, _title, _storyId); })
+      .catch(() => {});
   } catch (e) {
     saveError.value = e?.message || t.value('story.saveError');
     setBeforeUnload();
