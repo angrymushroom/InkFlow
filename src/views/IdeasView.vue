@@ -205,9 +205,11 @@ async function removeIdea(id) {
 onMounted(() => {
   load();
   window.addEventListener('inkflow-story-switched', load);
+  window.addEventListener('inkflow-ideas-changed', load);
 });
 onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', load);
+  window.removeEventListener('inkflow-ideas-changed', load);
 });
 </script>
 

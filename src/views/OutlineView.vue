@@ -355,12 +355,16 @@ onMounted(async () => {
   await loadAll();
   window.addEventListener('inkflow-story-switched', onStorySwitched);
   window.addEventListener('inkflow-sidebar-focus', onSidebarFocus);
+  window.addEventListener('inkflow-story-saved', loadAll);
+  window.addEventListener('inkflow-characters-changed', loadAll);
   await nextTick();
   initSortables();
 });
 onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', onStorySwitched);
   window.removeEventListener('inkflow-sidebar-focus', onSidebarFocus);
+  window.removeEventListener('inkflow-story-saved', loadAll);
+  window.removeEventListener('inkflow-characters-changed', loadAll);
   sortableInstances.forEach((s) => s.destroy());
   sortableInstances.length = 0;
 });

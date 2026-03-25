@@ -88,7 +88,7 @@
 
     <!-- Input resize handle + input (shown when API key is set) -->
     <template v-if="hasApiKey">
-      <div class="otter-input-drag-bar" @mousedown.prevent="startTextareaResize" />
+      <div class="otter-input-drag-bar" @mousedown.prevent="startTextareaResize" @touchstart.prevent="startTextareaResize" />
       <div class="otter-input-row">
         <textarea
           ref="inputEl"
@@ -680,6 +680,11 @@ IMPORTANT: If the user says "after scene X" or "between scene X and Y", always i
 Emit this to update a scene matched by title (case-insensitive). Optionally narrow by chapter title to avoid ambiguity.
 <pip-action>{"type":"update_scene","title_match":"Existing scene title","chapter_title_match":"Optional chapter title","fields":{"title":"New title","oneSentenceSummary":"Updated summary","notes":"Updated notes"}}</pip-action>
 
+### Add an idea card
+Emit this to capture a story idea, world-building note, or any creative fragment.
+<pip-action>{"type":"add_idea","title":"Idea title","idea_type":"plot","body":"Optional description or details"}</pip-action>
+idea_type must be one of: plot, subplot, scene, event, character, relationship, faction, world, location, culture, item, creature, magic_system, technology, concept, conflict, mystery, symbol, prophecy, other
+
 ## Scene prose awareness
 When the writer has a scene open in the editor, you will see its content under "=== CURRENT SCENE (OPEN IN EDITOR) ===". Use this to:
 - Answer specific questions about what's been written ("does Alice appear here?", "is the pacing off?")
@@ -692,7 +697,7 @@ Feedback and analysis are purely conversational — no action needed.
 When the writer asks you to write, generate, or rewrite the current scene, emit this action:
 <pip-action>{"type":"generate_prose"}</pip-action>
 This runs the full AI prose generation pipeline for the scene currently open in the editor (same as clicking "Generate" in the toolbar). The generated text will appear directly in the editor.
-Only emit this when the writer explicitly asks you to generate or write the scene — not for feedback or discussion requests.`;
+Only emit this when the writer explicitly asks you to generate or write the scene — not for feedback or discussion requests.`
 
 const systemPrompt = computed(() => {
   if (!storyContext.value) return BASE_SYSTEM_PROMPT;
@@ -757,19 +762,26 @@ function resetTextareaHeight() {
 }
 
 function startTextareaResize(e) {
-  const startY = e.clientY;
+  const startY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
   const startHeight = textareaManualHeight.value ?? (inputEl.value?.offsetHeight ?? TEXTAREA_MIN);
 
   function onMove(e) {
-    const delta = startY - e.clientY; // drag up = taller
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
+    const delta = startY - clientY; // drag up = taller
     textareaManualHeight.value = Math.min(TEXTAREA_MAX, Math.max(TEXTAREA_MIN, startHeight + delta));
   }
   function onUp() {
     window.removeEventListener('mousemove', onMove);
     window.removeEventListener('mouseup', onUp);
+    window.removeEventListener('touchmove', onMove);
+    window.removeEventListener('touchend', onUp);
+    window.removeEventListener('touchcancel', onUp);
   }
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
+  window.addEventListener('touchmove', onMove, { passive: false });
+  window.addEventListener('touchend', onUp);
+  window.addEventListener('touchcancel', onUp);
 }
 
 function pipErrorMessage(e) {
@@ -1179,6 +1191,7 @@ async function send() {
   flex-shrink: 0;
   height: 5px;
   cursor: row-resize;
+  touch-action: none;
   background: transparent;
   transition: background 0.15s;
 }

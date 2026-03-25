@@ -3,6 +3,7 @@ import {
   getCharacters, addCharacter, updateCharacter,
   getChapters, addChapter, updateChapter, reorderChapters,
   getScenes, addScene, updateScene,
+  addIdea,
   getCurrentStoryId,
 } from '@/db';
 import { TEMPLATES, getTemplate, setSpineFieldPatch } from '@/data/templates';
@@ -31,6 +32,7 @@ export function actionLabel(action) {
   if (action.type === 'upsert_character') return `Character "${action.name}"`;
   if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
   if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
+  if (action.type === 'add_idea') return `Add idea "${action.title}"`;
   if (action.type === 'add_scene') return `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
   if (action.type === 'recommend_template') return `Switch to ${action.template} template`;
@@ -63,6 +65,7 @@ export async function applySingleAction(actionObj) {
     }
     if (updatedKeys.length === 0) throw new Error('No valid spine fields to update');
     await saveStory(merged);
+    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
     return `Story spine updated (${updatedKeys.join(', ')})`;
   }
 
@@ -87,9 +90,11 @@ export async function applySingleAction(actionObj) {
     }
     if (match) {
       await updateCharacter(match.id, { name, ...fields });
+      window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
       return `Character "${name}" updated`;
     } else {
       await addCharacter({ storyId, name, ...fields });
+      window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
       return `Character "${name}" created`;
     }
   }
@@ -113,6 +118,7 @@ export async function applySingleAction(actionObj) {
         await reorderChapters(storyId, reordered.map((c) => c.id));
       }
     }
+    window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
     return `Chapter "${title}" added`;
   }
 
@@ -126,6 +132,7 @@ export async function applySingleAction(actionObj) {
     }
     if (Object.keys(fields).length === 0) throw new Error('No fields to update');
     await updateChapter(match.id, fields);
+    window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
     return `Chapter "${match.title}" updated`;
   }
 
@@ -140,6 +147,7 @@ export async function applySingleAction(actionObj) {
       else if (action[key] != null) fields[key] = String(action[key]);
     }
     await addScene({ chapterId: chapter.id, title, ...fields });
+    window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
     return `Scene "${title}" added to "${chapter.title}"`;
   }
 
@@ -161,7 +169,20 @@ export async function applySingleAction(actionObj) {
     }
     if (Object.keys(fields).length === 0) throw new Error('No fields to update');
     await updateScene(match.id, fields);
+    window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
     return `Scene "${match.title}" updated`;
+  }
+
+  if (action.type === 'add_idea' && action.title) {
+    const VALID_TYPES = ['plot','subplot','scene','event','character','relationship','faction',
+      'world','location','culture','item','creature','magic_system','technology',
+      'concept','conflict','mystery','symbol','prophecy','other'];
+    const title = String(action.title).trim();
+    const ideaType = VALID_TYPES.includes(action.idea_type) ? action.idea_type : 'plot';
+    const body = action.body ? String(action.body) : '';
+    await addIdea({ storyId, type: ideaType, title, body });
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+    return `Idea "${title}" added`;
   }
 
   throw new Error(`Unknown action: ${action.type}`);

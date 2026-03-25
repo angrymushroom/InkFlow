@@ -248,9 +248,15 @@ async function autoSave() {
   }
 }
 
+async function onExternalStorySaved() {
+  // Only reload if the user has no local unsaved edits, to avoid overwriting them.
+  if (!storyDirty.value) await load();
+}
+
 onMounted(async () => {
   await load();
   window.addEventListener('inkflow-story-switched', load);
+  window.addEventListener('inkflow-story-saved', onExternalStorySaved);
   watch(story, () => {
     storyDirty.value = isDirty();
     if (saveTimeout.value) clearTimeout(saveTimeout.value);
@@ -264,6 +270,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('inkflow-story-switched', load);
+  window.removeEventListener('inkflow-story-saved', onExternalStorySaved);
   if (saveTimeout.value) clearTimeout(saveTimeout.value);
   clearBeforeUnload();
   storyDirty.value = false;
