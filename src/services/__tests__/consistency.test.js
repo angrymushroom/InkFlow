@@ -21,7 +21,12 @@ vi.mock('@/services/ai', () => ({
         characters: [{ name: 'Alice', trait: 'hero' }],
         locations: ['Village'],
         events: ['The quest began.'],
+        open_threads: [],
+        character_states: [],
       }));
+    }
+    if (opts.systemPrompt?.includes('consistency checker') && opts.userPrompt?.includes('JSON')) {
+      return Promise.resolve('[]');
     }
     return Promise.resolve('No contradictions.');
   }),
@@ -30,7 +35,7 @@ vi.mock('@/services/ai', () => ({
   tierForContext: vi.fn(() => 'light'),
 }));
 
-const { extractFactsFromProse, updateStoryFactsFromScenes, checkConsistency } = await import('@/services/consistency.js');
+const { extractFactsFromProse, updateStoryFactsFromScenes, checkConsistency, quickConsistencyCheck, updateSceneFacts } = await import('@/services/consistency.js');
 
 describe('consistency', () => {
   beforeEach(() => {
@@ -76,6 +81,84 @@ describe('consistency', () => {
       mockGetScene.mockResolvedValue({ content: 'Alice fought the dragon.', oneSentenceSummary: 'Battle.' });
       const result = await checkConsistency({ storyId: 'story1', sceneId: 's1' });
       expect(result).toBe('No contradictions.');
+    });
+  });
+
+  // ── quickConsistencyCheck ───────────────────────────────────────────────────
+  describe('quickConsistencyCheck', () => {
+    it('returns null when scene text is shorter than 100 chars', async () => {
+      mockGetScene.mockResolvedValue({ id: 's1', content: 'Too short.' });
+      mockGetStoryFacts.mockResolvedValue([{ factType: 'character_state', content: 'Alice: at home', priority: 'high', resolved: null }]);
+      const result = await quickConsistencyCheck({ sceneId: 's1', storyId: 'story1' });
+      expect(result).toBeNull();
+    });
+
+    it('returns empty array when no high-priority facts exist', async () => {
+      mockGetScene.mockResolvedValue({ id: 's1', content: 'A'.repeat(150) });
+      mockGetStoryFacts.mockResolvedValue([
+        { factType: 'event', content: 'Something happened', priority: 'medium', resolved: null },
+      ]);
+      const result = await quickConsistencyCheck({ sceneId: 's1', storyId: 'story1' });
+      expect(result).toEqual([]);
+    });
+
+    it('returns contradiction strings parsed from AI JSON response', async () => {
+      const { completeWithAi } = await import('@/services/ai');
+      completeWithAi.mockResolvedValueOnce('["Alice cannot be in two places at once."]');
+      mockGetScene.mockResolvedValue({ id: 's1', content: 'A'.repeat(150) });
+      mockGetStoryFacts.mockResolvedValue([
+        { factType: 'character_state', content: 'Alice: at the castle', priority: 'high', resolved: null },
+      ]);
+      const result = await quickConsistencyCheck({ sceneId: 's1', storyId: 'story1' });
+      expect(Array.isArray(result)).toBe(true);
+      expect(result[0]).toContain('Alice');
+    });
+
+    it('returns null on AI parse error (non-JSON response)', async () => {
+      const { completeWithAi } = await import('@/services/ai');
+      completeWithAi.mockResolvedValueOnce('This is not valid JSON');
+      mockGetScene.mockResolvedValue({ id: 's1', content: 'A'.repeat(150) });
+      mockGetStoryFacts.mockResolvedValue([
+        { factType: 'open_thread', content: 'Where is the sword?', priority: 'high', resolved: null },
+      ]);
+      const result = await quickConsistencyCheck({ sceneId: 's1', storyId: 'story1' });
+      expect(result).toBeNull();
+    });
+
+    it('ignores resolved open_threads', async () => {
+      mockGetScene.mockResolvedValue({ id: 's1', content: 'A'.repeat(150) });
+      mockGetStoryFacts.mockResolvedValue([
+        { factType: 'open_thread', content: 'Where is the sword?', priority: 'high', resolved: true },
+      ]);
+      const result = await quickConsistencyCheck({ sceneId: 's1', storyId: 'story1' });
+      // No high-priority unresolved facts → empty array (not null)
+      expect(result).toEqual([]);
+    });
+  });
+
+  // ── updateSceneFacts ────────────────────────────────────────────────────────
+  describe('updateSceneFacts', () => {
+    it('skips when sceneText is shorter than 100 chars', async () => {
+      await updateSceneFacts({ sceneId: 's1', chapterId: 'ch1', storyId: 'story1', sceneText: 'Too short.' });
+      expect(mockReplaceStoryFactsForScenes).not.toHaveBeenCalled();
+    });
+
+    it('calls replaceStoryFactsForScenes with extracted facts', async () => {
+      const longText = 'Alice the hero walked through the village. ' + 'A'.repeat(80);
+      await updateSceneFacts({ sceneId: 's1', chapterId: 'ch1', storyId: 'story1', sceneText: longText });
+      expect(mockReplaceStoryFactsForScenes).toHaveBeenCalledWith(
+        'story1',
+        ['s1'],
+        expect.any(Array)
+      );
+    });
+
+    it('does not call replaceStoryFactsForScenes when extractFactsFromProse returns null', async () => {
+      const { completeWithAi } = await import('@/services/ai');
+      completeWithAi.mockResolvedValueOnce('not valid json');
+      const longText = 'A'.repeat(150);
+      await updateSceneFacts({ sceneId: 's1', chapterId: 'ch1', storyId: 'story1', sceneText: longText });
+      expect(mockReplaceStoryFactsForScenes).not.toHaveBeenCalled();
     });
   });
 });

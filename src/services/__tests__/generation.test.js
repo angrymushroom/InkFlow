@@ -7,6 +7,8 @@ const mockGetIdeas = vi.fn();
 const mockGetChapters = vi.fn();
 const mockGetScenes = vi.fn();
 const mockGetStoryFacts = vi.fn(() => Promise.resolve([]));
+const mockGetOpenThreads = vi.fn(() => Promise.resolve([]));
+const mockGetCharacterStateMap = vi.fn(() => Promise.resolve(new Map()));
 
 vi.mock('@/db', () => ({
   getStoryById: (...args) => mockGetStoryById(...args),
@@ -15,6 +17,8 @@ vi.mock('@/db', () => ({
   getChapters: (...args) => mockGetChapters(...args),
   getScenes: (...args) => mockGetScenes(...args),
   getStoryFacts: (...args) => mockGetStoryFacts(...args),
+  getOpenThreads: (...args) => mockGetOpenThreads(...args),
+  getCharacterStateMap: (...args) => mockGetCharacterStateMap(...args),
   updateScene: (...args) => mockUpdateScene(...args),
 }));
 
@@ -55,6 +59,8 @@ describe('generation', () => {
     mockGetChapters.mockResolvedValue(chapters);
     mockGetScenes.mockResolvedValue(scenes);
     mockGetStoryFacts.mockResolvedValue([]);
+    mockGetOpenThreads.mockResolvedValue([]);
+    mockGetCharacterStateMap.mockResolvedValue(new Map());
   });
 
   describe('buildSceneContext', () => {

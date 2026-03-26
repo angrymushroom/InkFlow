@@ -26,6 +26,8 @@ export default {
     sceneNum: '第 {n} 场',
     noIdeas: '暂无灵感。',
     noCharacters: '暂无角色。',
+    entities: '实体',
+    noEntities: '暂无实体。',
     addInTab: '在页面中添加',
     untitledStory: '未命名故事',
     editCurrentStory: '编辑当前故事',

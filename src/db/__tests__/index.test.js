@@ -11,8 +11,9 @@ class MockTable {
   _reset() { this._data.clear(); }
 
   async add(record) {
-    this._data.set(record.id, { ...record });
-    return record.id;
+    const id = record.id ?? crypto.randomUUID();
+    this._data.set(id, { ...record, id });
+    return id;
   }
 
   async put(record) {
@@ -104,6 +105,7 @@ vi.mock('dexie', () => ({
       this.idea_custom_types = new MockTable();
       this.story_facts = new MockTable();
       this.character_relationships = new MockTable();
+      this.chat_messages = new MockTable();
       this.transaction = vi.fn((_mode, _stores, fn) =>
         typeof fn === 'function' ? fn() : Promise.resolve()
       );
@@ -138,13 +140,21 @@ const {
   getCustomIdeaTypes,
   exportProject,
   importProject,
+  updateSceneSummary,
+  updateChapterSummary,
+  addStoryFact,
+  getOpenThreads,
+  getCharacterStateMap,
+  saveChatMessage,
+  getChatMessages,
+  clearChatHistory,
 } = await import('@/db/index.js');
 
 // Helper to reset all tables between tests
 function resetAllTables() {
   for (const key of [
     'story', 'stories', 'ideas', 'characters', 'chapters',
-    'scenes', 'idea_custom_types', 'story_facts', 'character_relationships',
+    'scenes', 'idea_custom_types', 'story_facts', 'character_relationships', 'chat_messages',
   ]) {
     db[key]._reset();
   }
@@ -517,5 +527,123 @@ describe('exportProject', () => {
   it('includes exportedAt timestamp', async () => {
     const data = await exportProject();
     expect(typeof data.exportedAt).toBe('string');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// updateSceneSummary / updateChapterSummary — do NOT touch updatedAt
+// ---------------------------------------------------------------------------
+describe('updateSceneSummary / updateChapterSummary', () => {
+  beforeEach(resetAllTables);
+
+  it('updateSceneSummary writes aiSummary and aiSummaryAt without changing updatedAt', async () => {
+    const scene = await addScene({ chapterId: 'ch1', title: 'Test Scene' });
+    const beforeUpdatedAt = (await db.scenes.get(scene.id))?.updatedAt;
+    await new Promise((r) => setTimeout(r, 2));
+    await updateSceneSummary(scene.id, 'Generated summary.', Date.now());
+    const updated = await db.scenes.get(scene.id);
+    expect(updated.aiSummary).toBe('Generated summary.');
+    expect(updated.aiSummaryAt).toBeTruthy();
+    // updatedAt must NOT have changed
+    expect(updated.updatedAt).toBe(beforeUpdatedAt);
+  });
+
+  it('updateChapterSummary writes aiSummary and aiSummaryAt without touching other fields', async () => {
+    const chapter = await addChapter({ storyId: 'story', title: 'Chapter 1' });
+    await updateChapterSummary(chapter.id, 'Chapter overview.', Date.now());
+    const updated = await db.chapters.get(chapter.id);
+    expect(updated.aiSummary).toBe('Chapter overview.');
+    expect(updated.aiSummaryAt).toBeTruthy();
+    expect(updated.title).toBe('Chapter 1');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getOpenThreads
+// ---------------------------------------------------------------------------
+describe('getOpenThreads', () => {
+  beforeEach(resetAllTables);
+
+  it('returns only open_thread facts with resolved != true', async () => {
+    await addStoryFact({ storyId: 'story', factType: 'open_thread', content: 'Where is the sword?', priority: 'high', resolved: null });
+    await addStoryFact({ storyId: 'story', factType: 'open_thread', content: 'Resolved thread', priority: 'high', resolved: true });
+    await addStoryFact({ storyId: 'story', factType: 'character', content: 'Alice: hero', priority: 'medium' });
+    const threads = await getOpenThreads('story');
+    expect(threads).toHaveLength(1);
+    expect(threads[0].content).toBe('Where is the sword?');
+  });
+
+  it('returns empty array when no open threads', async () => {
+    await addStoryFact({ storyId: 'story', factType: 'event', content: 'Battle happened', priority: 'medium' });
+    const threads = await getOpenThreads('story');
+    expect(threads).toEqual([]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getCharacterStateMap
+// ---------------------------------------------------------------------------
+describe('getCharacterStateMap', () => {
+  beforeEach(resetAllTables);
+
+  it('returns Map with latest state per character name', async () => {
+    await addStoryFact({ storyId: 'story', factType: 'character_state', content: 'Alice: at the village, happy', priority: 'high' });
+    await new Promise((r) => setTimeout(r, 2));
+    await addStoryFact({ storyId: 'story', factType: 'character_state', content: 'Alice: at the castle, fearful', priority: 'high' });
+    const stateMap = await getCharacterStateMap('story');
+    expect(stateMap).toBeInstanceOf(Map);
+    expect(stateMap.has('Alice')).toBe(true);
+    // Should have the most recent state
+    expect(stateMap.get('Alice')).toContain('castle');
+  });
+
+  it('returns empty Map when no character_state facts', async () => {
+    await addStoryFact({ storyId: 'story', factType: 'event', content: 'Battle happened', priority: 'medium' });
+    const stateMap = await getCharacterStateMap('story');
+    expect(stateMap.size).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// chat messages
+// ---------------------------------------------------------------------------
+describe('chat messages', () => {
+  beforeEach(resetAllTables);
+
+  it('saveChatMessage stores message with correct storyId and role', async () => {
+    await saveChatMessage('story', 'user', 'Hello Pip!');
+    const messages = await getChatMessages('story');
+    expect(messages).toHaveLength(1);
+    expect(messages[0].storyId).toBe('story');
+    expect(messages[0].role).toBe('user');
+    expect(messages[0].content).toBe('Hello Pip!');
+  });
+
+  it('getChatMessages returns messages in chronological order', async () => {
+    await saveChatMessage('story', 'user', 'First');
+    await new Promise((r) => setTimeout(r, 2));
+    await saveChatMessage('story', 'assistant', 'Second');
+    const messages = await getChatMessages('story');
+    expect(messages[0].content).toBe('First');
+    expect(messages[1].content).toBe('Second');
+  });
+
+  it('getChatMessages limits results by count', async () => {
+    for (let i = 0; i < 5; i++) {
+      await saveChatMessage('story', 'user', `Message ${i}`);
+      await new Promise((r) => setTimeout(r, 1));
+    }
+    const messages = await getChatMessages('story', 3);
+    expect(messages).toHaveLength(3);
+  });
+
+  it('clearChatHistory removes only messages for target storyId', async () => {
+    await saveChatMessage('story', 'user', 'Story message');
+    await saveChatMessage('other', 'user', 'Other story message');
+    await clearChatHistory('story');
+    const remaining = await getChatMessages('story');
+    const other = await getChatMessages('other');
+    expect(remaining).toHaveLength(0);
+    expect(other).toHaveLength(1);
   });
 });
