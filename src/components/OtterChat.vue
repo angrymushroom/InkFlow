@@ -127,13 +127,16 @@ import {
   getCurrentStoryId, getStoryById, getStory, saveStory,
   getIdeas, getCharacters, addCharacter, updateCharacter,
   getChapters, addChapter, updateChapter, reorderChapters,
-  getScenes, getScenesByChapter, addScene, updateScene,
+  getScene, getScenes, getScenesByChapter, addScene, updateScene,
   getChatMessages, saveChatMessage, clearChatHistory,
 } from '@/db';
 import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates';
 import { generateSceneProse } from '@/services/generation';
 
-const props = defineProps({ open: Boolean });
+const props = defineProps({
+  open: Boolean,
+  sceneId: { type: String, default: null },
+});
 const emit = defineEmits(['close']);
 
 const HISTORY_LIMIT = 20;
@@ -263,7 +266,7 @@ async function loadStoryContext() {
         if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`);
         const scs = scenesByChapter.get(ch.id) || [];
         for (const sc of scs.slice(0, 6)) {
-          const written = sc.prose?.trim() ? ' ✓' : '';
+          const written = sc.content?.trim() ? ' ✓' : '';
           lines.push(`  Scene: ${truncate(sc.title || 'Untitled', 60)}${written}`);
           if (sc.oneSentenceSummary) lines.push(`    ${truncate(sc.oneSentenceSummary, 100)}`);
         }
@@ -276,7 +279,7 @@ async function loadStoryContext() {
     const filledFields = template.fields.filter((f) => story[f.key]?.trim());
     const missingFields = template.fields.filter((f) => !story[f.key]?.trim());
     const nextMissingField = missingFields[0] ?? null;
-    const writtenScenes = (scenes || []).filter((s) => s.prose?.trim()).length;
+    const writtenScenes = (scenes || []).filter((s) => s.content?.trim()).length;
     const totalScenes = (scenes || []).length;
 
     storyGaps.value = {
@@ -303,6 +306,25 @@ async function loadStoryContext() {
       statusLines.push(`- Coaching priority: Ask about "${nextMissingField.label}" next`);
     }
 
+    // Inject current scene prose when the writer has a scene open
+    if (props.sceneId) {
+      const currentScene = await getScene(props.sceneId);
+      if (currentScene) {
+        lines.push('\n=== CURRENT SCENE (OPEN IN EDITOR) ===');
+        lines.push(`Title: ${currentScene.title || 'Untitled'}`);
+        if (currentScene.oneSentenceSummary) lines.push(`Summary: ${currentScene.oneSentenceSummary}`);
+        if (currentScene.notes) lines.push(`Notes: ${truncate(currentScene.notes, 200)}`);
+        if (currentScene.content?.trim()) {
+          const prose = currentScene.content.length > 1500
+            ? currentScene.content.slice(0, 1500) + '\n[... truncated]'
+            : currentScene.content;
+          lines.push(`\nProse written so far:\n${prose}`);
+        } else {
+          lines.push('(No prose written yet)');
+        }
+      }
+    }
+
     storyContext.value = lines.join('\n') + statusLines.join('\n');
     contextLoaded.value = true;
 
@@ -324,6 +346,11 @@ async function loadStoryContext() {
 
 watch(() => props.open, (val) => {
   if (val) loadStoryContext();
+});
+
+// Reload context when the writer switches to a different scene while Pip is open
+watch(() => props.sceneId, (newId, oldId) => {
+  if (newId !== oldId && props.open) loadStoryContext();
 });
 
 // When the user switches stories while Pip is open, clear current messages and
@@ -371,6 +398,7 @@ function actionLabel(action) {
     : `Add scene "${action.title}" → "${action.chapter_title_match}"`;
   if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
   if (action.type === 'recommend_template') return `Switch to ${action.template} template`;
+  if (action.type === 'generate_prose') return 'Generate scene prose';
   return action.type;
 }
 
@@ -505,6 +533,12 @@ async function applySingleAction(actionObj) {
     await updateScene(match.id, fields);
     return `Scene "${match.title}" updated`;
   }
+  if (action.type === 'generate_prose') {
+    if (!props.sceneId) throw new Error('No scene is currently open in the editor');
+    const prose = await generateSceneProse({ storyId, sceneId: props.sceneId });
+    window.dispatchEvent(new CustomEvent('inkflow-prose-generated', { detail: { prose } }));
+    return 'Scene prose generated';
+  }
   throw new Error(`Unknown action: ${action.type}`);
 }
 
@@ -605,7 +639,21 @@ IMPORTANT: If the user says "after scene X" or "between scene X and Y", always i
 
 ### Update a scene
 Emit this to update a scene matched by title (case-insensitive). Optionally narrow by chapter title to avoid ambiguity.
-<pip-action>{"type":"update_scene","title_match":"Existing scene title","chapter_title_match":"Optional chapter title","fields":{"title":"New title","oneSentenceSummary":"Updated summary","notes":"Updated notes"}}</pip-action>`;
+<pip-action>{"type":"update_scene","title_match":"Existing scene title","chapter_title_match":"Optional chapter title","fields":{"title":"New title","oneSentenceSummary":"Updated summary","notes":"Updated notes"}}</pip-action>
+
+## Scene prose awareness
+When the writer has a scene open in the editor, you will see its content under "=== CURRENT SCENE (OPEN IN EDITOR) ===". Use this to:
+- Answer specific questions about what's been written ("does Alice appear here?", "is the pacing off?")
+- Give targeted feedback on dialogue, voice, structure, or continuity
+- Discuss the scene in depth — you can quote or reference the prose directly
+
+Feedback and analysis are purely conversational — no action needed.
+
+### Generate scene prose
+When the writer asks you to write, generate, or rewrite the current scene, emit this action:
+<pip-action>{"type":"generate_prose"}</pip-action>
+This runs the full AI prose generation pipeline for the scene currently open in the editor (same as clicking "Generate" in the toolbar). The generated text will appear directly in the editor.
+Only emit this when the writer explicitly asks you to generate or write the scene — not for feedback or discussion requests.`;
 
 const systemPrompt = computed(() => {
   if (!storyContext.value) return BASE_SYSTEM_PROMPT;

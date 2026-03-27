@@ -426,9 +426,22 @@ function onKeyDown(e) {
   }
 }
 
+function onProseGenerated(e) {
+  const prose = e.detail?.prose;
+  if (!prose || !scene.value) return;
+  content.value = prose;
+  lastSavedContent.value = prose;
+  sceneDirty.value = false;
+  clearBeforeUnload();
+  savedHint.value = true;
+  setTimeout(() => { savedHint.value = false; }, 2000);
+  triggerEntityScan(prose, getCurrentStoryId());
+}
+
 onMounted(() => {
   load();
   window.addEventListener('keydown', onKeyDown);
+  window.addEventListener('inkflow-prose-generated', onProseGenerated);
   watch(content, () => {
     if (!scene.value) return;
     sceneDirty.value = isDirty();
@@ -441,6 +454,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   window.removeEventListener('keydown', onKeyDown);
+  window.removeEventListener('inkflow-prose-generated', onProseGenerated);
   if (saveTimeout.value) clearTimeout(saveTimeout.value);
   clearBeforeUnload();
   sceneDirty.value = false;

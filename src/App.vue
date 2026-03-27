@@ -172,7 +172,7 @@
         </router-view>
       </main>
 
-      <OtterChat :open="otterOpen" @close="otterOpen = false" />
+      <OtterChat :open="otterOpen" :scene-id="currentSceneId" @close="otterOpen = false" />
     </div>
 
     <StorySwitcher
