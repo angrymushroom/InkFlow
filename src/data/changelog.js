@@ -5,9 +5,19 @@
  * Entry types: 'feat' | 'fix' | 'perf' | 'refactor'
  */
 
-export const APP_VERSION = '0.6.0';
+export const APP_VERSION = '0.7.0';
 
 export const CHANGELOG = [
+  {
+    version: '0.7.0',
+    date: '2026-03-27',
+    changes: [
+      { type: 'feat', text: 'Add DeepSeek, 通义千问 (Qwen), and MiniMax as AI providers alongside Gemini and OpenAI' },
+      { type: 'feat', text: 'Privacy tooltip on API key field — explains keys are stored locally and never sent to servers' },
+      { type: 'feat', text: 'API key help link now links directly to each provider\'s key management page' },
+      { type: 'feat', text: 'Content-Security-Policy header added to production deployment' },
+    ],
+  },
   {
     version: '0.6.0',
     date: '2026-03-25',
