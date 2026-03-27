@@ -251,6 +251,7 @@ export default {
     epiphany: '顿悟',
     epiphanyPlaceholder: '他们领悟或意识到什么',
     empty: '还没有角色。添加第一个吧。',
+    addFirst: '添加第一个角色',
     unnamed: '未命名',
     fieldOneSentence: '角色一句话',
     fieldGoal: '角色目标',
@@ -290,6 +291,7 @@ export default {
     notes: '备注',
     notesPlaceholder: '写作时参考的备注。可用 /ai + 用 AI 扩展。',
     empty: '还没有章节。先添加章节，再添加场景。',
+    addFirstChapter: '添加第一个章节',
     untitledChapter: '未命名章节',
     untitledScene: '未命名场景',
     addScene: '添加场景',
@@ -451,6 +453,12 @@ export default {
     whatsNew: '更新日志',
     changelogTitle: 'InkFlow 更新内容',
     changelogClose: '关闭',
+    shortcuts: {
+      title: '键盘快捷键',
+      saveScene: '保存场景（场景编辑器）',
+      exitFocus: '退出专注模式',
+      globalSearch: '全局搜索',
+    },
   },
   export: {
     title: '导出',
@@ -542,6 +550,8 @@ export default {
     welcomeProgress: '进展不错！继续加油——{question}',
     welcomeNeedCharacters: '故事结构已完成！现在让我们赋予角色生命。谁是你的主角？',
     welcomeNeedChapters: '基础很棒！想开始规划章节吗？',
+    welcomeSceneWithProse: "正在写《{title}》——已写 {n} 字。有什么我可以帮忙的？",
+    welcomeSceneNoProse: "准备好写《{title}》了吗？我可以帮你写，或者我们一起先理清思路。",
     welcomeBack: '欢迎回来！你已写了 {chapters} 个章节 {n} 个场景。要继续写还是关注某个具体环节？',
     welcomeHasOutline: '大纲已就绪，共 {chapters} 个章节 {n} 个场景。准备开写了吗？',
     coachQuestion: {

@@ -251,6 +251,7 @@ export default {
     epiphany: 'Epiphany',
     epiphanyPlaceholder: 'What they learn or realize',
     empty: 'No characters yet. Add your first character.',
+    addFirst: 'Add your first character',
     unnamed: 'Unnamed',
     fieldOneSentence: 'Character one-sentence',
     fieldGoal: 'Character goal',
@@ -290,6 +291,7 @@ export default {
     notes: 'Notes',
     notesPlaceholder: 'Notes for writing later. Use /ai + Expand with AI.',
     empty: 'No chapters yet. Add a chapter, then add scenes under it.',
+    addFirstChapter: 'Add your first chapter',
     untitledChapter: 'Untitled chapter',
     untitledScene: 'Untitled scene',
     addScene: 'Add scene',
@@ -451,6 +453,12 @@ export default {
     whatsNew: "What's New",
     changelogTitle: "What's New in InkFlow",
     changelogClose: 'Close',
+    shortcuts: {
+      title: 'Keyboard Shortcuts',
+      saveScene: 'Save scene (scene editor)',
+      exitFocus: 'Exit focus mode',
+      globalSearch: 'Global search',
+    },
   },
   export: {
     title: 'Export',
@@ -513,6 +521,8 @@ export default {
     welcomeProgress: "Good progress! Let\u2019s keep going \u2014 {question}",
     welcomeNeedCharacters: "Your story structure is complete! Now let\u2019s bring your characters to life. Who is your protagonist?",
     welcomeNeedChapters: "Great foundation! Want to start mapping out your chapters?",
+    welcomeSceneWithProse: "Working on '{title}' \u2014 {n} words written. What can I help with?",
+    welcomeSceneNoProse: "Ready to work on '{title}'? I can write it, or let\u2019s think it through together.",
     welcomeBack: "Welcome back! You\u2019ve written {n} scenes across {chapters} chapters. Want to keep going or focus on something specific?",
     welcomeHasOutline: "Your outline is ready: {chapters} chapters, {n} scenes. Ready to start writing?",
     coachQuestion: {

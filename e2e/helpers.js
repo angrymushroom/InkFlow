@@ -72,14 +72,26 @@ export async function mockAiResponse(page, responseText) {
     })
   );
 
-  // Gemini streaming REST
-  await page.route('**/v1beta/models/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({
+  // Gemini: streaming SSE for streamGenerateContent, JSON for generateContent
+  await page.route('**/v1beta/models/**', (route) => {
+    const isStreaming = route.request().url().includes('streamGenerateContent');
+    if (isStreaming) {
+      const sseChunk = JSON.stringify({
         candidates: [{ content: { parts: [{ text: responseText }] } }],
-      }),
-    })
-  );
+      });
+      route.fulfill({
+        status: 200,
+        contentType: 'text/event-stream; charset=utf-8',
+        body: `data: ${sseChunk}\n\n`,
+      });
+    } else {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          candidates: [{ content: { parts: [{ text: responseText }] } }],
+        }),
+      });
+    }
+  });
 }

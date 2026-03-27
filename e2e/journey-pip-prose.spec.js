@@ -55,35 +55,28 @@ test('Journey F: Pip generates prose via action chip → prose appears in scene 
   page,
 }) => {
   const GENERATED_PROSE = 'The stars burned cold above the abandoned station.';
+  const PIP_RESPONSE = "I'll write that scene right now!\n<pip-action>{\"type\":\"generate_prose\"}</pip-action>";
+
   const storyId = await seedStory(page, { title: 'Space Opera' });
   const sceneId = await seedSceneWithContent(page, storyId);
 
-  // Two sequential Gemini calls:
-  //   1st call  → Pip chat response (contains generate_prose action)
-  //   2nd call  → generateSceneProse response (the actual prose)
-  let callCount = 0;
+  // Route Gemini calls by URL:
+  //   streamGenerateContent → Pip chat SSE (streaming path)
+  //   generateContent       → generateSceneProse (non-streaming)
   await page.route('**/v1beta/models/**', (route) => {
-    callCount++;
-    if (callCount === 1) {
+    const isStreaming = route.request().url().includes('streamGenerateContent');
+    if (isStreaming) {
+      // Pip chat uses streaming — return SSE with the action
+      const sseChunk = JSON.stringify({
+        candidates: [{ content: { parts: [{ text: PIP_RESPONSE }] } }],
+      });
       route.fulfill({
         status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify({
-          candidates: [
-            {
-              content: {
-                parts: [
-                  {
-                    text:
-                      "I'll write that scene right now!\n<pip-action>{\"type\":\"generate_prose\"}</pip-action>",
-                  },
-                ],
-              },
-            },
-          ],
-        }),
+        contentType: 'text/event-stream; charset=utf-8',
+        body: `data: ${sseChunk}\n\n`,
       });
     } else {
+      // generateSceneProse uses non-streaming generateContent
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -93,8 +86,8 @@ test('Journey F: Pip generates prose via action chip → prose appears in scene 
       });
     }
   });
+
   // Also intercept OpenAI-compatible endpoint (in case provider differs)
-  let oaiCallCount = 0;
   const oaiSSE = (text) =>
     [
       `data: {"choices":[{"delta":{"role":"assistant","content":${JSON.stringify(text)}},"finish_reason":null}]}`,
@@ -102,16 +95,12 @@ test('Journey F: Pip generates prose via action chip → prose appears in scene 
       'data: [DONE]',
     ].join('\n\n');
   await page.route('**/v1/chat/completions', (route) => {
-    oaiCallCount++;
+    // OpenAI path: the second call (prose generation) will be a POST without SSE header expectation,
+    // but both go through the same intercept — use the prose text for the second call
     route.fulfill({
       status: 200,
       contentType: 'text/event-stream; charset=utf-8',
-      body:
-        oaiCallCount === 1
-          ? oaiSSE(
-              "I'll write that scene right now!\n<pip-action>{\"type\":\"generate_prose\"}</pip-action>"
-            )
-          : oaiSSE(GENERATED_PROSE),
+      body: oaiSSE(PIP_RESPONSE),
     });
   });
 
@@ -148,4 +137,3 @@ test('Journey F: Pip generates prose via action chip → prose appears in scene 
     timeout: 10_000,
   });
 });
-

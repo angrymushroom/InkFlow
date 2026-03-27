@@ -125,6 +125,26 @@
       </div>
     </div>
 
+    <div class="card card-section shortcuts-section">
+      <h2 class="settings-section-title">{{ t('settings.shortcuts.title') }}</h2>
+      <table class="shortcuts-table">
+        <tbody>
+          <tr>
+            <td class="shortcut-keys"><kbd>⌘S</kbd> / <kbd>Ctrl+S</kbd></td>
+            <td class="shortcut-desc">{{ t('settings.shortcuts.saveScene') }}</td>
+          </tr>
+          <tr>
+            <td class="shortcut-keys"><kbd>Esc</kbd></td>
+            <td class="shortcut-desc">{{ t('settings.shortcuts.exitFocus') }}</td>
+          </tr>
+          <tr>
+            <td class="shortcut-keys"><kbd>⌘K</kbd> / <kbd>Ctrl+K</kbd></td>
+            <td class="shortcut-desc">{{ t('settings.shortcuts.globalSearch') }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <ChangelogModal v-if="showChangelog" @close="showChangelog = false" />
 
     <ConfirmModal
@@ -411,4 +431,20 @@ async function doImport() {
   border-top: 1px solid var(--border);
   margin: var(--space-5) 0 var(--space-4);
 }
+.shortcuts-section { padding: var(--space-3) var(--space-4); }
+.shortcuts-table { width: 100%; border-collapse: collapse; }
+.shortcuts-table tr + tr td { border-top: 1px solid var(--border); }
+.shortcuts-table td { padding: var(--space-2) 0; vertical-align: middle; }
+.shortcut-keys { white-space: nowrap; padding-right: var(--space-4); }
+kbd {
+  display: inline-block;
+  padding: 2px 6px;
+  font-size: 0.8125rem;
+  font-family: inherit;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm, 4px);
+  color: var(--text);
+}
+.shortcut-desc { color: var(--text-muted); font-size: 0.9375rem; }
 </style>

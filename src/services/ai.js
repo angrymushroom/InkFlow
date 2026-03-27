@@ -584,6 +584,149 @@ export async function completeWithAi({ systemPrompt, userPrompt, tier = TIERS.LI
 }
 
 /**
+ * Multi-turn OpenAI-compatible streaming chat. Calls onChunk(text) for each token.
+ * Returns the full accumulated text when complete.
+ */
+async function chatOpenAICompatStream(baseUrl, apiKey, systemPrompt, messages, options = {}) {
+  const tier = options.tier ?? TIERS.LIGHT;
+  const maxTokens = options.maxTokens ?? 1024;
+  const fallbackChain = options._fallbackChain ?? [];
+  const model = options._model ?? fallbackChain[0] ?? "gpt-4o-mini";
+  const { onChunk } = options;
+
+  let res;
+  try {
+    res = await fetch(`${baseUrl}/v1/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${apiKey}` },
+      body: JSON.stringify({
+        model,
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages.map((m) => ({ role: m.role, content: m.content })),
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.8,
+        stream: true,
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
+
+  if (!res.ok) {
+    if (res.status === 429 || res.status === 503) {
+      const idx = fallbackChain.indexOf(model);
+      if (idx >= 0 && idx < fallbackChain.length - 1) {
+        return chatOpenAICompatStream(baseUrl, apiKey, systemPrompt, messages, {
+          ...options, _model: fallbackChain[idx + 1],
+        });
+      }
+    }
+    const err = await res.json().catch(() => ({}));
+    const errMsg = err?.error?.message || `API error: ${res.status}`;
+    throw new Error(friendlyOpenAIError(errMsg, res.status));
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const data = trimmed.slice(6).trim();
+      if (data === "[DONE]") return fullText;
+      try {
+        const json = JSON.parse(data);
+        const text = json.choices?.[0]?.delta?.content;
+        if (text) { fullText += text; onChunk?.(text); }
+      } catch { /* ignore malformed SSE chunks */ }
+    }
+  }
+  return fullText;
+}
+
+/**
+ * Gemini streaming chat via streamGenerateContent?alt=sse.
+ * Calls onChunk(text) for each token, returns full accumulated text.
+ */
+async function chatGeminiStream(apiKey, systemPrompt, messages, options = {}) {
+  const tier = options.tier ?? TIERS.LIGHT;
+  const geminiConfig = PROVIDERS.find((p) => p.id === "gemini");
+  const fallbackChain = geminiConfig?.fallbackChain ?? [];
+  const model = options._model ?? getModel("gemini", tier);
+  const maxOutputTokens = options.maxTokens ?? 1024;
+  const { onChunk } = options;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${encodeURIComponent(apiKey)}&alt=sse`;
+
+  const contents = messages.map((m) => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: [{ text: m.content }],
+  }));
+
+  let res;
+  try {
+    res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: systemPrompt }] },
+        contents,
+        generationConfig: { maxOutputTokens, temperature: 0.8 },
+      }),
+    });
+  } catch {
+    throw new Error("Network error — check your internet connection and try again.");
+  }
+
+  if (!res.ok) {
+    if (res.status === 429 || res.status === 503 || res.status === 404) {
+      const idx = fallbackChain.indexOf(model);
+      if (idx >= 0 && idx < fallbackChain.length - 1) {
+        return chatGeminiStream(apiKey, systemPrompt, messages, { ...options, _model: fallbackChain[idx + 1] });
+      }
+    }
+    const err = await res.json().catch(() => ({}));
+    const errMsg = err?.error?.message || err?.message || `API error: ${res.status}`;
+    throw new Error(friendlyGeminiError(errMsg, res.status));
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let fullText = "";
+  let buffer = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    const lines = buffer.split("\n");
+    buffer = lines.pop() ?? "";
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed.startsWith("data: ")) continue;
+      const data = trimmed.slice(6).trim();
+      try {
+        const json = JSON.parse(data);
+        const text = json.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) { fullText += text; onChunk?.(text); }
+      } catch { /* ignore malformed SSE chunks */ }
+    }
+  }
+
+  if (!fullText.trim()) throw new Error("Empty streaming response from Gemini. Try again.");
+  return fullText;
+}
+
+/**
  * Multi-turn chat completion. Maintains conversation history for all providers.
  */
 export async function chatWithAi({ messages, systemPrompt, tier = TIERS.LIGHT, maxTokens = 1024 }) {
@@ -601,6 +744,30 @@ export async function chatWithAi({ messages, systemPrompt, tier = TIERS.LIGHT, m
   const model = getModel(providerId, tier);
   return chatOpenAICompat(providerConfig.baseUrl, apiKey.trim(), systemPrompt, messages, {
     tier, maxTokens,
+    _model: model,
+    _fallbackChain: providerConfig?.fallbackChain ?? [],
+  });
+}
+
+/**
+ * Streaming version of chatWithAi — for OtterChat only.
+ * Calls onChunk(text) for each token as it arrives.
+ */
+export async function chatWithAiStream({ messages, systemPrompt, tier = TIERS.LIGHT, maxTokens = 1024, onChunk }) {
+  const providerId = getProvider();
+  const apiKey = getApiKey(providerId);
+  const providerConfig = PROVIDERS.find((p) => p.id === providerId);
+  if (!apiKey?.trim()) {
+    throw new Error(
+      `Add your ${providerConfig?.name ?? providerId} API key in Settings to chat.`
+    );
+  }
+  if (providerConfig?.format === "gemini") {
+    return chatGeminiStream(apiKey.trim(), systemPrompt, messages, { tier, maxTokens, onChunk });
+  }
+  const model = getModel(providerId, tier);
+  return chatOpenAICompatStream(providerConfig.baseUrl, apiKey.trim(), systemPrompt, messages, {
+    tier, maxTokens, onChunk,
     _model: model,
     _fallbackChain: providerConfig?.fallbackChain ?? [],
   });

@@ -251,6 +251,7 @@ export default {
     epiphany: 'Épiphanie',
     epiphanyPlaceholder: 'Ce qu’il ou elle comprend',
     empty: 'Pas encore de personnages. Ajoutez le premier.',
+    addFirst: 'Ajouter votre premier personnage',
     unnamed: 'Sans nom',
     fieldOneSentence: 'Une phrase du personnage',
     fieldGoal: 'Objectif du personnage',
@@ -290,6 +291,7 @@ export default {
     notes: 'Notes',
     notesPlaceholder: 'Notes pour écrire plus tard. Utilisez /ai + Enrichir avec l’IA.',
     empty: 'Pas encore de chapitres. Ajoutez un chapitre puis des scènes.',
+    addFirstChapter: 'Ajouter votre premier chapitre',
     untitledChapter: 'Chapitre sans titre',
     untitledScene: 'Scène sans titre',
     addScene: 'Ajouter une scène',
@@ -451,6 +453,12 @@ export default {
     whatsNew: 'Nouveautés',
     changelogTitle: 'Nouveautés dans InkFlow',
     changelogClose: 'Fermer',
+    shortcuts: {
+      title: 'Raccourcis clavier',
+      saveScene: 'Enregistrer la scène (éditeur de scène)',
+      exitFocus: 'Quitter le mode concentration',
+      globalSearch: 'Recherche globale',
+    },
   },
   export: {
     title: 'Exporter',

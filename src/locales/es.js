@@ -251,6 +251,7 @@ export default {
     epiphany: 'Epifanía',
     epiphanyPlaceholder: 'Qué aprende o descubre',
     empty: 'Aún no hay personajes. Añade el primero.',
+    addFirst: 'Añadir tu primer personaje',
     unnamed: 'Sin nombre',
     fieldOneSentence: 'Una frase del personaje',
     fieldGoal: 'Objetivo del personaje',
@@ -290,6 +291,7 @@ export default {
     notes: 'Notas',
     notesPlaceholder: 'Notas para escribir después. Usa /ai + Expandir con IA.',
     empty: 'Aún no hay capítulos. Añade un capítulo y luego escenas.',
+    addFirstChapter: 'Añadir tu primer capítulo',
     untitledChapter: 'Capítulo sin título',
     untitledScene: 'Escena sin título',
     addScene: 'Añadir escena',
@@ -451,6 +453,12 @@ export default {
     whatsNew: 'Novedades',
     changelogTitle: 'Novedades en InkFlow',
     changelogClose: 'Cerrar',
+    shortcuts: {
+      title: 'Atajos de teclado',
+      saveScene: 'Guardar escena (editor de escenas)',
+      exitFocus: 'Salir del modo foco',
+      globalSearch: 'Búsqueda global',
+    },
   },
   export: {
     title: 'Exportar',
@@ -542,6 +550,8 @@ export default {
     welcomeProgress: "¡Buen progreso! Sigamos — {question}",
     welcomeNeedCharacters: "¡La estructura de tu historia está completa! Ahora démosles vida a tus personajes. ¿Quién es tu protagonista?",
     welcomeNeedChapters: "¡Buena base! ¿Quieres empezar a planificar tus capítulos?",
+    welcomeSceneWithProse: "Trabajando en '{title}' — {n} palabras escritas. ¿En qué puedo ayudarte?",
+    welcomeSceneNoProse: "¿Listo para trabajar en '{title}'? Puedo escribirla o pensamos juntos.",
     welcomeBack: "¡Bienvenido de vuelta! Has escrito {n} escenas en {chapters} capítulos. ¿Quieres continuar o centrarte en algo específico?",
     welcomeHasOutline: "Tu esquema está listo: {chapters} capítulos, {n} escenas. ¿Listo para empezar a escribir?",
     coachQuestion: {

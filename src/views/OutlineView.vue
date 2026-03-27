@@ -23,7 +23,13 @@
       </button>
     </div>
 
-    <p v-if="!chapters.length" class="outline-empty-hint">{{ t('outline.empty') }}</p>
+    <div v-if="!chapters.length" class="empty-state card" style="margin-top: var(--space-4);">
+      <OtterIllustration size="md" variant="idle" class="empty-otter" />
+      <p>{{ t('outline.empty') }}</p>
+      <button type="button" class="btn btn-primary" style="margin-top: var(--space-3);" @click="openNewChapterPanel()">
+        {{ t('outline.addFirstChapter') }}
+      </button>
+    </div>
 
     <!-- Beat sections (unified loop including ungrouped) -->
     <div class="outline-sections">
@@ -212,6 +218,7 @@ import { useOutline } from '@/composables/useOutline';
 import { useOutlinePanel } from '@/composables/useOutlinePanel';
 import { useOutlineDraft } from '@/composables/useOutlineDraft';
 import ConfirmModal from '@/components/ConfirmModal.vue';
+import OtterIllustration from '@/components/OtterIllustration.vue';
 import OutlineEditPanel from '@/components/OutlineEditPanel.vue';
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue';
 import { getTemplate, getSpineTextForBeat, getBeatColor } from '@/data/templates';

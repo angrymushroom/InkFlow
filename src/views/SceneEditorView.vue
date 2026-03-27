@@ -424,6 +424,10 @@ function onKeyDown(e) {
   if (e.key === 'Escape' && focusMode.value) {
     focusMode.value = false;
   }
+  if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+    e.preventDefault();
+    save();
+  }
 }
 
 function onProseGenerated(e) {

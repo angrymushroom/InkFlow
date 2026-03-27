@@ -44,7 +44,14 @@
           :class="msg.role === 'assistant' ? 'otter-msg--assistant' : 'otter-msg--user'"
         >
           <span v-if="msg.role === 'assistant'" class="otter-msg-icon" aria-hidden="true">🦦</span>
-          <div class="otter-bubble">{{ msg.content }}</div>
+          <div class="otter-bubble" :class="{ 'otter-bubble--typing': msg.streaming && !msg.content }">
+            <template v-if="msg.streaming && !msg.content">
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+              <span class="typing-dot"></span>
+            </template>
+            <template v-else>{{ msg.content }}</template>
+          </div>
         </div>
         <!-- Action chips shown below assistant messages -->
         <div v-if="msg.actions?.length" class="otter-action-chips">
@@ -62,8 +69,8 @@
         </div>
       </template>
 
-      <!-- Typing indicator -->
-      <div v-if="isLoading" class="otter-msg otter-msg--assistant">
+      <!-- Typing indicator: only shown before the streaming placeholder appears -->
+      <div v-if="isLoading && !(messages.length && 'streaming' in messages[messages.length - 1])" class="otter-msg otter-msg--assistant">
         <span class="otter-msg-icon" aria-hidden="true">🦦</span>
         <div class="otter-bubble otter-bubble--typing">
           <span class="typing-dot"></span>
@@ -120,7 +127,7 @@
 
 <script setup>
 import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue';
-import { chatWithAi, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
+import { chatWithAiStream, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
 import { useOutline } from '@/composables/useOutline';
 import { useI18n } from '@/composables/useI18n';
 import {
@@ -155,10 +162,33 @@ const welcomeWithContext = ref('');
 // switches from silently redirecting writes to the wrong story.
 const contextStoryId = ref(null);
 const storyGaps = ref(null);
+const currentSceneInfo = ref(null); // { title, wordCount, hasContent }
 
 function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
 
+function countWords(text) {
+  if (!text) return 0;
+  // CJK: count characters; otherwise count space-separated tokens
+  const cjkCount = (text.match(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
+  if (cjkCount > text.length * 0.3) return cjkCount;
+  return text.trim().split(/\s+/).filter(Boolean).length;
+}
+
 function computeWelcomeMessage(gaps) {
+  // Scene-editor context: show scene-specific welcome
+  if (currentSceneInfo.value) {
+    if (currentSceneInfo.value.hasContent) {
+      welcomeWithContext.value = t.value('pip.welcomeSceneWithProse', {
+        title: currentSceneInfo.value.title,
+        n: currentSceneInfo.value.wordCount,
+      });
+    } else {
+      welcomeWithContext.value = t.value('pip.welcomeSceneNoProse', {
+        title: currentSceneInfo.value.title,
+      });
+    }
+    return;
+  }
   if (!gaps) {
     welcomeWithContext.value = t.value('pip.welcomeDefault');
     return;
@@ -310,6 +340,11 @@ async function loadStoryContext() {
     if (props.sceneId) {
       const currentScene = await getScene(props.sceneId);
       if (currentScene) {
+        currentSceneInfo.value = {
+          title: currentScene.title || t.value('outline.untitledScene'),
+          wordCount: countWords(currentScene.content || ''),
+          hasContent: !!currentScene.content?.trim(),
+        };
         lines.push('\n=== CURRENT SCENE (OPEN IN EDITOR) ===');
         lines.push(`Title: ${currentScene.title || 'Untitled'}`);
         if (currentScene.oneSentenceSummary) lines.push(`Summary: ${currentScene.oneSentenceSummary}`);
@@ -322,7 +357,11 @@ async function loadStoryContext() {
         } else {
           lines.push('(No prose written yet)');
         }
+      } else {
+        currentSceneInfo.value = null;
       }
+    } else {
+      currentSceneInfo.value = null;
     }
 
     storyContext.value = lines.join('\n') + statusLines.join('\n');
@@ -776,9 +815,13 @@ async function send() {
   inputEl.value?.focus();
   await scrollToBottom();
 
+  // Add streaming placeholder — Pip's bubble appears immediately with typing dots
+  messages.value.push({ role: 'assistant', content: '', actions: [], streaming: true });
+  const streamMsg = messages.value[messages.value.length - 1];
+  await scrollToBottom();
+
   try {
     // Auto-retry on token limit: first trim history, then also strip story context
-    // useContext=false falls back to BASE_SYSTEM_PROMPT without the story data blob
     const RETRIES = [
       { limit: HISTORY_LIMIT, useContext: true  },
       { limit: 8,             useContext: true  },
@@ -788,15 +831,21 @@ async function send() {
     let lastErr = null;
     for (const { limit, useContext } of RETRIES) {
       try {
-        const history = messages.value.slice(-limit).map((m) => ({
-          role: m.role,
-          content: m.content,
-        }));
-        raw = await chatWithAi({
+        // Reset content for retry attempts
+        streamMsg.content = '';
+        const history = messages.value
+          .filter((m) => !m.streaming)
+          .slice(-limit)
+          .map((m) => ({ role: m.role, content: m.content }));
+        raw = await chatWithAiStream({
           messages: history,
           systemPrompt: useContext ? systemPrompt.value : BASE_SYSTEM_PROMPT,
           tier: tierForContext(hasStoryContent.value ? CONTEXTS.CHAT_WITH_TOOLS : CONTEXTS.CHAT),
           maxTokens: 4096,
+          onChunk: (chunk) => {
+            streamMsg.content += chunk;
+            scrollToBottom();
+          },
         });
         lastErr = null;
         break;
@@ -816,12 +865,13 @@ async function send() {
       status: 'pending',
       resultLabel: null,
       // Stamp the story that was active when the AI generated these actions.
-      // Ensures the user can switch stories mid-conversation without
-      // accidentally writing chapters/scenes into the wrong story.
       storyId: contextStoryId.value,
     }));
 
-    messages.value.push({ role: 'assistant', content: cleanText, actions: pendingActions });
+    // Finalize the streaming message in-place
+    streamMsg.content = cleanText;
+    streamMsg.actions = pendingActions;
+    delete streamMsg.streaming;
 
     // Persist this exchange to DB so it survives page refresh
     if (contextStoryId.value) {
@@ -829,11 +879,10 @@ async function send() {
       await saveChatMessage(contextStoryId.value, 'assistant', cleanText);
     }
   } catch (e) {
-    messages.value.push({
-      role: 'assistant',
-      content: pipErrorMessage(e),
-      actions: [],
-    });
+    // Show error in the streaming placeholder rather than pushing a new message
+    streamMsg.content = pipErrorMessage(e);
+    streamMsg.actions = [];
+    delete streamMsg.streaming;
   } finally {
     isLoading.value = false;
     await scrollToBottom();

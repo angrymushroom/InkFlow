@@ -48,6 +48,9 @@
     <div v-if="!characters.length && !showForm" class="empty-state card">
       <OtterIllustration size="md" variant="idle" class="empty-otter" />
       <p>{{ t('characters.empty') }}</p>
+      <button type="button" class="btn btn-primary" style="margin-top: var(--space-3);" @click="openNew">
+        {{ t('characters.addFirst') }}
+      </button>
     </div>
 
     <div v-else class="char-list">

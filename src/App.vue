@@ -37,6 +37,7 @@
         @click="otterOpen = !otterOpen"
       >
         <span class="nav-otter-icon" aria-hidden="true">🦦</span>
+        <span v-if="pipBadge" class="pip-badge" aria-hidden="true"></span>
         <span class="nav-link-text">Pip</span>
       </button>
     </nav>
@@ -212,6 +213,7 @@ const { chapters, load, getScenesForChapter } = useOutline();
 
 const sidebarOpen = ref(false);
 const otterOpen = ref(false);
+const pipBadge = ref(false);
 const isMobile = ref(false);
 const storySwitcherOpen = ref(false);
 const searchOpen = ref(false);
@@ -335,6 +337,16 @@ watch(
     await onRouteChange();
   }
 );
+
+// Show badge dot on Pip button when user navigates to a new scene while Pip is closed
+watch(currentSceneId, (newId, oldId) => {
+  if (newId && newId !== oldId && !otterOpen.value) {
+    pipBadge.value = true;
+  }
+});
+watch(otterOpen, (open) => {
+  if (open) pipBadge.value = false;
+});
 </script>
 
 <style scoped>
@@ -682,6 +694,7 @@ watch(
 
 /* Otter toggle button in nav */
 .nav-otter-btn {
+  position: relative;
   background: none;
   border: none;
   cursor: pointer;
@@ -690,6 +703,16 @@ watch(
 .nav-otter-icon {
   font-size: 1.1rem;
   line-height: 1;
+}
+.pip-badge {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg);
 }
 .nav-otter-btn--active {
   color: var(--accent);
