@@ -36,14 +36,22 @@
         </select>
       </div>
       <div class="form-group">
-        <label>{{ providerLabel }} {{ t('export.apiKey') }}</label>
+        <label>
+          {{ providerLabel }} {{ t('export.apiKey') }}
+          <span class="info-tooltip-wrapper" :aria-label="t('export.apiKeyPrivacyNote')">
+            <button type="button" class="info-btn" tabindex="0">ⓘ</button>
+            <span class="info-tooltip" role="tooltip">{{ t('export.apiKeyPrivacyNote') }}</span>
+          </span>
+        </label>
         <input
           v-model="apiKey"
           :type="showKey ? 'text' : 'password'"
           :placeholder="providerPlaceholder"
         />
-        <p class="form-hint form-hint-small">{{ t('export.apiKeyHint') }} <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener">Google AI Studio</a></p>
-        <p class="form-hint form-hint-small">{{ t('export.apiKeyStoredLocally') }}</p>
+        <p class="form-hint form-hint-small">
+          {{ t('export.apiKeyHint') }}
+          <a v-if="providerKeyHelpUrl" :href="providerKeyHelpUrl" target="_blank" rel="noopener">{{ providerKeyHelpLabel }}</a>
+        </p>
         <div class="form-row">
           <button type="button" class="btn btn-ghost btn-sm" @click="showKey = !showKey">
             {{ showKey ? t('export.hide') : t('export.show') }}
@@ -165,8 +173,11 @@ const testing = ref(false);
 const testMessage = ref('');
 const testSuccess = ref(false);
 
-const providerLabel = computed(() => providers.find((x) => x.id === provider.value)?.name ?? 'API');
-const providerPlaceholder = computed(() => providers.find((x) => x.id === provider.value)?.placeholder ?? 'API key');
+const providerConfig      = computed(() => providers.find((x) => x.id === provider.value));
+const providerLabel       = computed(() => providerConfig.value?.name ?? 'API');
+const providerPlaceholder = computed(() => providerConfig.value?.placeholder ?? 'API key');
+const providerKeyHelpUrl  = computed(() => providerConfig.value?.keyHelpUrl ?? '');
+const providerKeyHelpLabel = computed(() => providerConfig.value?.keyHelpLabel ?? t.value('export.apiKeyGetKey'));
 
 const qualityBias = ref(getQualityBias());
 const exportFormat = ref('json');
@@ -321,6 +332,43 @@ async function doImport() {
 .form-hint code { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.8125rem; }
 .form-row { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
 .form-hint-small { margin-top: var(--space-1); font-size: 0.8125rem; }
+.info-tooltip-wrapper {
+  position: relative;
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: var(--space-1);
+}
+.info-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.8125rem;
+  padding: 0;
+  line-height: 1;
+}
+.info-btn:hover, .info-btn:focus { color: var(--accent); outline: none; }
+.info-tooltip {
+  display: none;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  bottom: calc(100% + 6px);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--text-muted);
+  width: 240px;
+  white-space: normal;
+  z-index: 100;
+  pointer-events: none;
+}
+.info-tooltip-wrapper:hover .info-tooltip,
+.info-tooltip-wrapper:focus-within .info-tooltip { display: block; }
 .bias-toggle { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
 .bias-btn {
   flex: 1; padding: var(--space-2) var(--space-3); font: inherit; font-size: 0.875rem;
