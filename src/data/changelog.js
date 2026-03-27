@@ -5,9 +5,21 @@
  * Entry types: 'feat' | 'fix' | 'perf' | 'refactor'
  */
 
-export const APP_VERSION = '0.8.0';
+export const APP_VERSION = '0.9.0';
 
 export const CHANGELOG = [
+  {
+    version: '0.9.0',
+    date: '2026-03-27',
+    changes: [
+      { type: 'feat', text: 'Pip responses now stream token-by-token — text appears as it is generated instead of all at once' },
+      { type: 'feat', text: 'Scene-aware welcome message in Pip shows title and word count when the scene editor is open' },
+      { type: 'feat', text: 'Pip button shows a dot indicator when you navigate to a new scene while Pip is closed' },
+      { type: 'feat', text: 'Cmd+S / Ctrl+S saves the current scene in the scene editor' },
+      { type: 'feat', text: 'Keyboard shortcuts reference card added to Settings page' },
+      { type: 'feat', text: 'Empty state cards in Characters and Outline now include a CTA button to add your first entry' },
+    ],
+  },
   {
     version: '0.8.0',
     date: '2026-03-27',
