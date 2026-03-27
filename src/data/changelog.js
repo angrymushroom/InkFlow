@@ -5,9 +5,18 @@
  * Entry types: 'feat' | 'fix' | 'perf' | 'refactor'
  */
 
-export const APP_VERSION = '0.7.0';
+export const APP_VERSION = '0.8.0';
 
 export const CHANGELOG = [
+  {
+    version: '0.8.0',
+    date: '2026-03-27',
+    changes: [
+      { type: 'feat', text: 'Pip can now read the current scene\'s prose — ask for feedback, discuss pacing, reference specific lines' },
+      { type: 'feat', text: 'Pip can generate scene prose on request via a new generate_prose action chip' },
+      { type: 'fix', text: 'Written-scene count and outline ✓ markers now correctly reflect scenes with prose (was checking wrong field)' },
+    ],
+  },
   {
     version: '0.7.0',
     date: '2026-03-27',
