@@ -69,7 +69,10 @@ test('Journey C: Create chapter + scene via outline, write prose, verify written
   await expect(page.locator('.word-count')).toContainText('22');
 
   // ── Step 5: Save and navigate back to outline ────────────────────────────
+  // Wait for .saved-hint to confirm updateScene() DB write completed before
+  // navigating away — otherwise outline loads stale (empty) scene content.
   await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.locator('.saved-hint')).toBeVisible({ timeout: 6000 });
 
   await page.goto('/#/outline');
   await page.waitForLoadState('networkidle');
@@ -78,5 +81,5 @@ test('Journey C: Create chapter + scene via outline, write prose, verify written
   await expect(
     page.locator('.outline-scene-row').filter({ hasText: 'The Arrival' })
       .locator('.scene-status-indicator--written')
-  ).toBeVisible({ timeout: 5000 });
+  ).toBeVisible({ timeout: 8000 });
 });

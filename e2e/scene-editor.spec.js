@@ -83,13 +83,17 @@ test('scene prose persists after manual save and reload', async ({ page }) => {
   await prose.click();
   await prose.fill(testContent);
 
-  // Click Save
+  // Click Save — wait for .saved-hint to confirm the async updateScene() DB write
+  // completed before reloading (CI environments are slower and can race otherwise).
   await page.getByRole('button', { name: /^save$/i }).click();
+  await expect(page.locator('.saved-hint')).toBeVisible({ timeout: 6000 });
 
   // Reload and verify content persisted
   await page.reload();
   await page.waitForLoadState('networkidle');
-  await expect(page.locator('.prose-textarea')).toHaveValue(testContent);
+  // Wait for scene to re-load from Dexie after reload
+  await expect(page.locator('.prose-textarea')).toBeVisible({ timeout: 8000 });
+  await expect(page.locator('.prose-textarea')).toHaveValue(testContent, { timeout: 5000 });
 });
 
 test('scene editor loads existing content', async ({ page }) => {
