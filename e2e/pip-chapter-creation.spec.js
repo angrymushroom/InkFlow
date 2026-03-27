@@ -54,7 +54,7 @@ test('Pip creates a chapter via chat — sidebar shows new chapter after Save', 
     'Great idea!\n<pip-action>{"type":"add_chapter","title":"Act Two"}</pip-action>'
   );
 
-  await page.goto(`/#/write/scene/${sceneId}`);
+  await page.goto(`/#/write/${sceneId}`);
   await page.waitForLoadState('networkidle');
 
   // Open Pip and send message
@@ -92,7 +92,7 @@ test('Pip creates a scene via chat — outline view shows new scene after Save',
     'Adding the new scene.\n<pip-action>{"type":"add_scene","title":"The Confrontation","chapter_title_match":"Act One"}</pip-action>'
   );
 
-  await page.goto(`/#/write/scene/${sceneId}`);
+  await page.goto(`/#/write/${sceneId}`);
   await page.waitForLoadState('networkidle');
 
   await page.getByRole('button', { name: /open pip chat/i }).click();
@@ -126,7 +126,7 @@ test('Pip creates a character via chat — characters page shows Alice after Sav
     'Adding Alice.\n<pip-action>{"type":"upsert_character","name":"Alice","fields":{"oneSentence":"The brave hero."}}</pip-action>'
   );
 
-  await page.goto(`/#/write/scene/${sceneId}`);
+  await page.goto(`/#/write/${sceneId}`);
   await page.waitForLoadState('networkidle');
 
   await page.getByRole('button', { name: /open pip chat/i }).click();
