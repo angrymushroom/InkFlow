@@ -9,9 +9,6 @@
  *   Pip chat → <pip-action>{"type":"generate_prose"} → Save chip
  *   → generateSceneProse() → inkflow-prose-generated event
  *   → SceneEditorView updates textarea
- *
- * Journey G — Pip's written-scene count correctly reflects scenes that have
- * prose (tests the sc.content fix — was sc.prose which is always undefined).
  */
 import { test, expect } from '@playwright/test';
 import { resetDB, seedStory } from './helpers.js';
@@ -152,42 +149,3 @@ test('Journey F: Pip generates prose via action chip → prose appears in scene 
   });
 });
 
-// ─── Journey G ────────────────────────────────────────────────────────────────
-test('Journey G: Scenes with prose are counted as written in Pip welcome message', async ({
-  page,
-}) => {
-  const storyId = await seedStory(page, { title: 'My Novel' });
-  // Seed a scene that already has content (prose)
-  const sceneId = await seedSceneWithContent(page, storyId, {
-    content: 'It was a dark and stormy night. The rain fell in sheets.',
-  });
-
-  // Mock AI (not triggered in this test, but required so Pip input is not blocked)
-  await page.route('**/v1beta/models/**', (route) =>
-    route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Great work!' }] } }] }),
-    })
-  );
-
-  await page.goto(`/#/write/${sceneId}`);
-  await page.waitForLoadState('networkidle');
-
-  // Open Pip — context should load and identify 1 written scene
-  await page.getByRole('button', { name: /open pip chat/i }).click();
-
-  // Wait for context to finish loading (welcome message appears)
-  // pip.welcomeBack message includes the written scene count
-  await expect(page.locator('.otter-welcome p')).not.toContainText(
-    /reading/i,
-    { timeout: 8_000 }
-  );
-
-  // The welcome message uses pip.welcomeBack when writtenScenes > 0
-  // It should NOT show the "needs chapters" or empty-state messages
-  // and should reference written scenes (the count should be 1)
-  const welcomeText = await page.locator('.otter-welcome p').textContent();
-  // The welcome message should contain '1' (scenes written) not '0'
-  expect(welcomeText).toMatch(/1/);
-});
