@@ -566,6 +566,8 @@ export default {
     welcomeProgress: "Bon début ! Continuons — {question}",
     welcomeNeedCharacters: "Votre structure narrative est complète ! Donnons maintenant vie à vos personnages. Qui est votre protagoniste ?",
     welcomeNeedChapters: "Excellente base ! Voulez-vous commencer à planifier vos chapitres ?",
+    welcomeSceneWithProse: "Sur '{title}' — {n} mots écrits. Comment puis-je vous aider ?",
+    welcomeSceneNoProse: "Prêt à travailler sur '{title}' ? Je peux l'écrire ou on réfléchit ensemble.",
     welcomeBack: "Bon retour ! Vous avez écrit {n} scènes dans {chapters} chapitres. Voulez-vous continuer ou vous concentrer sur un point particulier ?",
     welcomeHasOutline: "Votre plan est prêt : {chapters} chapitres, {n} scènes. Prêt à écrire ?",
     coachQuestion: {
