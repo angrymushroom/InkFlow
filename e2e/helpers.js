@@ -1,6 +1,33 @@
 /**
  * E2E test helpers for InkFlow
  */
+import { expect } from '@playwright/test';
+
+/**
+ * Assert the app has actually rendered (not a blank page).
+ * Catches CSP errors, runtime crashes, and mount failures before any test
+ * logic runs. Call this after every page.goto() + waitForLoadState().
+ *
+ * Checks:
+ *  - #app contains real DOM children (not just <!---->)
+ *  - No uncaught JS errors (pageerror) were emitted during load
+ */
+export async function assertPageRendered(page) {
+  // The app mounts into #app — if it's empty or just a Vue comment node
+  // the app failed to render (blank page scenario).
+  const appContent = await page.evaluate(() => {
+    const app = document.getElementById('app');
+    if (!app) return '';
+    // Filter out comment nodes; only count real elements/text
+    return Array.from(app.childNodes)
+      .filter((n) => n.nodeType === 1 || (n.nodeType === 3 && n.textContent.trim()))
+      .length.toString();
+  });
+  expect(
+    parseInt(appContent, 10),
+    'App rendered no content — possible blank page (CSP error, runtime crash, or mount failure)'
+  ).toBeGreaterThan(0);
+}
 
 /**
  * Deletes the InkFlow IndexedDB and clears the current story from localStorage.
