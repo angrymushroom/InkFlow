@@ -212,15 +212,15 @@ const checkpointSceneId = computed(() => checkpointScene.value?.id ?? null)
 const continuHint = computed(() => {
   if (!checkpointScene.value) return ''
   const name = checkpointScene.value.title || t.value('outline.untitledScene')
-  return t.value('write.generateContinueHint').replace('{{name}}', name)
+  return t.value('write.generateContinueHint', { name })
 })
 
 const progressLabel = computed(() =>
-  t
-    .value('write.generatingProgress')
-    .replace('{{current}}', String(progressCurrent.value))
-    .replace('{{total}}', String(progressTotal.value))
-    .replace('{{name}}', progressName.value)
+  t.value('write.generatingProgress', {
+    current: progressCurrent.value,
+    total: progressTotal.value,
+    name: progressName.value,
+  })
 )
 
 const generateProgressPercent = computed(() => {
@@ -246,14 +246,12 @@ async function runGeneration(fromSceneId) {
     allScenes.value = await getScenes(storyId)
     if (errors.length > 0) {
       resultHasErrors.value = true
-      resultMessage.value = t
-        .value('write.generatePartial')
-        .replace('{{generated}}', String(generated))
-        .replace('{{errors}}', String(errors.length))
+      resultMessage.value = t.value('write.generatePartial', {
+        generated,
+        errors: errors.length,
+      })
     } else {
-      resultMessage.value = t
-        .value('write.generateDone')
-        .replace('{{generated}}', String(generated))
+      resultMessage.value = t.value('write.generateDone', { generated })
     }
     setTimeout(() => {
       resultMessage.value = ''
@@ -275,10 +273,7 @@ async function onGenerateContinue() {
   if (!scene) return
   const remaining = (scenes.value || []).filter((s) => sceneWordCount(s) === 0).length
   const name = scene.title || t.value('outline.untitledScene')
-  const msg = t
-    .value('write.generateConfirm')
-    .replace('{{count}}', String(remaining))
-    .replace('{{name}}', name)
+  const msg = t.value('write.generateConfirm', { count: remaining, name })
   if (!confirm(msg)) return
   await runGeneration(scene.id)
 }
@@ -286,7 +281,7 @@ async function onGenerateContinue() {
 async function onGenerateAll() {
   const list = scenes.value || []
   if (!list.length) return
-  const msg = t.value('write.generateAllConfirm').replace('{{count}}', String(list.length))
+  const msg = t.value('write.generateAllConfirm', { count: list.length })
   if (!confirm(msg)) return
   await runGeneration(list[0].id)
 }

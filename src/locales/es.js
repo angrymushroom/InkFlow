@@ -419,20 +419,20 @@ export default {
     goToOutline: 'Ir al Esquema',
     generateContinue: 'Generar desde donde lo dejé',
     generateContinueHint:
-      'La IA escribirá las escenas sin contenido a partir de "{{name}}". Las escenas ya escritas no se tocarán.',
+      'La IA escribirá las escenas sin contenido a partir de "{name}". Las escenas ya escritas no se tocarán.',
     generateAll: 'Regenerar todo',
     generateAllDone: 'Todas las escenas ya están escritas.',
     generateAllDoneHint:
       'Cada escena tiene contenido. Puedes regenerar todo, pero se sobrescribirá la prosa existente.',
     generateConfirm:
-      '¿Generar {{count}} escena(s) a partir de "{{name}}"? Las escenas anteriores ya escritas no se modificarán.',
+      '¿Generar {count} escena(s) a partir de "{name}"? Las escenas anteriores ya escritas no se modificarán.',
     generateAllConfirm:
-      '¿Regenerar las {{count}} escena(s)? Esto sobrescribirá toda la prosa existente.',
+      '¿Regenerar las {count} escena(s)? Esto sobrescribirá toda la prosa existente.',
     generating: 'Generando…',
-    generatingProgress: 'Escena {{current}} de {{total}}: {{name}}',
-    generateDone: '{{generated}} escena(s) generada(s).',
+    generatingProgress: 'Escena {current} de {total}: {name}',
+    generateDone: '{generated} escena(s) generada(s).',
     generatePartial:
-      '{{generated}} generada(s), {{errors}} fallida(s). Comprueba tu clave API en Ajustes.',
+      '{generated} generada(s), {errors} fallida(s). Comprueba tu clave API en Ajustes.',
     totalWords: 'palabras totales',
     scenesWritten: 'escenas escritas',
     scenesTotal: 'escenas totales',

@@ -414,19 +414,19 @@ export default {
     goToOutline: 'Go to Outline',
     generateContinue: 'Generate from where I left off',
     generateContinueHint:
-      'AI will write prose for every unwritten scene, starting from "{{name}}". Your existing scenes are untouched.',
+      'AI will write prose for every unwritten scene, starting from "{name}". Your existing scenes are untouched.',
     generateAll: 'Regenerate all',
     generateAllDone: 'All scenes already written.',
     generateAllDoneHint:
       'Every scene has content. You can regenerate all scenes, but this will overwrite existing prose.',
     generateConfirm:
-      'Generate {{count}} scene(s) starting from "{{name}}"? Already-written scenes before this point are untouched.',
+      'Generate {count} scene(s) starting from "{name}"? Already-written scenes before this point are untouched.',
     generateAllConfirm:
-      'Regenerate all {{count}} scene(s)? This will overwrite all existing prose.',
+      'Regenerate all {count} scene(s)? This will overwrite all existing prose.',
     generating: 'Generating…',
-    generatingProgress: 'Scene {{current}} of {{total}}: {{name}}',
-    generateDone: '{{generated}} scene(s) generated.',
-    generatePartial: '{{generated}} generated, {{errors}} failed. Check your API key in Settings.',
+    generatingProgress: 'Scene {current} of {total}: {name}',
+    generateDone: '{generated} scene(s) generated.',
+    generatePartial: '{generated} generated, {errors} failed. Check your API key in Settings.',
     totalWords: 'total words',
     scenesWritten: 'scenes written',
     scenesTotal: 'total scenes',

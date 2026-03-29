@@ -421,20 +421,20 @@ export default {
     goToOutline: 'Aller à la Structure',
     generateContinue: "Générer depuis où j\'en suis",
     generateContinueHint:
-      "L'IA rédigera toutes les scènes vides à partir de « {{name}} ». Les scènes déjà écrites ne seront pas modifiées.",
+      "L'IA rédigera toutes les scènes vides à partir de « {name} ». Les scènes déjà écrites ne seront pas modifiées.",
     generateAll: 'Tout régénérer',
     generateAllDone: 'Toutes les scènes sont déjà rédigées.',
     generateAllDoneHint:
       'Chaque scène a du contenu. Vous pouvez tout régénérer, mais cela écrasera la prose existante.',
     generateConfirm:
-      'Générer {{count}} scène(s) à partir de « {{name}} » ? Les scènes déjà écrites avant ce point ne seront pas modifiées.',
+      'Générer {count} scène(s) à partir de « {name} » ? Les scènes déjà écrites avant ce point ne seront pas modifiées.',
     generateAllConfirm:
-      'Régénérer les {{count}} scène(s) ? Cela écrasera toute la prose existante.',
+      'Régénérer les {count} scène(s) ? Cela écrasera toute la prose existante.',
     generating: 'Génération en cours…',
-    generatingProgress: 'Scène {{current}} sur {{total}} : {{name}}',
-    generateDone: '{{generated}} scène(s) générée(s).',
+    generatingProgress: 'Scène {current} sur {total} : {name}',
+    generateDone: '{generated} scène(s) générée(s).',
     generatePartial:
-      '{{generated}} générée(s), {{errors}} échouée(s). Vérifiez votre clé API dans les Paramètres.',
+      '{generated} générée(s), {errors} échouée(s). Vérifiez votre clé API dans les Paramètres.',
     totalWords: 'mots au total',
     scenesWritten: 'scènes rédigées',
     scenesTotal: 'scènes au total',
