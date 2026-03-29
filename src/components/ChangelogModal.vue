@@ -3,7 +3,7 @@
     <div class="cl-backdrop" @click.self="$emit('close')">
       <div class="cl-modal" role="dialog" aria-modal="true">
         <div class="cl-header">
-          <h2 class="cl-title">{{ t('settings.changelogTitle') }}</h2>
+          <h2 class="cl-title">{{ t('settings.changelogTitle') }} <span class="cl-title-version">v{{ APP_VERSION }}</span></h2>
           <button
             class="cl-close"
             @click="$emit('close')"
@@ -13,18 +13,12 @@
           </button>
         </div>
         <div class="cl-body">
-          <div v-for="entry in CHANGELOG" :key="entry.version" class="cl-version">
-            <div class="cl-version-header">
-              <span class="cl-version-num">v{{ entry.version }}</span>
-              <span class="cl-version-date">{{ entry.date }}</span>
-            </div>
-            <ul class="cl-list">
-              <li v-for="(change, i) in entry.changes" :key="i" class="cl-item">
-                <span class="cl-badge" :class="`cl-badge--${change.type}`">{{ change.type }}</span>
-                <span class="cl-text">{{ change.text }}</span>
-              </li>
-            </ul>
-          </div>
+          <ul class="cl-list">
+            <li v-for="(change, i) in CHANGELOG[0].changes" :key="i" class="cl-item">
+              <span class="cl-badge" :class="`cl-badge--${change.type}`">{{ change.type }}</span>
+              <span class="cl-text">{{ change.text }}</span>
+            </li>
+          </ul>
         </div>
       </div>
     </div>
@@ -33,7 +27,7 @@
 
 <script setup>
 import { useI18n } from '@/composables/useI18n'
-import { CHANGELOG } from '@/data/changelog'
+import { CHANGELOG, APP_VERSION } from '@/data/changelog'
 
 const { t } = useI18n()
 defineEmits(['close'])
@@ -74,6 +68,14 @@ defineEmits(['close'])
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0;
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+}
+.cl-title-version {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--text-muted);
 }
 .cl-close {
   background: none;

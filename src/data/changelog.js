@@ -3,10 +3,14 @@
  * Keep APP_VERSION in sync with package.json on every release.
  *
  * Entry types: 'feat' | 'fix' | 'perf' | 'refactor'
+ *
+ * CHANGELOG         — latest version only; shown in the Settings UI
+ * CHANGELOG_HISTORY — full version history; internal reference only, not rendered in the app
  */
 
 export const APP_VERSION = '0.9.0'
 
+// Shown in the app — current release only.
 export const CHANGELOG = [
   {
     version: '0.9.0',
@@ -32,6 +36,10 @@ export const CHANGELOG = [
       },
     ],
   },
+]
+
+// Full version history — internal reference, not used in the UI.
+export const CHANGELOG_HISTORY = [
   {
     version: '0.8.0',
     date: '2026-03-27',
