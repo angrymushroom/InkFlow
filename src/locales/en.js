@@ -2,7 +2,8 @@ export default {
   common: {
     unsavedLeave: 'You have unsaved changes. Leave anyway?',
     loadErrorGeneric: 'Could not load. Try again or check backup in Settings.',
-    saveErrorGeneric: 'Could not save. If you\'re in private browsing or out of space, try downloading a backup in Settings.',
+    saveErrorGeneric:
+      "Could not save. If you're in private browsing or out of space, try downloading a backup in Settings.",
   },
   nav: {
     ideas: 'Ideas',
@@ -37,14 +38,16 @@ export default {
   },
   ideas: {
     title: 'Ideas',
-    subtitle: 'Capture plot scraps, character traits, world details, or scene ideas. No structure yet — just capture.',
+    subtitle:
+      'Capture plot scraps, character traits, world details, or scene ideas. No structure yet — just capture.',
     newIdea: 'New idea',
     editIdea: 'Edit idea',
     titleLabel: 'Title',
     bodyLabel: 'Body',
     typeLabel: 'Type',
     shortTitle: 'Short title',
-    bodyPlaceholder: 'Quick idea... Type /ai then click Expand with AI to make it comprehensive using your Story & other Ideas.',
+    bodyPlaceholder:
+      'Quick idea... Type /ai then click Expand with AI to make it comprehensive using your Story & other Ideas.',
     plot: 'Plot',
     subplot: 'Subplot',
     scene: 'Scene',
@@ -90,7 +93,8 @@ export default {
   },
   entities: {
     title: 'Entities',
-    subtitle: 'Manage characters, locations, items, and other story objects. Select a type to view and edit.',
+    subtitle:
+      'Manage characters, locations, items, and other story objects. Select a type to view and edit.',
     filterByType: 'Filter by type',
     typeCharacters: 'Characters',
     addCharacter: 'Add character',
@@ -124,7 +128,8 @@ export default {
     },
     save_the_cat: {
       name: 'Save the Cat',
-      subtitle: 'Beat sheet structure: logline → catalyst → fun & games → midpoint → all is lost → finale.',
+      subtitle:
+        'Beat sheet structure: logline → catalyst → fun & games → midpoint → all is lost → finale.',
       fields: {
         logline: 'Logline',
         catalyst: 'Catalyst (Act 1)',
@@ -144,7 +149,8 @@ export default {
     },
     story_circle: {
       name: 'Story Circle',
-      subtitle: 'Dan Harmon\'s 8-segment circle: character in stasis → need → journey → transformation.',
+      subtitle:
+        "Dan Harmon's 8-segment circle: character in stasis → need → journey → transformation.",
       fields: {
         you: 'You (stasis)',
         need: 'Need',
@@ -157,7 +163,7 @@ export default {
       },
       placeholders: {
         you: 'Who is the protagonist? Their comfortable ordinary world.',
-        need: 'What do they need — even if they don\'t know it yet?',
+        need: "What do they need — even if they don't know it yet?",
         go: 'They enter an unfamiliar situation or world.',
         search: 'They adapt, try things, meet allies and enemies.',
         find: 'They find what they were after.',
@@ -168,7 +174,8 @@ export default {
     },
     hero_journey: {
       name: "Hero's Journey",
-      subtitle: "Campbell's monomyth: hero leaves ordinary world, faces trials, survives the ordeal, returns transformed.",
+      subtitle:
+        "Campbell's monomyth: hero leaves ordinary world, faces trials, survives the ordeal, returns transformed.",
       fields: {
         premise: 'Story premise',
         call: 'Call to Adventure',
@@ -186,7 +193,8 @@ export default {
     },
     kishotenketsu: {
       name: '起承转合',
-      subtitle: 'East Asian 4-act: introduce (起), develop (承), twist (转, no conflict needed), resolve (合).',
+      subtitle:
+        'East Asian 4-act: introduce (起), develop (承), twist (转, no conflict needed), resolve (合).',
       fields: {
         ki: '起 — Introduction',
         sho: '承 — Development',
@@ -203,10 +211,12 @@ export default {
   },
   story: {
     title: 'Story',
-    subtitle: 'Define your story spine — the structural backbone that guides your outline and scenes.',
+    subtitle:
+      'Define your story spine — the structural backbone that guides your outline and scenes.',
     templateLabel: 'Template',
     oneSentence: 'One-sentence summary',
-    oneSentencePlaceholder: 'Your story in one sentence (who, what, stakes). Type /ai then click Expand to enrich from Ideas.',
+    oneSentencePlaceholder:
+      'Your story in one sentence (who, what, stakes). Type /ai then click Expand to enrich from Ideas.',
     setup: 'Setup',
     setupPlaceholder: 'Opening situation and world. Use /ai + Expand with AI to relate your Ideas.',
     disaster1: 'Disaster 1',
@@ -219,7 +229,8 @@ export default {
     endingPlaceholder: 'Resolution',
     saveStory: 'Save story spine',
     saved: 'Saved',
-    saveError: 'Could not save. If you\'re in private browsing or out of space, try downloading a backup and using a normal window.',
+    saveError:
+      "Could not save. If you're in private browsing or out of space, try downloading a backup and using a normal window.",
     fieldOneSentence: 'One-sentence summary',
     fieldSetup: 'Setup',
     fieldDisaster1: 'Disaster 1',
@@ -229,13 +240,15 @@ export default {
     deleteStorySection: 'Delete story',
     deleteStory: 'Delete this story',
     deleteStoryConfirmTitle: 'Delete this story?',
-    deleteStoryConfirmBody: 'This will permanently delete this story and all its ideas, characters, chapters, and scenes. This cannot be undone.',
+    deleteStoryConfirmBody:
+      'This will permanently delete this story and all its ideas, characters, chapters, and scenes. This cannot be undone.',
     deleteStoryConfirmButton: 'Delete story',
     cannotDeleteLastStory: 'You must have at least one story.',
   },
   characters: {
     title: 'Characters',
-    subtitle: 'Snowflake step 3: for each major character — name, one-sentence role, goal, motivation, conflict, epiphany.',
+    subtitle:
+      'Snowflake step 3: for each major character — name, one-sentence role, goal, motivation, conflict, epiphany.',
     newCharacter: 'New character',
     editCharacter: 'Edit character',
     name: 'Name',
@@ -260,7 +273,8 @@ export default {
     fieldEpiphany: 'Character epiphany',
     confirmDelete: 'Delete this character?',
     relationships: 'Relationships',
-    relationshipsSubtitle: 'Define connections between characters — rivalries, alliances, family, and more.',
+    relationshipsSubtitle:
+      'Define connections between characters — rivalries, alliances, family, and more.',
     newRelationship: 'New relationship',
     relFrom: 'Character A',
     relTo: 'Character B',
@@ -331,48 +345,62 @@ export default {
       ketsu: '合',
     },
     sectionTip: {
-      setup: 'Opening: establish the world, protagonist, and the ordinary situation before things go wrong.',
-      disaster1: 'First major disaster: break the status quo and push the protagonist into a new situation.',
+      setup:
+        'Opening: establish the world, protagonist, and the ordinary situation before things go wrong.',
+      disaster1:
+        'First major disaster: break the status quo and push the protagonist into a new situation.',
       disaster2: 'Second disaster: raise the stakes, deepen the conflict, and make things worse.',
       disaster3: 'Third disaster / climax: the biggest crisis where everything is on the line.',
       ending: 'Ending: resolution and consequences after the climax.',
-      ungrouped: 'Chapters that are not yet linked to a specific spine section. Assign them so the outline stays aligned.',
+      ungrouped:
+        'Chapters that are not yet linked to a specific spine section. Assign them so the outline stays aligned.',
       act1: 'Opening image to Break Into Two: establish tone, introduce the protagonist, and launch the inciting incident.',
-      act2a: 'Fun and Games: the promise of the premise — the protagonist in the new world, exploring before real stakes hit.',
-      midpoint: 'The middle turn: a false victory or false defeat that raises the stakes and shifts the direction.',
-      act2b: 'Bad Guys Close In to All Is Lost: mounting pressure, betrayals, and the darkest moment before the finale.',
-      act3: 'Break Into Three to Final Image: the protagonist synthesises what they\'ve learned and resolves the conflict.',
+      act2a:
+        'Fun and Games: the promise of the premise — the protagonist in the new world, exploring before real stakes hit.',
+      midpoint:
+        'The middle turn: a false victory or false defeat that raises the stakes and shifts the direction.',
+      act2b:
+        'Bad Guys Close In to All Is Lost: mounting pressure, betrayals, and the darkest moment before the finale.',
+      act3: "Break Into Three to Final Image: the protagonist synthesises what they've learned and resolves the conflict.",
       you: 'The protagonist in their comfortable, familiar world — stasis before the journey.',
-      need: 'Something is missing or wrong — what does the protagonist need, even if they don\'t know it?',
+      need: "Something is missing or wrong — what does the protagonist need, even if they don't know it?",
       go: 'The protagonist crosses into an unfamiliar situation or world.',
       search: 'Adapting, trying, failing, and making allies and enemies in the new world.',
       find: 'The protagonist finds what they were looking for.',
       take: 'But getting it comes at a price — a moment of sacrifice or consequence.',
       return: 'The protagonist returns to their familiar world, changed.',
       change: 'The transformation is complete — they are not who they were at the start.',
-      departure: 'Set up the hero\'s ordinary world, introduce the call to adventure, and show them crossing the threshold into the unknown.',
-      road_of_trials: 'The hero faces tests, makes allies and enemies, and is shaped by the journey.',
-      ordeal: 'The supreme crisis — the hero faces their greatest fear and undergoes a symbolic death and rebirth.',
+      departure:
+        "Set up the hero's ordinary world, introduce the call to adventure, and show them crossing the threshold into the unknown.",
+      road_of_trials:
+        'The hero faces tests, makes allies and enemies, and is shaped by the journey.',
+      ordeal:
+        'The supreme crisis — the hero faces their greatest fear and undergoes a symbolic death and rebirth.',
       ki: 'Introduce your characters, world, and the opening situation. No conflict needed — just set the stage.',
       sho: 'Develop and deepen what was introduced. Build atmosphere, relationships, and texture.',
       ten: 'Introduce an unexpected element — a revelation, a shift in perspective, or a juxtaposition. This reframes what came before.',
       ketsu: 'Bring all threads together. The twist from Ten finds its meaning here.',
     },
     spineLabel: 'Story spine note for this section',
-    spineNotFilled: 'This part of the story spine is not filled yet. You can still outline, but consider filling it in the Story page.',
+    spineNotFilled:
+      'This part of the story spine is not filled yet. You can still outline, but consider filling it in the Story page.',
     noChaptersInSection: 'No chapters yet in this section. Add one or let AI draft suggestions.',
     aiDraftAll: 'AI draft outline from spine',
     aiDraftSection: 'AI draft this section',
     aiDraftTitle: 'AI outline draft from your spine',
     aiDraftSectionTitle: 'AI draft for {section}',
-    aiDraftHint: 'Review and adjust these chapter + scene suggestions. When you click Apply, they will be added as real chapters and scenes under the chosen sections.',
+    aiDraftHint:
+      'Review and adjust these chapter + scene suggestions. When you click Apply, they will be added as real chapters and scenes under the chosen sections.',
     aiDraftScenesLabel: 'Scenes in this chapter',
     aiDraftEmptySection: 'No suggestions for this section in the current draft.',
     aiDraftApply: 'Apply outline',
-    aiDraftError: 'Could not draft outline from AI. Check your AI key in Settings → AI, then try again.',
+    aiDraftError:
+      'Could not draft outline from AI. Check your AI key in Settings → AI, then try again.',
     aiDrafting: 'Drafting…',
-    aiExtraContextChapterPrefix: 'This chapter should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
-    aiExtraContextScenePrefix: 'This scene should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
+    aiExtraContextChapterPrefix:
+      'This chapter should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
+    aiExtraContextScenePrefix:
+      'This scene should fit into the "{section}" section of the story spine. Stay consistent with that part of the spine:',
     editInStory: 'Edit in Story →',
     spineRefLabel: 'Story spine',
     addFirstScene: 'Add first scene',
@@ -385,12 +413,16 @@ export default {
     empty: 'No scenes yet. Add chapters and scenes in the Outline first.',
     goToOutline: 'Go to Outline',
     generateContinue: 'Generate from where I left off',
-    generateContinueHint: 'AI will write prose for every unwritten scene, starting from "{{name}}". Your existing scenes are untouched.',
+    generateContinueHint:
+      'AI will write prose for every unwritten scene, starting from "{{name}}". Your existing scenes are untouched.',
     generateAll: 'Regenerate all',
     generateAllDone: 'All scenes already written.',
-    generateAllDoneHint: 'Every scene has content. You can regenerate all scenes, but this will overwrite existing prose.',
-    generateConfirm: 'Generate {{count}} scene(s) starting from "{{name}}"? Already-written scenes before this point are untouched.',
-    generateAllConfirm: 'Regenerate all {{count}} scene(s)? This will overwrite all existing prose.',
+    generateAllDoneHint:
+      'Every scene has content. You can regenerate all scenes, but this will overwrite existing prose.',
+    generateConfirm:
+      'Generate {{count}} scene(s) starting from "{{name}}"? Already-written scenes before this point are untouched.',
+    generateAllConfirm:
+      'Regenerate all {{count}} scene(s)? This will overwrite all existing prose.',
     generating: 'Generating…',
     generatingProgress: 'Scene {{current}} of {{total}}: {{name}}',
     generateDone: '{{generated}} scene(s) generated.',
@@ -462,16 +494,19 @@ export default {
   },
   export: {
     title: 'Export',
-    subtitle: 'Back up your project as a JSON file. You can import it later to restore or move to another device.',
+    subtitle:
+      'Back up your project as a JSON file. You can import it later to restore or move to another device.',
     language: 'Language',
     languageSubtitle: 'App and writing language.',
     ai: 'AI (Expand with /ai)',
-    aiHint: 'Type a short idea in any card, then type /ai and click "✨ Expand with AI" to have the AI turn it into a fuller paragraph using your Ideas and Story context. Your keys are stored only in this browser.',
+    aiHint:
+      'Type a short idea in any card, then type /ai and click "✨ Expand with AI" to have the AI turn it into a fuller paragraph using your Ideas and Story context. Your keys are stored only in this browser.',
     provider: 'Provider',
     apiKey: 'API key',
-    apiKeyHint: 'Get your API key from the provider\'s platform:',
+    apiKeyHint: "Get your API key from the provider's platform:",
     apiKeyGetKey: 'Get API key',
-    apiKeyPrivacyNote: 'API keys are stored only in your browser\'s localStorage. They are never sent to our servers.',
+    apiKeyPrivacyNote:
+      "API keys are stored only in your browser's localStorage. They are never sent to our servers.",
     apiKeyStoredLocally: 'API keys are stored only on this device.',
     show: 'Show',
     hide: 'Hide',
@@ -483,7 +518,8 @@ export default {
     exportErrorGeneric: 'Export failed. Try again or copy your text elsewhere.',
     exportFormat: 'Format',
     formatJson: 'JSON — full backup',
-    formatJsonHint: 'Saves everything: story spine, characters, ideas, chapters, and scenes. Use this to restore your project on another device.',
+    formatJsonHint:
+      'Saves everything: story spine, characters, ideas, chapters, and scenes. Use this to restore your project on another device.',
     formatStoryHint: 'Story prose only — chapter titles and scene content.',
     formatMarkdown: 'Markdown (.md)',
     formatTxt: 'Plain text (.txt)',
@@ -505,7 +541,8 @@ export default {
     qualityBias: 'AI quality',
     qualityBiasFaster: 'Faster',
     qualityBiasBest: 'Best quality',
-    qualityBiasHint: '"Faster" uses lighter models for lower cost and higher speed. "Best quality" upgrades scene writing, outlines, and field expansion to use the advanced model.',
+    qualityBiasHint:
+      '"Faster" uses lighter models for lower cost and higher speed. "Best quality" upgrades scene writing, outlines, and field expansion to use the advanced model.',
   },
   pip: {
     storyCompanion: 'Story companion',
@@ -516,21 +553,27 @@ export default {
     goToSettings: 'Go to Settings',
     clearChat: 'Clear chat',
     clearChatConfirm: 'Clear chat history for this story?',
-    welcomeDefault: "Hi! I\u2019m Pip \ud83e\udda6 Tell me about the story you want to write \u2014 or just say hello and we\u2019ll find an idea together!",
-    welcomeEmpty: "Hi! I\u2019m Pip \ud83e\udda6 {question}",
-    welcomeProgress: "Good progress! Let\u2019s keep going \u2014 {question}",
-    welcomeNeedCharacters: "Your story structure is complete! Now let\u2019s bring your characters to life. Who is your protagonist?",
-    welcomeNeedChapters: "Great foundation! Want to start mapping out your chapters?",
+    welcomeDefault:
+      'Hi! I\u2019m Pip \ud83e\udda6 Tell me about the story you want to write \u2014 or just say hello and we\u2019ll find an idea together!',
+    welcomeEmpty: 'Hi! I\u2019m Pip \ud83e\udda6 {question}',
+    welcomeProgress: 'Good progress! Let\u2019s keep going \u2014 {question}',
+    welcomeNeedCharacters:
+      'Your story structure is complete! Now let\u2019s bring your characters to life. Who is your protagonist?',
+    welcomeNeedChapters: 'Great foundation! Want to start mapping out your chapters?',
     welcomeSceneWithProse: "Working on '{title}' \u2014 {n} words written. What can I help with?",
-    welcomeSceneNoProse: "Ready to work on '{title}'? I can write it, or let\u2019s think it through together.",
-    welcomeBack: "Welcome back! You\u2019ve written {n} scenes across {chapters} chapters. Want to keep going or focus on something specific?",
-    welcomeHasOutline: "Your outline is ready: {chapters} chapters, {n} scenes. Ready to start writing?",
+    welcomeSceneNoProse:
+      "Ready to work on '{title}'? I can write it, or let\u2019s think it through together.",
+    welcomeBack:
+      'Welcome back! You\u2019ve written {n} scenes across {chapters} chapters. Want to keep going or focus on something specific?',
+    welcomeHasOutline:
+      'Your outline is ready: {chapters} chapters, {n} scenes. Ready to start writing?',
     coachQuestion: {
       snowflake: {
         oneSentence: 'Tell me your story idea \u2014 even one sentence is enough to start.',
         setup: 'How does the story begin? What is the world like before everything changes?',
         disaster1: 'What is the first major turning point \u2014 the moment things go wrong?',
-        disaster2: 'How do the stakes escalate? What makes things even harder for your protagonist?',
+        disaster2:
+          'How do the stakes escalate? What makes things even harder for your protagonist?',
         disaster3: 'What is the darkest moment \u2014 when all hope seems lost?',
         ending: 'How does it resolve? What has your protagonist learned or become by the end?',
       },
@@ -566,12 +609,14 @@ export default {
     titleExpand: 'Expand this with AI using your Ideas & Story context',
     titleSetup: 'Set up your API key first',
     setupTitle: 'Set up AI to use Expand with AI',
-    setupText: 'Add your API key in Settings → AI. You can use Google Gemini (free key) or OpenAI. Your key is stored only in this browser.',
+    setupText:
+      'Add your API key in Settings → AI. You can use Google Gemini (free key) or OpenAI. Your key is stored only in this browser.',
     goToSetup: 'Go to Setup',
     close: 'Close',
     checkKey: 'Check key or Test API in Settings → AI',
     previewTitle: 'AI suggestion',
-    previewHint: 'You can edit the text below, then Apply to use it, Try again for another idea, or Keep mine to leave your original.',
+    previewHint:
+      'You can edit the text below, then Apply to use it, Try again for another idea, or Keep mine to leave your original.',
     previewPlaceholder: 'AI-generated text…',
     apply: 'Apply',
     tryAgain: 'Try again',
@@ -591,7 +636,8 @@ export default {
     submit: 'Send',
     required: 'Please enter some feedback.',
     thankYou: 'Thank you!',
-    thankYouMsg: 'Your feedback has been copied to the clipboard — feel free to paste it in an email or GitHub issue.',
+    thankYouMsg:
+      'Your feedback has been copied to the clipboard — feel free to paste it in an email or GitHub issue.',
     done: 'Done',
   },
   entitySuggestion: {

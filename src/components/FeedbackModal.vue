@@ -7,7 +7,18 @@
           <div class="fb-header">
             <h2 class="fb-title">{{ t('feedback.title') }}</h2>
             <button type="button" class="fb-close" :aria-label="t('ideas.cancel')" @click="close">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+              <svg
+                width="14"
+                height="14"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                aria-hidden="true"
+              >
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
             </button>
           </div>
 
@@ -44,8 +55,12 @@
 
           <!-- Actions -->
           <div class="fb-actions">
-            <button type="button" class="btn btn-ghost btn-sm" @click="close">{{ t('ideas.cancel') }}</button>
-            <button type="button" class="btn btn-primary btn-sm" @click="submit">{{ t('feedback.submit') }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="close">
+              {{ t('ideas.cancel') }}
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" @click="submit">
+              {{ t('feedback.submit') }}
+            </button>
           </div>
         </template>
 
@@ -55,7 +70,9 @@
             <span class="fb-thankyou-icon" aria-hidden="true">🎉</span>
             <h2 class="fb-title">{{ t('feedback.thankYou') }}</h2>
             <p class="fb-thankyou-msg">{{ t('feedback.thankYouMsg') }}</p>
-            <button type="button" class="btn btn-primary btn-sm" @click="close">{{ t('feedback.done') }}</button>
+            <button type="button" class="btn btn-primary btn-sm" @click="close">
+              {{ t('feedback.done') }}
+            </button>
           </div>
         </template>
       </div>
@@ -64,58 +81,65 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { useI18n } from '@/composables/useI18n';
-import { useToast } from '@/composables/useToast';
+import { ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+import { useToast } from '@/composables/useToast'
 
-const props = defineProps({ open: Boolean });
-const emit = defineEmits(['close']);
+const props = defineProps({ open: Boolean })
+const emit = defineEmits(['close'])
 
-const { t } = useI18n();
-const { success: toastSuccess } = useToast();
+const { t } = useI18n()
+const { success: toastSuccess } = useToast()
 
 const TYPES = [
-  { key: 'bug',        emoji: '🐛' },
+  { key: 'bug', emoji: '🐛' },
   { key: 'suggestion', emoji: '💡' },
-  { key: 'praise',     emoji: '❤️' },
-  { key: 'other',      emoji: '💬' },
-];
+  { key: 'praise', emoji: '❤️' },
+  { key: 'other', emoji: '💬' },
+]
 
-const selectedType = ref('suggestion');
-const body = ref('');
-const validationError = ref(false);
-const submitted = ref(false);
+const selectedType = ref('suggestion')
+const body = ref('')
+const validationError = ref(false)
+const submitted = ref(false)
 
-function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+function capitalize(s) {
+  return s.charAt(0).toUpperCase() + s.slice(1)
+}
 
 // Reset when opened
-watch(() => props.open, (val) => {
-  if (val) {
-    selectedType.value = 'suggestion';
-    body.value = '';
-    validationError.value = false;
-    submitted.value = false;
+watch(
+  () => props.open,
+  (val) => {
+    if (val) {
+      selectedType.value = 'suggestion'
+      body.value = ''
+      validationError.value = false
+      submitted.value = false
+    }
   }
-});
+)
 
 async function submit() {
   if (!body.value.trim()) {
-    validationError.value = true;
-    return;
+    validationError.value = true
+    return
   }
-  validationError.value = false;
+  validationError.value = false
 
-  const typeLabel = t.value(`feedback.type${capitalize(selectedType.value)}`);
-  const text = `[${typeLabel}]\n${body.value.trim()}`;
+  const typeLabel = t.value(`feedback.type${capitalize(selectedType.value)}`)
+  const text = `[${typeLabel}]\n${body.value.trim()}`
   try {
-    await navigator.clipboard.writeText(text);
+    await navigator.clipboard.writeText(text)
   } catch {
     // clipboard API unavailable — still show thank-you
   }
-  submitted.value = true;
+  submitted.value = true
 }
 
-function close() { emit('close'); }
+function close() {
+  emit('close')
+}
 </script>
 
 <style scoped>
@@ -167,11 +191,20 @@ function close() { emit('close'); }
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
-.fb-close:hover { color: var(--text); background: var(--border); }
+.fb-close:hover {
+  color: var(--text);
+  background: var(--border);
+}
 
-.fb-field { display: flex; flex-direction: column; gap: var(--space-2); }
+.fb-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
 
 .fb-label {
   font-size: 0.8125rem;
@@ -199,9 +232,15 @@ function close() { emit('close'); }
   background: var(--bg);
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
-.fb-type-btn:hover { border-color: var(--accent); color: var(--accent); }
+.fb-type-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
 .fb-type-btn--active {
   border-color: var(--accent);
   background: var(--accent-subtle);
@@ -240,7 +279,10 @@ function close() { emit('close'); }
   padding: var(--space-3) 0;
   text-align: center;
 }
-.fb-thankyou-icon { font-size: 2rem; line-height: 1; }
+.fb-thankyou-icon {
+  font-size: 2rem;
+  line-height: 1;
+}
 .fb-thankyou-msg {
   margin: 0;
   font-size: 0.9375rem;

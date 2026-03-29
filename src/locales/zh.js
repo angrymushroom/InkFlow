@@ -206,7 +206,8 @@ export default {
     subtitle: '定义你的故事骨架——指引大纲和场景写作的结构核心。',
     templateLabel: '写作模版',
     oneSentence: '一句话概括',
-    oneSentencePlaceholder: '用一句话概括你的故事（谁、什么事、赌注）。输入 /ai 后点击扩展可从灵感中丰富内容。',
+    oneSentencePlaceholder:
+      '用一句话概括你的故事（谁、什么事、赌注）。输入 /ai 后点击扩展可从灵感中丰富内容。',
     setup: '开端',
     setupPlaceholder: '开场情境与世界。用 /ai + 用 AI 扩展 可结合你的灵感。',
     disaster1: '灾难 1',
@@ -359,20 +360,24 @@ export default {
       ketsu: '汇聚所有线索。"转"的意义在这里得到呈现。',
     },
     spineLabel: '本段对应的故事骨架笔记',
-    spineNotFilled: '这一段骨架在「故事」页面尚未填写。你仍然可以在这里规划大纲，但建议补全骨架以获得更好指引。',
+    spineNotFilled:
+      '这一段骨架在「故事」页面尚未填写。你仍然可以在这里规划大纲，但建议补全骨架以获得更好指引。',
     noChaptersInSection: '该段落中还没有章节。可以先添加章节，或让 AI 帮你起草建议。',
     aiDraftAll: '根据骨架用 AI 起草整套大纲',
     aiDraftSection: '用 AI 起草本段',
     aiDraftTitle: '基于故事骨架的 AI 大纲草案',
     aiDraftSectionTitle: '为「{section}」生成 AI 草案',
-    aiDraftHint: '检查并调整这些章节与场景建议。点击「应用大纲」后，它们会被添加为真实的章节和场景。',
+    aiDraftHint:
+      '检查并调整这些章节与场景建议。点击「应用大纲」后，它们会被添加为真实的章节和场景。',
     aiDraftScenesLabel: '本章节中的场景',
     aiDraftEmptySection: '当前草案在该段落还没有建议。',
     aiDraftApply: '应用大纲',
     aiDraftError: '无法从 AI 生成大纲。请在「设置 → AI」中检查密钥后重试。',
     aiDrafting: '正在起草…',
-    aiExtraContextChapterPrefix: '本章节需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
-    aiExtraContextScenePrefix: '本场景需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
+    aiExtraContextChapterPrefix:
+      '本章节需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
+    aiExtraContextScenePrefix:
+      '本场景需要符合故事骨架中的「{section}」阶段，请务必与该阶段保持一致：',
     editInStory: '在故事页面编辑 →',
     spineRefLabel: '故事骨架',
     addFirstScene: '添加第一个场景',
@@ -466,7 +471,8 @@ export default {
     language: '语言',
     languageSubtitle: '界面与写作使用的语言。',
     ai: 'AI（/ai 扩展）',
-    aiHint: '在任意卡片里输入简短想法，再输入 /ai 并点击「用 AI 扩展」，即可根据你的灵感和故事扩展成更完整的段落。密钥仅保存在本浏览器。',
+    aiHint:
+      '在任意卡片里输入简短想法，再输入 /ai 并点击「用 AI 扩展」，即可根据你的灵感和故事扩展成更完整的段落。密钥仅保存在本浏览器。',
     provider: '服务',
     apiKey: 'API 密钥',
     apiKeyHint: '在对应平台获取 API 密钥：',
@@ -505,7 +511,8 @@ export default {
     qualityBias: 'AI 质量偏好',
     qualityBiasFaster: '更快',
     qualityBiasBest: '最佳质量',
-    qualityBiasHint: '「更快」使用轻量模型，速度更快、成本更低。「最佳质量」将场景写作、大纲生成和字段扩展升级为高级模型。',
+    qualityBiasHint:
+      '「更快」使用轻量模型，速度更快、成本更低。「最佳质量」将场景写作、大纲生成和字段扩展升级为高级模型。',
   },
   storySwitcher: {
     current: '当前',
@@ -524,7 +531,8 @@ export default {
     titleExpand: '用 AI 结合灵感与故事扩展此处',
     titleSetup: '请先设置 API 密钥',
     setupTitle: '设置 AI 以使用「用 AI 扩展」',
-    setupText: '在 导出 → AI 中填写 API 密钥。可使用 Google Gemini（免费）或 OpenAI。密钥仅保存在本浏览器。',
+    setupText:
+      '在 导出 → AI 中填写 API 密钥。可使用 Google Gemini（免费）或 OpenAI。密钥仅保存在本浏览器。',
     goToSetup: '前往设置',
     close: '关闭',
     checkKey: '在 导出 → AI 中检查密钥或测试 API',
@@ -550,8 +558,8 @@ export default {
     welcomeProgress: '进展不错！继续加油——{question}',
     welcomeNeedCharacters: '故事结构已完成！现在让我们赋予角色生命。谁是你的主角？',
     welcomeNeedChapters: '基础很棒！想开始规划章节吗？',
-    welcomeSceneWithProse: "正在写《{title}》——已写 {n} 字。有什么我可以帮忙的？",
-    welcomeSceneNoProse: "准备好写《{title}》了吗？我可以帮你写，或者我们一起先理清思路。",
+    welcomeSceneWithProse: '正在写《{title}》——已写 {n} 字。有什么我可以帮忙的？',
+    welcomeSceneNoProse: '准备好写《{title}》了吗？我可以帮你写，或者我们一起先理清思路。',
     welcomeBack: '欢迎回来！你已写了 {chapters} 个章节 {n} 个场景。要继续写还是关注某个具体环节？',
     welcomeHasOutline: '大纲已就绪，共 {chapters} 个章节 {n} 个场景。准备开写了吗？',
     coachQuestion: {

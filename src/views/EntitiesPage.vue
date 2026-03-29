@@ -11,7 +11,9 @@
         <template v-if="!ideas.length">
           <div class="entities-empty-state card">
             <p>{{ t('ideas.empty') }}</p>
-            <button type="button" class="btn btn-primary" @click="openNewNoType">+ {{ t('ideas.newIdea') }}</button>
+            <button type="button" class="btn btn-primary" @click="openNewNoType">
+              + {{ t('ideas.newIdea') }}
+            </button>
           </div>
         </template>
 
@@ -29,14 +31,24 @@
               {{ item.label }} ({{ item.count }})
             </button>
           </div>
-          <button type="button" class="btn btn-primary entities-new-btn" @click="openNew">+ {{ t('ideas.newIdea') }}</button>
-          <router-link v-if="ideas.length" :to="{ query: {} }" class="entities-add-type-link" @click.prevent="openNewWithTypeSelect">{{ t('entities.addAnotherType') }}</router-link>
+          <button type="button" class="btn btn-primary entities-new-btn" @click="openNew">
+            + {{ t('ideas.newIdea') }}
+          </button>
+          <router-link
+            v-if="ideas.length"
+            :to="{ query: {} }"
+            class="entities-add-type-link"
+            @click.prevent="openNewWithTypeSelect"
+            >{{ t('entities.addAnotherType') }}</router-link
+          >
 
           <!-- List for selected type -->
           <div v-if="selectedType" class="entity-list-wrap">
             <template v-if="!displayedIdeas.length">
               <p class="entities-empty-type">{{ t('entities.noTypeYet', { type: typeLabel }) }}</p>
-              <button type="button" class="btn btn-ghost btn-sm" @click="openNew">+ {{ t('ideas.add') }}</button>
+              <button type="button" class="btn btn-ghost btn-sm" @click="openNew">
+                + {{ t('ideas.add') }}
+              </button>
             </template>
             <div v-else class="entity-list">
               <div
@@ -47,12 +59,31 @@
                 @click="selectIdea(idea)"
               >
                 <div class="entity-list-item-main">
-                  <span class="entity-list-item-title">{{ idea.title || t('ideas.untitled') }}</span>
-                  <p v-if="idea.body" class="entity-body-preview">{{ (idea.body || '').trim().slice(0, 60) }}{{ (idea.body || '').length > 60 ? '…' : '' }}</p>
+                  <span class="entity-list-item-title">{{
+                    idea.title || t('ideas.untitled')
+                  }}</span>
+                  <p v-if="idea.body" class="entity-body-preview">
+                    {{ (idea.body || '').trim().slice(0, 60)
+                    }}{{ (idea.body || '').length > 60 ? '…' : '' }}
+                  </p>
                 </div>
                 <div class="entity-list-item-actions">
-                  <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.edit')" @click.stop="selectIdea(idea)">✏️</button>
-                  <button type="button" class="btn btn-ghost btn-sm btn-icon" :title="t('ideas.delete')" @click.stop="confirmRemove(idea)">🗑️</button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm btn-icon"
+                    :title="t('ideas.edit')"
+                    @click.stop="selectIdea(idea)"
+                  >
+                    ✏️
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-ghost btn-sm btn-icon"
+                    :title="t('ideas.delete')"
+                    @click.stop="confirmRemove(idea)"
+                  >
+                    🗑️
+                  </button>
                 </div>
               </div>
             </div>
@@ -88,30 +119,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue';
-import { getIdeas, addIdea, updateIdea, deleteIdea } from '@/db';
-import { useI18n } from '@/composables/useI18n';
-import { useIdeaTypes } from '@/composables/useIdeaTypes';
-import IdeaFormCard from '@/components/IdeaFormCard.vue';
-import ConfirmModal from '@/components/ConfirmModal.vue';
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { getIdeas, addIdea, updateIdea, deleteIdea } from '@/db'
+import { useI18n } from '@/composables/useI18n'
+import { useIdeaTypes } from '@/composables/useIdeaTypes'
+import IdeaFormCard from '@/components/IdeaFormCard.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
 
-const { t } = useI18n();
-const { isBuiltInType } = useIdeaTypes();
+const { t } = useI18n()
+const { isBuiltInType } = useIdeaTypes()
 
-const ideas = ref([]);
-const loadError = ref('');
-const selectedType = ref('');
-const selectedId = ref(null);
-const showNew = ref(false);
-const showNewWithTypeSelect = ref(false);
-const deleteModal = ref({ open: false, idea: null });
+const ideas = ref([])
+const loadError = ref('')
+const selectedType = ref('')
+const selectedId = ref(null)
+const showNew = ref(false)
+const showNewWithTypeSelect = ref(false)
+const deleteModal = ref({ open: false, idea: null })
 
 const typesWithCounts = computed(() => {
-  const map = new Map();
+  const map = new Map()
   for (const i of ideas.value) {
-    const type = i.type || 'plot';
-    const cur = map.get(type) || 0;
-    map.set(type, cur + 1);
+    const type = i.type || 'plot'
+    const cur = map.get(type) || 0
+    map.set(type, cur + 1)
   }
   return Array.from(map.entries())
     .map(([type, count]) => ({
@@ -119,138 +150,144 @@ const typesWithCounts = computed(() => {
       count,
       label: isBuiltInType(type) ? t.value('ideas.' + type) : type,
     }))
-    .sort((a, b) => a.label.localeCompare(b.label));
-});
+    .sort((a, b) => a.label.localeCompare(b.label))
+})
 
 const displayedIdeas = computed(() => {
-  if (!selectedType.value) return [];
-  return ideas.value.filter((i) => (i.type || 'plot') === selectedType.value);
-});
+  if (!selectedType.value) return []
+  return ideas.value.filter((i) => (i.type || 'plot') === selectedType.value)
+})
 
 const selectedIdea = computed(() => {
-  if (!selectedId.value) return null;
-  return ideas.value.find((i) => i.id === selectedId.value) || null;
-});
+  if (!selectedId.value) return null
+  return ideas.value.find((i) => i.id === selectedId.value) || null
+})
 
 const typeLabel = computed(() => {
-  if (!selectedType.value) return '';
-  return isBuiltInType(selectedType.value) ? t.value('ideas.' + selectedType.value) : selectedType.value;
-});
+  if (!selectedType.value) return ''
+  return isBuiltInType(selectedType.value)
+    ? t.value('ideas.' + selectedType.value)
+    : selectedType.value
+})
 
-watch(ideas, (list) => {
-  if (list.length > 0 && !selectedType.value) {
-    const first = typesWithCounts.value[0];
-    if (first) selectedType.value = first.type;
-  }
-}, { immediate: true });
+watch(
+  ideas,
+  (list) => {
+    if (list.length > 0 && !selectedType.value) {
+      const first = typesWithCounts.value[0]
+      if (first) selectedType.value = first.type
+    }
+  },
+  { immediate: true }
+)
 
 async function load() {
-  loadError.value = '';
+  loadError.value = ''
   try {
-    ideas.value = await getIdeas();
+    ideas.value = await getIdeas()
   } catch (e) {
-    loadError.value = e?.message || t.value('common.loadErrorGeneric');
+    loadError.value = e?.message || t.value('common.loadErrorGeneric')
   }
 }
 
 function selectType(type) {
-  selectedType.value = type;
-  selectedId.value = null;
-  showNew.value = false;
-  showNewWithTypeSelect.value = false;
+  selectedType.value = type
+  selectedId.value = null
+  showNew.value = false
+  showNewWithTypeSelect.value = false
 }
 
 function selectIdea(idea) {
-  selectedId.value = idea.id;
-  showNew.value = false;
-  showNewWithTypeSelect.value = false;
+  selectedId.value = idea.id
+  showNew.value = false
+  showNewWithTypeSelect.value = false
 }
 
 function openNew() {
-  selectedId.value = null;
-  showNew.value = true;
-  showNewWithTypeSelect.value = false;
+  selectedId.value = null
+  showNew.value = true
+  showNewWithTypeSelect.value = false
 }
 
 function openNewNoType() {
-  selectedId.value = null;
-  showNew.value = true;
-  showNewWithTypeSelect.value = true;
+  selectedId.value = null
+  showNew.value = true
+  showNewWithTypeSelect.value = true
 }
 
 function openNewWithTypeSelect(e) {
-  e.preventDefault();
-  selectedId.value = null;
-  showNew.value = true;
-  showNewWithTypeSelect.value = true;
+  e.preventDefault()
+  selectedId.value = null
+  showNew.value = true
+  showNewWithTypeSelect.value = true
 }
 
 function onCancel() {
-  selectedId.value = null;
-  showNew.value = false;
-  showNewWithTypeSelect.value = false;
+  selectedId.value = null
+  showNew.value = false
+  showNewWithTypeSelect.value = false
 }
 
 async function onSave(payload) {
-  loadError.value = '';
+  loadError.value = ''
   try {
     if (selectedId.value) {
-      await updateIdea(selectedId.value, payload);
+      await updateIdea(selectedId.value, payload)
     } else {
-      await addIdea(payload);
+      await addIdea(payload)
     }
-    await load();
-    onCancel();
-    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+    await load()
+    onCancel()
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'))
   } catch (e) {
-    loadError.value = e?.message || t.value('common.saveErrorGeneric');
+    loadError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 async function onDelete() {
-  if (!selectedId.value) return;
-  loadError.value = '';
+  if (!selectedId.value) return
+  loadError.value = ''
   try {
-    await deleteIdea(selectedId.value);
-    await load();
-    selectedId.value = null;
-    showNew.value = false;
-    showNewWithTypeSelect.value = false;
-    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+    await deleteIdea(selectedId.value)
+    await load()
+    selectedId.value = null
+    showNew.value = false
+    showNewWithTypeSelect.value = false
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'))
   } catch (e) {
-    loadError.value = e?.message || t.value('common.saveErrorGeneric');
+    loadError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 function confirmRemove(idea) {
-  deleteModal.value = { open: true, idea };
+  deleteModal.value = { open: true, idea }
 }
 
 async function doRemove() {
-  const idea = deleteModal.value.idea;
-  if (!idea) return;
-  deleteModal.value.open = false;
-  loadError.value = '';
+  const idea = deleteModal.value.idea
+  if (!idea) return
+  deleteModal.value.open = false
+  loadError.value = ''
   try {
-    await deleteIdea(idea.id);
+    await deleteIdea(idea.id)
     if (selectedId.value === idea.id) {
-      selectedId.value = null;
-      showNew.value = false;
+      selectedId.value = null
+      showNew.value = false
     }
-    await load();
-    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
+    await load()
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'))
   } catch (e) {
-    loadError.value = e?.message || t.value('common.saveErrorGeneric');
+    loadError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 onMounted(() => {
-  load();
-  window.addEventListener('inkflow-story-switched', load);
-});
+  load()
+  window.addEventListener('inkflow-story-switched', load)
+})
 onUnmounted(() => {
-  window.removeEventListener('inkflow-story-switched', load);
-});
+  window.removeEventListener('inkflow-story-switched', load)
+})
 </script>
 
 <style scoped>

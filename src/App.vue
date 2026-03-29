@@ -54,7 +54,20 @@
               aria-label="Search"
               @click="searchOpen = true"
             >
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="11" cy="11" r="8" />
+                <path d="m21 21-4.35-4.35" />
+              </svg>
             </button>
             <button
               v-if="isMobile"
@@ -69,9 +82,26 @@
         </div>
         <nav class="sidebar-nav">
           <section class="sidebar-section">
-            <button type="button" class="sidebar-section-title sidebar-section-title-btn" @click="storySwitcherOpen = true">
+            <button
+              type="button"
+              class="sidebar-section-title sidebar-section-title-btn"
+              @click="storySwitcherOpen = true"
+            >
               {{ t('sidebar.story') }}
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 15l5 5 5-5"/><path d="M7 9l5-5 5 5"/></svg>
+              <svg
+                width="11"
+                height="11"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2.5"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M7 15l5 5 5-5" />
+                <path d="M7 9l5-5 5 5" />
+              </svg>
             </button>
             <template v-if="stories.length">
               <button
@@ -82,14 +112,23 @@
                 :class="{ active: currentStoryId === s.id }"
                 @click="switchStory(s.id)"
               >
-                <span class="sidebar-item-label">{{ (s.oneSentence || t('sidebar.untitledStory')).slice(0, 32) }}{{ (s.oneSentence && s.oneSentence.length > 32) ? '…' : '' }}</span>
+                <span class="sidebar-item-label"
+                  >{{ (s.oneSentence || t('sidebar.untitledStory')).slice(0, 32)
+                  }}{{ s.oneSentence && s.oneSentence.length > 32 ? '…' : '' }}</span
+                >
               </button>
             </template>
             <div v-else class="sidebar-empty-inline">
               <span>{{ t('sidebar.noStories') }}</span>
-              <router-link to="/story" class="sidebar-link" @click="sidebarOpen = false">{{ t('sidebar.goToStory') }}</router-link>
+              <router-link to="/story" class="sidebar-link" @click="sidebarOpen = false">{{
+                t('sidebar.goToStory')
+              }}</router-link>
             </div>
-            <button type="button" class="sidebar-item sidebar-item-button sidebar-new-story" @click="addNewStory">
+            <button
+              type="button"
+              class="sidebar-item sidebar-item-button sidebar-new-story"
+              @click="addNewStory"
+            >
               + {{ t('sidebar.newStory') }}
             </button>
           </section>
@@ -97,7 +136,9 @@
             <h3 class="sidebar-section-title">{{ t('sidebar.outline') }}</h3>
             <div v-if="!chapters.length" class="sidebar-empty-inline">
               <span>{{ t('nav.noChapters') }}</span>
-              <router-link to="/outline" class="sidebar-link" @click="sidebarOpen = false">{{ t('nav.goToOutline') }}</router-link>
+              <router-link to="/outline" class="sidebar-link" @click="sidebarOpen = false">{{
+                t('nav.goToOutline')
+              }}</router-link>
             </div>
             <template v-else>
               <div v-for="(ch, chIndex) in chapters" :key="ch.id" class="sidebar-chapter">
@@ -108,9 +149,13 @@
                   class="sidebar-chapter-title sidebar-chapter-title-btn"
                   @click="sidebarFocus(ch.id, null)"
                 >
-                  {{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}
+                  {{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}:
+                  {{ ch.title || t('outline.untitledChapter') }}
                 </button>
-                <div v-else class="sidebar-chapter-title">{{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}: {{ ch.title || t('outline.untitledChapter') }}</div>
+                <div v-else class="sidebar-chapter-title">
+                  {{ t('sidebar.chapterNum', { n: chIndex + 1 }) }}:
+                  {{ ch.title || t('outline.untitledChapter') }}
+                </div>
                 <template v-if="route.path === '/outline'">
                   <button
                     v-for="(scene, scIndex) in getScenesForChapter(ch.id)"
@@ -120,7 +165,8 @@
                     :class="{ active: currentSceneId === scene.id }"
                     @click="sidebarFocus(ch.id, scene.id)"
                   >
-                    {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}: {{ scene.title || t('outline.untitledScene') }}
+                    {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}:
+                    {{ scene.title || t('outline.untitledScene') }}
                   </button>
                 </template>
                 <router-link
@@ -132,7 +178,8 @@
                   :class="{ active: currentSceneId === scene.id }"
                   @click="sidebarOpen = false"
                 >
-                  {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}: {{ scene.title || t('outline.untitledScene') }}
+                  {{ t('sidebar.sceneNum', { n: scIndex + 1 }) }}:
+                  {{ scene.title || t('outline.untitledScene') }}
                 </router-link>
               </div>
             </template>
@@ -142,7 +189,19 @@
         <!-- Sidebar footer: feedback link -->
         <div class="sidebar-footer">
           <button type="button" class="sidebar-feedback-btn" @click="feedbackOpen = true">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+            <svg
+              width="13"
+              height="13"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+            </svg>
             {{ t('feedback.button') }}
           </button>
         </div>
@@ -192,161 +251,123 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
-import { useI18n } from '@/composables/useI18n';
-import { useOutline } from '@/composables/useOutline';
-import { getIdeas, getStories, setCurrentStoryId, createStory, getCurrentStoryId, seedExampleStoryOnce } from '@/db';
-import NavIcon from '@/components/NavIcon.vue';
-import AppToast from '@/components/AppToast.vue';
-import EntitySuggestionBanner from '@/components/EntitySuggestionBanner.vue';
-import ConsistencyWarningBanner from '@/components/ConsistencyWarningBanner.vue';
-import StorySwitcher from '@/components/StorySwitcher.vue';
-import SearchModal from '@/components/SearchModal.vue';
-import OtterChat from '@/components/OtterChat.vue';
-import FeedbackModal from '@/components/FeedbackModal.vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import { storeToRefs } from 'pinia'
+import { useI18n } from '@/composables/useI18n'
+import { useStoryStore } from '@/stores/story.js'
+import { useOutlineStore } from '@/stores/outline.js'
+import { useIdeasStore } from '@/stores/ideas.js'
+import { seedExampleStoryOnce } from '@/db'
+import NavIcon from '@/components/NavIcon.vue'
+import AppToast from '@/components/AppToast.vue'
+import EntitySuggestionBanner from '@/components/EntitySuggestionBanner.vue'
+import ConsistencyWarningBanner from '@/components/ConsistencyWarningBanner.vue'
+import StorySwitcher from '@/components/StorySwitcher.vue'
+import SearchModal from '@/components/SearchModal.vue'
+import OtterChat from '@/components/OtterChat.vue'
+import FeedbackModal from '@/components/FeedbackModal.vue'
 
-const { t, locale } = useI18n();
-const route = useRoute();
-const router = useRouter();
-const { chapters, load, getScenesForChapter } = useOutline();
+const { t, locale } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
-const sidebarOpen = ref(false);
-const otterOpen = ref(false);
-const pipBadge = ref(false);
-const isMobile = ref(false);
-const storySwitcherOpen = ref(false);
-const searchOpen = ref(false);
-const feedbackOpen = ref(false);
-const ideas = ref([]);
-const stories = ref([]);
-const currentStoryId = ref(getCurrentStoryId());
+const storyStore = useStoryStore()
+const outlineStore = useOutlineStore()
+const ideasStore = useIdeasStore()
 
-const currentSceneId = computed(() =>
-  route.name === 'scene' ? route.params.sceneId : null
-);
+const { stories, activeStoryId: currentStoryId } = storeToRefs(storyStore)
+const { chapters } = storeToRefs(outlineStore)
+
+function getScenesForChapter(chapterId) {
+  return outlineStore.scenesByChapter[chapterId] ?? []
+}
+
+const sidebarOpen = ref(false)
+const otterOpen = ref(false)
+const pipBadge = ref(false)
+const isMobile = ref(false)
+const storySwitcherOpen = ref(false)
+const searchOpen = ref(false)
+const feedbackOpen = ref(false)
+
+const currentSceneId = computed(() => (route.name === 'scene' ? route.params.sceneId : null))
 
 function onNavClick() {}
 
 function sidebarFocus(chapterId, sceneId) {
-  window.dispatchEvent(new CustomEvent('inkflow-sidebar-focus', { detail: { chapterId, sceneId } }));
-  sidebarOpen.value = false;
+  window.dispatchEvent(new CustomEvent('inkflow-sidebar-focus', { detail: { chapterId, sceneId } }))
+  sidebarOpen.value = false
 }
 
 function checkMobile() {
-  isMobile.value = window.innerWidth < 768;
-}
-
-async function loadOutline() {
-  const path = route.path;
-  if (path === '/outline' || path === '/write' || path.startsWith('/write/')) {
-    await load();
-  }
-}
-
-async function loadStories() {
-  try {
-    stories.value = await getStories();
-    currentStoryId.value = getCurrentStoryId();
-  } catch (_) {
-    stories.value = [];
-  }
-}
-
-async function loadIdeas() {
-  try {
-    ideas.value = await getIdeas();
-  } catch (_) {
-    ideas.value = [];
-  }
-}
-
-async function onIdeasChanged() {
-  await loadIdeas();
-  await nextTick();
+  isMobile.value = window.innerWidth < 768
 }
 
 async function switchStory(storyId) {
-  setCurrentStoryId(storyId);
-  currentStoryId.value = storyId;
-  await load();
-  await loadIdeas();
-  await loadStories();
-  sidebarOpen.value = false;
-  router.push('/story');
-  window.dispatchEvent(new CustomEvent('inkflow-story-switched', { detail: { storyId } }));
+  await storyStore.switchStory(storyId)
+  await outlineStore.load()
+  await ideasStore.load()
+  sidebarOpen.value = false
+  router.push('/story')
 }
 
 async function addNewStory() {
-  const story = await createStory();
-  await switchStory(story.id);
-}
-
-async function onRouteChange() {
-  try {
-    loadOutline();
-    currentStoryId.value = getCurrentStoryId();
-    if (route.path === '/ideas' || route.path === '/story' || route.path === '/entities') {
-      await loadIdeas();
-      if (route.path === '/story') await loadStories();
-    }
-  } catch (_) {}
+  await storyStore.create()
+  await outlineStore.load()
+  await ideasStore.load()
+  sidebarOpen.value = false
+  router.push('/story')
 }
 
 function onGlobalKeydown(e) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-    e.preventDefault();
-    searchOpen.value = true;
+    e.preventDefault()
+    searchOpen.value = true
   }
 }
 
 onMounted(async () => {
-  await seedExampleStoryOnce(locale.value);
-  await loadStories();
-  load();
-  loadIdeas();
-  checkMobile();
-  window.addEventListener('resize', checkMobile);
-  window.addEventListener('keydown', onGlobalKeydown);
-  window.addEventListener('inkflow-story-saved', loadStories);
-  window.addEventListener('inkflow-outline-changed', load);
-  window.addEventListener('inkflow-ideas-changed', onIdeasChanged);
-  window.addEventListener('inkflow-story-deleted', onStoryDeleted);
-});
+  await seedExampleStoryOnce(locale.value)
+  await storyStore.loadStories()
+  await storyStore.loadActiveStory()
+  outlineStore.load()
+  ideasStore.load()
+  checkMobile()
+  window.addEventListener('resize', checkMobile)
+  window.addEventListener('keydown', onGlobalKeydown)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('resize', checkMobile);
-  window.removeEventListener('keydown', onGlobalKeydown);
-  window.removeEventListener('inkflow-story-saved', loadStories);
-  window.removeEventListener('inkflow-outline-changed', load);
-  window.removeEventListener('inkflow-ideas-changed', onIdeasChanged);
-  window.removeEventListener('inkflow-story-deleted', onStoryDeleted);
-});
+  window.removeEventListener('resize', checkMobile)
+  window.removeEventListener('keydown', onGlobalKeydown)
+})
 
-async function onStoryDeleted(e) {
-  const switchedToId = e.detail?.switchedToId;
-  if (switchedToId) currentStoryId.value = switchedToId;
-  await loadStories();
-  await load();
-  await loadIdeas();
-}
+// Reload outline and ideas when active story changes
+watch(currentStoryId, async () => {
+  await outlineStore.load()
+  await ideasStore.load()
+})
 
 watch(
   () => route.path,
-  async () => {
-    await onRouteChange();
+  () => {
+    const path = route.path
+    if (path === '/outline' || path === '/write' || path.startsWith('/write/')) {
+      outlineStore.load()
+    }
   }
-);
+)
 
 // Show badge dot on Pip button when user navigates to a new scene while Pip is closed
 watch(currentSceneId, (newId, oldId) => {
   if (newId && newId !== oldId && !otterOpen.value) {
-    pipBadge.value = true;
+    pipBadge.value = true
   }
-});
+})
 watch(otterOpen, (open) => {
-  if (open) pipBadge.value = false;
-});
+  if (open) pipBadge.value = false
+})
 </script>
 
 <style scoped>
@@ -483,7 +504,9 @@ watch(otterOpen, (open) => {
   color: var(--text);
   text-decoration: none;
   border-left: 3px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .sidebar-item:hover {
   background: var(--bg);
@@ -513,7 +536,9 @@ watch(otterOpen, (open) => {
   font-size: 0.9375rem;
   padding: var(--space-2) var(--space-4);
   color: var(--text);
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .sidebar-item-button:hover {
   background: var(--bg);
@@ -573,7 +598,9 @@ watch(otterOpen, (open) => {
   color: var(--text);
   text-decoration: none;
   border-left: 3px solid transparent;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .sidebar-scene:hover {
   background: var(--bg);
@@ -598,7 +625,9 @@ watch(otterOpen, (open) => {
   border-left: 3px solid transparent;
   cursor: pointer;
   font: inherit;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .sidebar-scene-btn:hover {
   background: var(--bg);
@@ -657,7 +686,9 @@ watch(otterOpen, (open) => {
   font-size: 0.8125rem;
   color: var(--text-muted);
   cursor: pointer;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .sidebar-feedback-btn:hover {
   color: var(--text);

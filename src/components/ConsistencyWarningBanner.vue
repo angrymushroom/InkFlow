@@ -17,7 +17,13 @@
             <button class="cwb-btn cwb-btn--ghost" @click="toggleExpanded">
               {{ isExpanded ? t('consistencyWarning.collapse') : t('consistencyWarning.review') }}
             </button>
-            <button class="cwb-btn cwb-btn--ghost cwb-close" @click="dismiss" :title="t('consistencyWarning.dismiss')">×</button>
+            <button
+              class="cwb-btn cwb-btn--ghost cwb-close"
+              @click="dismiss"
+              :title="t('consistencyWarning.dismiss')"
+            >
+              ×
+            </button>
           </div>
         </div>
 
@@ -42,16 +48,16 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
-import { useConsistencyWarnings } from '@/composables/useConsistencyWarnings';
-import { useI18n } from '@/composables/useI18n';
+import { ref } from 'vue'
+import { useConsistencyWarnings } from '@/composables/useConsistencyWarnings'
+import { useI18n } from '@/composables/useI18n'
 
-const { t } = useI18n();
-const { warnings, sceneTitle, dismiss } = useConsistencyWarnings();
-const isExpanded = ref(false);
+const { t } = useI18n()
+const { warnings, sceneTitle, dismiss } = useConsistencyWarnings()
+const isExpanded = ref(false)
 
 function toggleExpanded() {
-  isExpanded.value = !isExpanded.value;
+  isExpanded.value = !isExpanded.value
 }
 </script>
 
@@ -66,7 +72,7 @@ function toggleExpanded() {
   background: var(--bg-elevated, #fff);
   border: 1px solid #e6a817;
   border-radius: var(--radius, 8px);
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
   overflow: hidden;
 }
 
@@ -158,14 +164,16 @@ function toggleExpanded() {
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 5px 10px;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 .cwb-btn--ghost {
   background: transparent;
   color: var(--text-muted, #888);
 }
 .cwb-btn--ghost:hover {
-  background: var(--bg-hover, rgba(0,0,0,.06));
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
   color: var(--text, #222);
 }
 .cwb-close {
@@ -177,7 +185,9 @@ function toggleExpanded() {
 /* Transitions */
 .banner-enter-active,
 .banner-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .banner-enter-from,
 .banner-leave-to {

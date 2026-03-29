@@ -1,18 +1,24 @@
-import { getScene, getScenesByChapter, getChapterById, updateSceneSummary, updateChapterSummary } from "@/db";
-import { completeWithAi, CONTEXTS, tierForContext } from "@/services/ai";
+import {
+  getScene,
+  getScenesByChapter,
+  getChapterById,
+  updateSceneSummary,
+  updateChapterSummary,
+} from '@/db'
+import { completeWithAi, CONTEXTS, tierForContext } from '@/services/ai'
 
 const SCENE_SUMMARY_SYSTEM =
-  "You are a fiction editor. Summarize this scene in 2-3 concise sentences. " +
-  "Cover: who is present, what happens, and what the narrative consequence is. " +
-  "Be specific about character names and outcomes. Return only the summary text, no preamble. " +
-  "IMPORTANT: Reply in the same language as the scene text.";
+  'You are a fiction editor. Summarize this scene in 2-3 concise sentences. ' +
+  'Cover: who is present, what happens, and what the narrative consequence is. ' +
+  'Be specific about character names and outcomes. Return only the summary text, no preamble. ' +
+  'IMPORTANT: Reply in the same language as the scene text.'
 
 const CHAPTER_SUMMARY_SYSTEM =
-  "You are a fiction editor. Given scene-by-scene summaries from one chapter, " +
-  "write a single 2-4 sentence chapter summary covering the key events, " +
-  "character developments, and how the chapter advances the overall story. " +
-  "Return only the summary text, no preamble. " +
-  "IMPORTANT: Reply in the same language as the summaries.";
+  'You are a fiction editor. Given scene-by-scene summaries from one chapter, ' +
+  'write a single 2-4 sentence chapter summary covering the key events, ' +
+  'character developments, and how the chapter advances the overall story. ' +
+  'Return only the summary text, no preamble. ' +
+  'IMPORTANT: Reply in the same language as the summaries.'
 
 /**
  * Generate and cache an AI summary for one scene.
@@ -22,15 +28,15 @@ const CHAPTER_SUMMARY_SYSTEM =
  * @returns {Promise<string|null>} The summary, or null if no prose to summarize.
  */
 export async function generateSceneSummary(sceneId) {
-  const scene = await getScene(sceneId);
-  if (!scene) return null;
+  const scene = await getScene(sceneId)
+  if (!scene) return null
 
-  const text = (scene.content || "").trim();
-  if (!text || text.length < 50) return null;
+  const text = (scene.content || '').trim()
+  if (!text || text.length < 50) return null
 
   // Cache hit: summary is up-to-date relative to last content change
   if (scene.aiSummary && scene.aiSummaryAt && scene.aiSummaryAt >= (scene.updatedAt || 0)) {
-    return scene.aiSummary;
+    return scene.aiSummary
   }
 
   const summary = await completeWithAi({
@@ -38,13 +44,13 @@ export async function generateSceneSummary(sceneId) {
     userPrompt: text.slice(0, 6000),
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 150,
-  });
+  })
 
-  const trimmed = (summary || "").trim();
+  const trimmed = (summary || '').trim()
   if (trimmed) {
-    await updateSceneSummary(sceneId, trimmed, Date.now());
+    await updateSceneSummary(sceneId, trimmed, Date.now())
   }
-  return trimmed || null;
+  return trimmed || null
 }
 
 /**
@@ -56,26 +62,26 @@ export async function generateSceneSummary(sceneId) {
  * @returns {Promise<string|null>}
  */
 export async function generateChapterSummary(chapterId) {
-  const scenes = await getScenesByChapter(chapterId);
-  const withSummary = scenes.filter((s) => s.aiSummary?.trim());
-  if (!withSummary.length) return null;
+  const scenes = await getScenesByChapter(chapterId)
+  const withSummary = scenes.filter((s) => s.aiSummary?.trim())
+  if (!withSummary.length) return null
 
   const summariesBlock = withSummary
-    .map((s, i) => `Scene ${i + 1} "${s.title || "Untitled"}": ${s.aiSummary}`)
-    .join("\n");
+    .map((s, i) => `Scene ${i + 1} "${s.title || 'Untitled'}": ${s.aiSummary}`)
+    .join('\n')
 
   const summary = await completeWithAi({
     systemPrompt: CHAPTER_SUMMARY_SYSTEM,
     userPrompt: summariesBlock.slice(0, 4000),
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 200,
-  });
+  })
 
-  const trimmed = (summary || "").trim();
+  const trimmed = (summary || '').trim()
   if (trimmed) {
-    await updateChapterSummary(chapterId, trimmed, Date.now());
+    await updateChapterSummary(chapterId, trimmed, Date.now())
   }
-  return trimmed || null;
+  return trimmed || null
 }
 
 /**
@@ -90,12 +96,12 @@ export async function generateChapterSummary(chapterId) {
  */
 export async function runSummaryPipeline(sceneId, chapterId) {
   try {
-    await generateSceneSummary(sceneId);
+    await generateSceneSummary(sceneId)
   } catch {
-    return; // scene summary failed — skip chapter step
+    return // scene summary failed — skip chapter step
   }
   try {
-    if (chapterId) await generateChapterSummary(chapterId);
+    if (chapterId) await generateChapterSummary(chapterId)
   } catch {
     // chapter summary failure is non-fatal
   }

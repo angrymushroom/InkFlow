@@ -4,7 +4,9 @@
       <div class="modal-card" role="dialog" aria-modal="true" aria-label="Switch story">
         <div class="modal-header">
           <h3 class="modal-title">{{ t('sidebar.story') }}</h3>
-          <button type="button" class="modal-close" @click="$emit('update:modelValue', false)">×</button>
+          <button type="button" class="modal-close" @click="$emit('update:modelValue', false)">
+            ×
+          </button>
         </div>
 
         <div class="story-list">
@@ -17,13 +19,23 @@
             @click="select(s.id)"
           >
             <div class="story-item-main">
-              <span class="story-item-title">{{ s.oneSentence || t('sidebar.untitledStory') }}</span>
+              <span class="story-item-title">{{
+                s.oneSentence || t('sidebar.untitledStory')
+              }}</span>
               <span class="story-item-meta">
-                {{ wordCounts[s.id] != null ? wordCounts[s.id].toLocaleString() + ' ' + t('write.words') : '…' }}
-                <span v-if="s.updatedAt" class="story-item-date"> · {{ formatDate(s.updatedAt) }}</span>
+                {{
+                  wordCounts[s.id] != null
+                    ? wordCounts[s.id].toLocaleString() + ' ' + t('write.words')
+                    : '…'
+                }}
+                <span v-if="s.updatedAt" class="story-item-date">
+                  · {{ formatDate(s.updatedAt) }}</span
+                >
               </span>
             </div>
-            <span v-if="currentStoryId === s.id" class="story-item-badge">{{ t('storySwitcher.current') }}</span>
+            <span v-if="currentStoryId === s.id" class="story-item-badge">{{
+              t('storySwitcher.current')
+            }}</span>
           </button>
         </div>
 
@@ -38,54 +50,56 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
-import { useI18n } from '@/composables/useI18n';
-import { getScenes } from '@/db';
-import { countWords } from '@/utils/wordCount';
+import { ref, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+import { getScenes } from '@/db'
+import { countWords } from '@/utils/wordCount'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
   stories: { type: Array, default: () => [] },
   currentStoryId: { type: String, default: '' },
-});
+})
 
-const emit = defineEmits(['update:modelValue', 'select', 'new']);
-const { t } = useI18n();
+const emit = defineEmits(['update:modelValue', 'select', 'new'])
+const { t } = useI18n()
 
-const wordCounts = ref({});
+const wordCounts = ref({})
 
 async function loadWordCounts() {
-  const counts = {};
+  const counts = {}
   for (const s of props.stories) {
     try {
-      const scenes = await getScenes(s.id);
-      counts[s.id] = scenes.reduce((sum, sc) => sum + countWords(sc.content || ''), 0);
+      const scenes = await getScenes(s.id)
+      counts[s.id] = scenes.reduce((sum, sc) => sum + countWords(sc.content || ''), 0)
     } catch {
-      counts[s.id] = 0;
+      counts[s.id] = 0
     }
   }
-  wordCounts.value = counts;
+  wordCounts.value = counts
 }
 
-watch(() => props.modelValue, (open) => {
-  if (open) loadWordCounts();
-});
+watch(
+  () => props.modelValue,
+  (open) => {
+    if (open) loadWordCounts()
+  }
+)
 
 function formatDate(ts) {
-  const d = new Date(ts);
-  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  const d = new Date(ts)
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
 function select(id) {
-  emit('select', id);
-  emit('update:modelValue', false);
+  emit('select', id)
+  emit('update:modelValue', false)
 }
 
 function newStory() {
-  emit('new');
-  emit('update:modelValue', false);
+  emit('new')
+  emit('update:modelValue', false)
 }
-
 </script>
 
 <style scoped>
@@ -133,7 +147,9 @@ function newStory() {
   color: var(--text-muted);
   padding: var(--space-1);
 }
-.modal-close:hover { color: var(--text); }
+.modal-close:hover {
+  color: var(--text);
+}
 .story-list {
   flex: 1;
   overflow-y: auto;
@@ -152,14 +168,21 @@ function newStory() {
   padding: var(--space-3) var(--space-5);
   cursor: pointer;
   font: inherit;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
-.story-item:hover { background: var(--bg); }
+.story-item:hover {
+  background: var(--bg);
+}
 .story-item.active {
   background: rgba(37, 99, 235, 0.06);
   border-left-color: var(--accent);
 }
-.story-item-main { flex: 1; min-width: 0; }
+.story-item-main {
+  flex: 1;
+  min-width: 0;
+}
 .story-item-title {
   display: block;
   font-weight: 500;
@@ -175,7 +198,9 @@ function newStory() {
   color: var(--text-muted);
   margin-top: 2px;
 }
-.story-item-date { color: var(--text-muted); }
+.story-item-date {
+  color: var(--text-muted);
+}
 .story-item-badge {
   font-size: 0.75rem;
   font-weight: 600;

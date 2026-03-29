@@ -1,10 +1,17 @@
-import { getStoryFacts, getCharacters, getScene, getScenes, replaceStoryFactsForScenes, resolveOpenThread } from "@/db";
+import {
+  getStoryFacts,
+  getCharacters,
+  getScene,
+  getScenes,
+  replaceStoryFactsForScenes,
+  resolveOpenThread,
+} from '@/db'
 
 const QUICK_CHECK_SYSTEM =
-  "You are a fiction consistency checker. Given high-priority story facts and a new scene, " +
-  "identify only clear contradictions — where the new text directly conflicts with established facts. " +
-  "Do not flag stylistic differences or ambiguities. Reply with valid JSON only, no markdown or preamble. " +
-  "IMPORTANT: Write the contradiction descriptions in the same language as the scene text.";
+  'You are a fiction consistency checker. Given high-priority story facts and a new scene, ' +
+  'identify only clear contradictions — where the new text directly conflicts with established facts. ' +
+  'Do not flag stylistic differences or ambiguities. Reply with valid JSON only, no markdown or preamble. ' +
+  'IMPORTANT: Write the contradiction descriptions in the same language as the scene text.'
 const QUICK_CHECK_USER = `Established high-priority facts:
 {{FACTS}}
 
@@ -13,10 +20,11 @@ New scene text (excerpt):
 
 Identify any direct contradictions. Return a JSON array of strings, each describing one contradiction concisely (one sentence each). Return an empty array [] if there are no contradictions.
 
-JSON:`;
-import { completeWithAi, CONTEXTS, tierForContext } from "@/services/ai";
+JSON:`
+import { completeWithAi, CONTEXTS, tierForContext } from '@/services/ai'
 
-const EXTRACT_SYSTEM = "You are a fiction analyst. Extract structured facts from scene text. Reply with valid JSON only, no markdown or preamble. Write all extracted text values (traits, states, events, locations, threads) in the same language as the scene text.";
+const EXTRACT_SYSTEM =
+  'You are a fiction analyst. Extract structured facts from scene text. Reply with valid JSON only, no markdown or preamble. Write all extracted text values (traits, states, events, locations, threads) in the same language as the scene text.'
 const EXTRACT_USER = `From this scene text, extract:
 (1) character names and one key trait or role each
 (2) location names mentioned
@@ -34,16 +42,17 @@ Return a single JSON object with exactly these keys:
 Scene text:
 {{SCENE_TEXT}}
 
-JSON:`;
+JSON:`
 
-const CHECK_SYSTEM = "You are a fiction consistency checker. Given established story facts and character notes, determine if the given text contradicts any of them. List only the contradictions, one per line. If there are no contradictions, reply with exactly: No contradictions. Reply in the same language as the text being checked.";
+const CHECK_SYSTEM =
+  'You are a fiction consistency checker. Given established story facts and character notes, determine if the given text contradicts any of them. List only the contradictions, one per line. If there are no contradictions, reply with exactly: No contradictions. Reply in the same language as the text being checked.'
 const CHECK_USER = `Established facts and character notes:
 {{FACTS}}
 
 Text to check:
 {{TEXT}}
 
-Does the text contradict any of the established facts? List contradictions only. If none, say: No contradictions.`;
+Does the text contradict any of the established facts? List contradictions only. If none, say: No contradictions.`
 
 /**
  * Extract facts from scene prose via AI.
@@ -53,79 +62,80 @@ Does the text contradict any of the established facts? List contradictions only.
  * @returns {Promise<{ factType: string, content: string, sourceSceneId: string, sourceChapterId?: string }[] | null>}
  */
 export async function extractFactsFromProse({ sceneText, sceneId, chapterId, storyId }) {
-  if (!sceneText?.trim()) return [];
-  const userPrompt = EXTRACT_USER.replace("{{SCENE_TEXT}}", sceneText.slice(0, 8000));
+  if (!sceneText?.trim()) return []
+  const userPrompt = EXTRACT_USER.replace('{{SCENE_TEXT}}', sceneText.slice(0, 8000))
   const raw = await completeWithAi({
     systemPrompt: EXTRACT_SYSTEM,
     userPrompt,
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 600,
-  });
+  })
   try {
-    const cleaned = (raw || "").replace(/```\w*\n?/g, "").trim();
-    const json = JSON.parse(cleaned);
-    const facts = [];
-    const chars = Array.isArray(json.characters) ? json.characters : [];
+    const cleaned = (raw || '').replace(/```\w*\n?/g, '').trim()
+    const json = JSON.parse(cleaned)
+    const facts = []
+    const chars = Array.isArray(json.characters) ? json.characters : []
     for (const c of chars) {
-      const name = c?.name ?? "";
-      const trait = c?.trait ?? c?.role ?? "";
+      const name = c?.name ?? ''
+      const trait = c?.trait ?? c?.role ?? ''
       facts.push({
-        factType: "character",
-        content: typeof name === "string" ? (trait ? `${name}: ${trait}` : name) : JSON.stringify(c),
+        factType: 'character',
+        content:
+          typeof name === 'string' ? (trait ? `${name}: ${trait}` : name) : JSON.stringify(c),
         sourceSceneId: sceneId,
         sourceChapterId: chapterId ?? null,
-        priority: "medium",
-      });
+        priority: 'medium',
+      })
     }
-    const locs = Array.isArray(json.locations) ? json.locations : [];
+    const locs = Array.isArray(json.locations) ? json.locations : []
     for (const loc of locs) {
       facts.push({
-        factType: "location",
-        content: typeof loc === "string" ? loc : JSON.stringify(loc),
+        factType: 'location',
+        content: typeof loc === 'string' ? loc : JSON.stringify(loc),
         sourceSceneId: sceneId,
         sourceChapterId: chapterId ?? null,
-        priority: "medium",
-      });
+        priority: 'medium',
+      })
     }
-    const evts = Array.isArray(json.events) ? json.events : [];
+    const evts = Array.isArray(json.events) ? json.events : []
     for (const ev of evts) {
       facts.push({
-        factType: "event",
-        content: typeof ev === "string" ? ev : JSON.stringify(ev),
+        factType: 'event',
+        content: typeof ev === 'string' ? ev : JSON.stringify(ev),
         sourceSceneId: sceneId,
         sourceChapterId: chapterId ?? null,
-        priority: "medium",
-      });
+        priority: 'medium',
+      })
     }
-    const threads = Array.isArray(json.open_threads) ? json.open_threads : [];
+    const threads = Array.isArray(json.open_threads) ? json.open_threads : []
     for (const thread of threads) {
-      if (!thread) continue;
+      if (!thread) continue
       facts.push({
-        factType: "open_thread",
-        content: typeof thread === "string" ? thread : JSON.stringify(thread),
+        factType: 'open_thread',
+        content: typeof thread === 'string' ? thread : JSON.stringify(thread),
         sourceSceneId: sceneId,
         sourceChapterId: chapterId ?? null,
-        priority: "high",
+        priority: 'high',
         resolved: null,
-      });
+      })
     }
-    const charStates = Array.isArray(json.character_states) ? json.character_states : [];
+    const charStates = Array.isArray(json.character_states) ? json.character_states : []
     for (const cs of charStates) {
-      const name = cs?.name ?? "";
-      const state = cs?.state ?? "";
-      if (!name || !state) continue;
+      const name = cs?.name ?? ''
+      const state = cs?.state ?? ''
+      if (!name || !state) continue
       facts.push({
-        factType: "character_state",
+        factType: 'character_state',
         content: `${name}: ${state}`,
         sourceSceneId: sceneId,
         sourceChapterId: chapterId ?? null,
-        priority: "high",
-      });
+        priority: 'high',
+      })
     }
-    return facts;
+    return facts
   } catch (_) {
     // Parse failed — return null so callers know NOT to replace existing facts with garbage
-    return null;
+    return null
   }
 }
 
@@ -137,10 +147,10 @@ export async function extractFactsFromProse({ sceneText, sceneId, chapterId, sto
  * @returns {Promise<void>}
  */
 export async function updateSceneFacts({ sceneId, chapterId, storyId, sceneText }) {
-  if (!sceneText?.trim() || sceneText.trim().length < 100) return;
-  const facts = await extractFactsFromProse({ sceneText, sceneId, chapterId, storyId });
-  if (facts === null) return; // parse failed — preserve existing facts
-  await replaceStoryFactsForScenes(storyId, [sceneId], facts);
+  if (!sceneText?.trim() || sceneText.trim().length < 100) return
+  const facts = await extractFactsFromProse({ sceneText, sceneId, chapterId, storyId })
+  if (facts === null) return // parse failed — preserve existing facts
+  await replaceStoryFactsForScenes(storyId, [sceneId], facts)
 }
 
 /**
@@ -151,23 +161,23 @@ export async function updateSceneFacts({ sceneId, chapterId, storyId, sceneText 
  * @returns {Promise<{ updated: number }>}
  */
 export async function updateStoryFactsFromScenes(storyId, scenes) {
-  const withContent = scenes.filter((s) => (s.content || "").trim().length > 0);
-  const allNewFacts = [];
-  const processedSceneIds = [];
+  const withContent = scenes.filter((s) => (s.content || '').trim().length > 0)
+  const allNewFacts = []
+  const processedSceneIds = []
   for (const scene of withContent) {
     const extracted = await extractFactsFromProse({
-      sceneText: (scene.content || "").trim(),
+      sceneText: (scene.content || '').trim(),
       sceneId: scene.id,
       chapterId: scene.chapterId,
       storyId,
-    });
+    })
     // null means parse failed — skip this scene so existing facts are not clobbered
-    if (extracted === null) continue;
-    processedSceneIds.push(scene.id);
-    allNewFacts.push(...extracted);
+    if (extracted === null) continue
+    processedSceneIds.push(scene.id)
+    allNewFacts.push(...extracted)
   }
-  await replaceStoryFactsForScenes(storyId, processedSceneIds, allNewFacts);
-  return { updated: processedSceneIds.length };
+  await replaceStoryFactsForScenes(storyId, processedSceneIds, allNewFacts)
+  return { updated: processedSceneIds.length }
 }
 
 /**
@@ -179,31 +189,40 @@ export async function checkConsistency({ storyId, sceneId }) {
   const [storyFacts, characters] = await Promise.all([
     getStoryFacts(storyId),
     getCharacters(storyId),
-  ]);
+  ])
   const factsLines = [
     ...storyFacts.map((f) => `[${f.factType}] ${f.content}`),
-    ...characters.map((c) => `Character: ${c.name || "Unnamed"} - ${(c.oneSentence || "").slice(0, 120)}`),
-  ];
-  const factsBlock = factsLines.length ? factsLines.join("\n") : "(No facts or characters yet.)";
+    ...characters.map(
+      (c) => `Character: ${c.name || 'Unnamed'} - ${(c.oneSentence || '').slice(0, 120)}`
+    ),
+  ]
+  const factsBlock = factsLines.length ? factsLines.join('\n') : '(No facts or characters yet.)'
 
-  let textToCheck = "";
+  let textToCheck = ''
   if (sceneId) {
-    const scene = await getScene(sceneId);
-    textToCheck = (scene?.content || scene?.oneSentenceSummary || "").trim() || "(Scene has no content.)";
+    const scene = await getScene(sceneId)
+    textToCheck =
+      (scene?.content || scene?.oneSentenceSummary || '').trim() || '(Scene has no content.)'
   } else {
-    const scenes = await getScenes(storyId);
-    const parts = scenes.map((s) => `Scene "${s.title || "Untitled"}": ${(s.content || s.oneSentenceSummary || "").slice(0, 1500)}`);
-    textToCheck = parts.join("\n\n") || "(No scene content.)";
+    const scenes = await getScenes(storyId)
+    const parts = scenes.map(
+      (s) =>
+        `Scene "${s.title || 'Untitled'}": ${(s.content || s.oneSentenceSummary || '').slice(0, 1500)}`
+    )
+    textToCheck = parts.join('\n\n') || '(No scene content.)'
   }
 
-  const userPrompt = CHECK_USER.replace("{{FACTS}}", factsBlock.slice(0, 6000)).replace("{{TEXT}}", textToCheck.slice(0, 4000));
+  const userPrompt = CHECK_USER.replace('{{FACTS}}', factsBlock.slice(0, 6000)).replace(
+    '{{TEXT}}',
+    textToCheck.slice(0, 4000)
+  )
   const reply = await completeWithAi({
     systemPrompt: CHECK_SYSTEM,
     userPrompt,
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 500,
-  });
-  return (reply || "").trim();
+  })
+  return (reply || '').trim()
 }
 
 /**
@@ -215,39 +234,33 @@ export async function checkConsistency({ storyId, sceneId }) {
  * @returns {Promise<string[] | null>}
  */
 export async function quickConsistencyCheck({ sceneId, storyId }) {
-  const [scene, allFacts] = await Promise.all([
-    getScene(sceneId),
-    getStoryFacts(storyId),
-  ]);
-  const sceneText = (scene?.content || "").trim();
-  if (!sceneText || sceneText.length < 100) return null;
+  const [scene, allFacts] = await Promise.all([getScene(sceneId), getStoryFacts(storyId)])
+  const sceneText = (scene?.content || '').trim()
+  if (!sceneText || sceneText.length < 100) return null
 
-  const highPriorityFacts = allFacts.filter(
-    (f) => f.priority === "high" && f.resolved !== true
-  );
-  if (!highPriorityFacts.length) return [];
+  const highPriorityFacts = allFacts.filter((f) => f.priority === 'high' && f.resolved !== true)
+  if (!highPriorityFacts.length) return []
 
-  const factsBlock = highPriorityFacts
-    .map((f) => `[${f.factType}] ${f.content}`)
-    .join("\n");
+  const factsBlock = highPriorityFacts.map((f) => `[${f.factType}] ${f.content}`).join('\n')
 
-  const userPrompt = QUICK_CHECK_USER
-    .replace("{{FACTS}}", factsBlock.slice(0, 3000))
-    .replace("{{SCENE_TEXT}}", sceneText.slice(0, 2500));
+  const userPrompt = QUICK_CHECK_USER.replace('{{FACTS}}', factsBlock.slice(0, 3000)).replace(
+    '{{SCENE_TEXT}}',
+    sceneText.slice(0, 2500)
+  )
 
   const raw = await completeWithAi({
     systemPrompt: QUICK_CHECK_SYSTEM,
     userPrompt,
     tier: tierForContext(CONTEXTS.CONSISTENCY),
     maxTokens: 300,
-  });
+  })
 
   try {
-    const cleaned = (raw || "").replace(/```\w*\n?/g, "").trim();
-    const parsed = JSON.parse(cleaned);
-    if (!Array.isArray(parsed)) return null;
-    return parsed.filter((s) => typeof s === "string" && s.trim());
+    const cleaned = (raw || '').replace(/```\w*\n?/g, '').trim()
+    const parsed = JSON.parse(cleaned)
+    if (!Array.isArray(parsed)) return null
+    return parsed.filter((s) => typeof s === 'string' && s.trim())
   } catch (_) {
-    return null;
+    return null
   }
 }

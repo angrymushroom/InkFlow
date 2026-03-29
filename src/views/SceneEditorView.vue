@@ -3,12 +3,21 @@
     <div v-if="loading" class="empty-state">{{ t('scene.loading') }}</div>
     <div v-else-if="!scene" class="empty-state card">
       <p>{{ t('scene.notFound') }}</p>
-      <router-link to="/write" class="btn btn-primary" style="margin-top: var(--space-3);">{{ t('scene.backToWrite') }}</router-link>
+      <router-link to="/write" class="btn btn-primary" style="margin-top: var(--space-3)">{{
+        t('scene.backToWrite')
+      }}</router-link>
     </div>
     <div v-else>
       <div v-if="!focusMode" class="scene-topbar">
-        <router-link to="/write" class="btn btn-ghost btn-sm">← {{ t('scene.backToWrite') }}</router-link>
-        <button type="button" class="btn btn-ghost btn-sm focus-btn" :title="t('scene.focusMode')" @click="focusMode = true">
+        <router-link to="/write" class="btn btn-ghost btn-sm"
+          >← {{ t('scene.backToWrite') }}</router-link
+        >
+        <button
+          type="button"
+          class="btn btn-ghost btn-sm focus-btn"
+          :title="t('scene.focusMode')"
+          @click="focusMode = true"
+        >
           {{ t('scene.enterFocus') }}
         </button>
       </div>
@@ -18,7 +27,9 @@
 
       <div v-if="!focusMode" class="scene-meta card">
         <h1 class="scene-meta-title">{{ scene.title || t('outline.untitledScene') }}</h1>
-        <p v-if="scene.oneSentenceSummary" class="scene-meta-summary">{{ scene.oneSentenceSummary }}</p>
+        <p v-if="scene.oneSentenceSummary" class="scene-meta-summary">
+          {{ scene.oneSentenceSummary }}
+        </p>
         <p v-if="povName" class="scene-meta-pov">POV: {{ povName }}</p>
         <p v-if="scene.notes" class="scene-meta-notes">{{ scene.notes }}</p>
       </div>
@@ -30,35 +41,70 @@
         </div>
         <div v-if="selection.active" class="selection-toolbar">
           <span class="selection-toolbar-label">{{ t('writeQuick.capture') }}</span>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('idea')">{{ t('writeQuick.saveAsIdea') }}</button>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('character')">{{ t('writeQuick.addToCharacter') }}</button>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('outline')">{{ t('writeQuick.addToOutline') }}</button>
-          <button type="button" class="btn btn-ghost btn-sm" aria-label="Close" @click="clearSelection">×</button>
+          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('idea')">
+            {{ t('writeQuick.saveAsIdea') }}
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('character')">
+            {{ t('writeQuick.addToCharacter') }}
+          </button>
+          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('outline')">
+            {{ t('writeQuick.addToOutline') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            aria-label="Close"
+            @click="clearSelection"
+          >
+            ×
+          </button>
         </div>
         <div v-if="popover === 'idea'" class="quick-popover">
           <div class="quick-popover-row">
             <label>{{ t('ideas.titleLabel') }}</label>
-            <input v-model="ideaForm.title" type="text" :placeholder="t('ideas.shortTitle')" class="quick-input" />
+            <input
+              v-model="ideaForm.title"
+              type="text"
+              :placeholder="t('ideas.shortTitle')"
+              class="quick-input"
+            />
           </div>
           <div class="quick-popover-row">
             <label>{{ t('ideas.typeLabel') }}</label>
-            <select v-model="ideaForm.type" class="quick-select idea-type-select" @change="onIdeaTypeChange">
+            <select
+              v-model="ideaForm.type"
+              class="quick-select idea-type-select"
+              @change="onIdeaTypeChange"
+            >
               <optgroup :label="t('ideas.typeGroupSuggested')">
-                <option v-for="item in builtInTypes" :key="item.slug" :value="item.slug">{{ t('ideas.' + item.slug) }}</option>
+                <option v-for="item in builtInTypes" :key="item.slug" :value="item.slug">
+                  {{ t('ideas.' + item.slug) }}
+                </option>
               </optgroup>
               <optgroup v-if="customTypes.length" :label="t('ideas.typeGroupCustom')">
-                <option v-for="ct in customTypes" :key="ct.id" :value="ct.name">{{ ct.name }}</option>
+                <option v-for="ct in customTypes" :key="ct.id" :value="ct.name">
+                  {{ ct.name }}
+                </option>
               </optgroup>
               <option value="__add_custom__">{{ t('ideas.addCustomType') }}</option>
             </select>
           </div>
           <div class="quick-popover-row">
             <label>{{ t('ideas.bodyLabel') }} ({{ t('writeQuick.optional') }})</label>
-            <input v-model="ideaForm.body" type="text" :placeholder="t('ideas.bodyPlaceholder')" class="quick-input" />
+            <input
+              v-model="ideaForm.body"
+              type="text"
+              :placeholder="t('ideas.bodyPlaceholder')"
+              class="quick-input"
+            />
           </div>
           <div class="quick-popover-actions">
-            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">{{ t('ideas.cancel') }}</button>
-            <button type="button" class="btn btn-primary btn-sm" @click="saveAsIdea">{{ t('ideas.add') }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">
+              {{ t('ideas.cancel') }}
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" @click="saveAsIdea">
+              {{ t('ideas.add') }}
+            </button>
           </div>
         </div>
         <div v-if="popover === 'character'" class="quick-popover">
@@ -71,18 +117,29 @@
           </div>
           <div v-if="characterAction === 'new'" class="quick-popover-row">
             <label>{{ t('characters.name') }}</label>
-            <input v-model="characterForm.name" type="text" :placeholder="t('characters.namePlaceholder')" class="quick-input" />
+            <input
+              v-model="characterForm.name"
+              type="text"
+              :placeholder="t('characters.namePlaceholder')"
+              class="quick-input"
+            />
           </div>
           <div v-else class="quick-popover-row">
             <label>{{ t('writeQuick.pickCharacter') }}</label>
             <select v-model="characterForm.existingId" class="quick-select">
               <option value="">{{ t('writeQuick.pickCharacter') }}</option>
-              <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
+              <option v-for="c in characters" :key="c.id" :value="c.id">
+                {{ c.name || t('characters.unnamed') }}
+              </option>
             </select>
           </div>
           <div class="quick-popover-actions">
-            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">{{ t('ideas.cancel') }}</button>
-            <button type="button" class="btn btn-primary btn-sm" @click="saveAsCharacter">{{ t('ideas.add') }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">
+              {{ t('ideas.cancel') }}
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" @click="saveAsCharacter">
+              {{ t('ideas.add') }}
+            </button>
           </div>
         </div>
         <div v-if="popover === 'outline'" class="quick-popover">
@@ -95,16 +152,36 @@
             </select>
           </div>
           <div v-if="outlineAction !== 'note'" class="quick-popover-row">
-            <label>{{ outlineAction === 'scene' ? t('outline.sceneTitle') : t('outline.chapterTitle') }}</label>
-            <input v-model="outlineForm.title" type="text" :placeholder="outlineAction === 'scene' ? t('outline.sceneTitlePlaceholder') : t('outline.chapterTitlePlaceholder')" class="quick-input" />
+            <label>{{
+              outlineAction === 'scene' ? t('outline.sceneTitle') : t('outline.chapterTitle')
+            }}</label>
+            <input
+              v-model="outlineForm.title"
+              type="text"
+              :placeholder="
+                outlineAction === 'scene'
+                  ? t('outline.sceneTitlePlaceholder')
+                  : t('outline.chapterTitlePlaceholder')
+              "
+              class="quick-input"
+            />
           </div>
           <div v-if="outlineAction === 'chapter'" class="quick-popover-row">
             <label>{{ t('outline.summary') }} ({{ t('writeQuick.optional') }})</label>
-            <input v-model="outlineForm.summary" type="text" :placeholder="t('outline.summaryPlaceholder')" class="quick-input" />
+            <input
+              v-model="outlineForm.summary"
+              type="text"
+              :placeholder="t('outline.summaryPlaceholder')"
+              class="quick-input"
+            />
           </div>
           <div class="quick-popover-actions">
-            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">{{ t('ideas.cancel') }}</button>
-            <button type="button" class="btn btn-primary btn-sm" @click="saveToOutline">{{ t('ideas.add') }}</button>
+            <button type="button" class="btn btn-ghost btn-sm" @click="popover = null">
+              {{ t('ideas.cancel') }}
+            </button>
+            <button type="button" class="btn btn-primary btn-sm" @click="saveToOutline">
+              {{ t('ideas.add') }}
+            </button>
           </div>
         </div>
         <ResizableTextarea
@@ -126,11 +203,21 @@
           <span v-if="savedHint" class="saved-hint">{{ t('story.saved') }}</span>
         </div>
         <div class="scene-actions-secondary">
-          <button type="button" class="btn btn-ghost btn-sm" :disabled="generatingScene" @click="onGenerateScene">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="generatingScene"
+            @click="onGenerateScene"
+          >
             {{ generatingScene ? t('scene.generatingScene') : t('scene.generateThisScene') }}
           </button>
 
-          <button type="button" class="btn btn-ghost btn-sm" :disabled="checkingConsistency" @click="onCheckConsistency">
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="checkingConsistency"
+            @click="onCheckConsistency"
+          >
             {{ checkingConsistency ? t('scene.checkingConsistency') : t('scene.checkConsistency') }}
           </button>
         </div>
@@ -146,329 +233,395 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue';
-import { useRoute } from 'vue-router';
-import { getScene, getCharacters, getChapters, updateScene, addIdea, addCharacter, addChapter, addScene, getCurrentStoryId } from '@/db';
-import { generateSceneProse } from '@/services/generation';
-import { friendlyAiError } from '@/services/ai';
-import { checkConsistency, quickConsistencyCheck, updateSceneFacts } from '@/services/consistency';
-import { extractNewEntities } from '@/services/entityExtraction';
-import { runSummaryPipeline } from '@/services/summarization';
-import { useEntitySuggestions } from '@/composables/useEntitySuggestions';
-import { useConsistencyWarnings } from '@/composables/useConsistencyWarnings';
-import { useI18n } from '@/composables/useI18n';
-import { useIdeaTypes } from '@/composables/useIdeaTypes';
-import { useToast } from '@/composables/useToast';
-import { sceneDirty } from '@/stores/unsaved';
-import ResizableTextarea from '@/components/ResizableTextarea.vue';
-import { countWords } from '@/utils/wordCount';
+import { ref, computed, onMounted, onUnmounted, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
+import {
+  getScene,
+  getCharacters,
+  getChapters,
+  updateScene,
+  addIdea,
+  addCharacter,
+  addChapter,
+  addScene,
+  getCurrentStoryId,
+} from '@/db'
+import { generateSceneProse } from '@/services/generation'
+import { friendlyAiError } from '@/services/ai'
+import { checkConsistency, quickConsistencyCheck, updateSceneFacts } from '@/services/consistency'
+import { extractNewEntities } from '@/services/entityExtraction'
+import { runSummaryPipeline } from '@/services/summarization'
+import { useEntitySuggestions } from '@/composables/useEntitySuggestions'
+import { useConsistencyWarnings } from '@/composables/useConsistencyWarnings'
+import { useI18n } from '@/composables/useI18n'
+import { useIdeaTypes } from '@/composables/useIdeaTypes'
+import { useToast } from '@/composables/useToast'
+import { sceneDirty } from '@/stores/unsaved'
+import { useIdeasStore } from '@/stores/ideas.js'
+import { useCharactersStore } from '@/stores/characters.js'
+import { useOutlineStore } from '@/stores/outline.js'
+import ResizableTextarea from '@/components/ResizableTextarea.vue'
+import { countWords } from '@/utils/wordCount'
 
-const { t } = useI18n();
-const { builtInTypes, customTypes, addCustomType } = useIdeaTypes();
-const { success: toastSuccess, error: toastError, toast } = useToast();
+const { t } = useI18n()
+const { builtInTypes, customTypes, addCustomType } = useIdeaTypes()
+const { success: toastSuccess, error: toastError, toast } = useToast()
+const ideasStore = useIdeasStore()
+const charactersStore = useCharactersStore()
+const outlineStore = useOutlineStore()
 
-const route = useRoute();
-const sceneId = computed(() => route.params.sceneId);
-const scene = ref(null);
-const content = ref('');
-const loading = ref(true);
-const characters = ref([]);
-const lastSavedContent = ref('');
-const savedHint = ref(false);
-const saveError = ref('');
-const saveTimeout = ref(null);
-const beforeUnloadHandler = ref(null);
-const generatingScene = ref(false);
+const route = useRoute()
+const sceneId = computed(() => route.params.sceneId)
+const scene = ref(null)
+const content = ref('')
+const loading = ref(true)
+const characters = ref([])
+const lastSavedContent = ref('')
+const savedHint = ref(false)
+const saveError = ref('')
+const saveTimeout = ref(null)
+const beforeUnloadHandler = ref(null)
+const generatingScene = ref(false)
 
-const checkingConsistency = ref(false);
-const consistencyMessage = ref('');
-const focusMode = ref(false);
+const checkingConsistency = ref(false)
+const consistencyMessage = ref('')
+const focusMode = ref(false)
 
-const proseTextareaRef = ref(null);
-const selection = ref({ active: false, text: '', start: 0, end: 0 });
-const popover = ref(null);
-const characterAction = ref('new');
-const outlineAction = ref('scene');
-const ideaForm = ref({ title: '', body: '', type: 'scene' });
-const characterForm = ref({ name: '', existingId: '' });
-const outlineForm = ref({ title: '', summary: '' });
+const proseTextareaRef = ref(null)
+const selection = ref({ active: false, text: '', start: 0, end: 0 })
+const popover = ref(null)
+const characterAction = ref('new')
+const outlineAction = ref('scene')
+const ideaForm = ref({ title: '', body: '', type: 'scene' })
+const characterForm = ref({ name: '', existingId: '' })
+const outlineForm = ref({ title: '', summary: '' })
 
-const wordCount = computed(() => countWords(content.value || ''));
+const wordCount = computed(() => countWords(content.value || ''))
 
 const wordCountLabel = computed(() => {
-  const n = wordCount.value;
-  return n === 1 ? t.value('scene.wordCountSingle') || '1 word' : `${n.toLocaleString()} ${t.value('scene.wordCountPlural') || 'words'}`;
-});
+  const n = wordCount.value
+  return n === 1
+    ? t.value('scene.wordCountSingle') || '1 word'
+    : `${n.toLocaleString()} ${t.value('scene.wordCountPlural') || 'words'}`
+})
 
 const povName = computed(() => {
-  if (!scene.value?.povCharacterId) return '';
-  const c = characters.value.find((x) => x.id === scene.value.povCharacterId);
-  return c?.name ?? '';
-});
+  if (!scene.value?.povCharacterId) return ''
+  const c = characters.value.find((x) => x.id === scene.value.povCharacterId)
+  return c?.name ?? ''
+})
 
 function isDirty() {
-  return scene.value && (content.value !== lastSavedContent.value);
+  return scene.value && content.value !== lastSavedContent.value
 }
 
 function setBeforeUnload() {
-  if (beforeUnloadHandler.value) return;
-  beforeUnloadHandler.value = (e) => { if (isDirty()) e.preventDefault(); };
-  window.addEventListener('beforeunload', beforeUnloadHandler.value);
+  if (beforeUnloadHandler.value) return
+  beforeUnloadHandler.value = (e) => {
+    if (isDirty()) e.preventDefault()
+  }
+  window.addEventListener('beforeunload', beforeUnloadHandler.value)
 }
 function clearBeforeUnload() {
   if (beforeUnloadHandler.value) {
-    window.removeEventListener('beforeunload', beforeUnloadHandler.value);
-    beforeUnloadHandler.value = null;
+    window.removeEventListener('beforeunload', beforeUnloadHandler.value)
+    beforeUnloadHandler.value = null
   }
 }
 
 function onProseMouseUp() {
-  const el = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value;
-  if (!el) return;
-  const start = el.selectionStart;
-  const end = el.selectionEnd;
-  const text = (content.value || '').slice(start, end).trim();
+  const el = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value
+  if (!el) return
+  const start = el.selectionStart
+  const end = el.selectionEnd
+  const text = (content.value || '').slice(start, end).trim()
   if (text.length > 0) {
-    selection.value = { active: true, text, start, end };
-    popover.value = null;
-    const snippet = text.length > 40 ? text.slice(0, 40) + '…' : text;
-    ideaForm.value = { title: snippet, body: '', type: 'scene' };
-    characterForm.value = { name: text.length > 30 ? text.slice(0, 30) + '…' : text, existingId: '' };
-    outlineForm.value = { title: text.length > 50 ? text.slice(0, 50) + '…' : text, summary: '' };
+    selection.value = { active: true, text, start, end }
+    popover.value = null
+    const snippet = text.length > 40 ? text.slice(0, 40) + '…' : text
+    ideaForm.value = { title: snippet, body: '', type: 'scene' }
+    characterForm.value = {
+      name: text.length > 30 ? text.slice(0, 30) + '…' : text,
+      existingId: '',
+    }
+    outlineForm.value = { title: text.length > 50 ? text.slice(0, 50) + '…' : text, summary: '' }
   } else {
-    selection.value = { active: false, text: '', start: 0, end: 0 };
-    popover.value = null;
+    selection.value = { active: false, text: '', start: 0, end: 0 }
+    popover.value = null
   }
 }
 
 function clearSelection() {
-  selection.value = { active: false, text: '', start: 0, end: 0 };
-  popover.value = null;
-  const input = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value;
-  input?.focus();
+  selection.value = { active: false, text: '', start: 0, end: 0 }
+  popover.value = null
+  const input = proseTextareaRef.value?.inputRef?.value ?? proseTextareaRef.value
+  input?.focus()
 }
 
 function openPopover(which) {
-  popover.value = which;
-  if (which === 'character') characterAction.value = 'new';
-  if (which === 'outline') outlineAction.value = 'scene';
+  popover.value = which
+  if (which === 'character') characterAction.value = 'new'
+  if (which === 'outline') outlineAction.value = 'scene'
 }
 
 async function onIdeaTypeChange() {
-  if (ideaForm.value.type !== '__add_custom__') return;
-  const name = window.prompt(t.value('ideas.addCustomType'));
-  if (!name?.trim()) { ideaForm.value.type = 'scene'; return; }
-  const newName = await addCustomType(name);
-  ideaForm.value.type = newName || 'scene';
+  if (ideaForm.value.type !== '__add_custom__') return
+  const name = window.prompt(t.value('ideas.addCustomType'))
+  if (!name?.trim()) {
+    ideaForm.value.type = 'scene'
+    return
+  }
+  const newName = await addCustomType(name)
+  ideaForm.value.type = newName || 'scene'
 }
 
 async function saveAsIdea() {
   try {
-    const type = ideaForm.value.type && ideaForm.value.type !== '__add_custom__' ? ideaForm.value.type : 'scene';
-    await addIdea({ title: ideaForm.value.title || selection.value.text, body: ideaForm.value.body || '', type });
-    toast(t.value('writeQuick.ideaSaved'));
-    await nextTick();
-    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'));
-    clearSelection();
+    const type =
+      ideaForm.value.type && ideaForm.value.type !== '__add_custom__'
+        ? ideaForm.value.type
+        : 'scene'
+    await addIdea({
+      title: ideaForm.value.title || selection.value.text,
+      body: ideaForm.value.body || '',
+      type,
+    })
+    toast(t.value('writeQuick.ideaSaved'))
+    await nextTick()
+    ideasStore.load()
+    clearSelection()
   } catch (e) {
-    saveError.value = e?.message || t.value('story.saveError');
+    saveError.value = e?.message || t.value('story.saveError')
   }
 }
 
 async function saveAsCharacter() {
   try {
     if (characterAction.value === 'new') {
-      await addCharacter({ name: characterForm.value.name || selection.value.text });
-      toast(t.value('writeQuick.characterSaved'));
-      await nextTick();
-      window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+      await addCharacter({ name: characterForm.value.name || selection.value.text })
+      toast(t.value('writeQuick.characterSaved'))
+      await nextTick()
+      charactersStore.load()
     } else if (characterForm.value.existingId) {
-      const c = characters.value.find((x) => x.id === characterForm.value.existingId);
-      toast(t.value('writeQuick.linkedToCharacter').replace('{name}', c?.name || t.value('characters.unnamed')));
+      const c = characters.value.find((x) => x.id === characterForm.value.existingId)
+      toast(
+        t
+          .value('writeQuick.linkedToCharacter')
+          .replace('{name}', c?.name || t.value('characters.unnamed'))
+      )
     }
-    clearSelection();
+    clearSelection()
   } catch (e) {
-    saveError.value = e?.message || t.value('story.saveError');
+    saveError.value = e?.message || t.value('story.saveError')
   }
 }
 
 async function saveToOutline() {
   try {
     if (outlineAction.value === 'scene' && scene.value?.chapterId) {
-      await addScene({ chapterId: scene.value.chapterId, title: outlineForm.value.title || selection.value.text, oneSentenceSummary: outlineForm.value.summary || '' });
-      toast(t.value('writeQuick.sceneSaved'));
-      window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
+      await addScene({
+        chapterId: scene.value.chapterId,
+        title: outlineForm.value.title || selection.value.text,
+        oneSentenceSummary: outlineForm.value.summary || '',
+      })
+      toast(t.value('writeQuick.sceneSaved'))
+      outlineStore.load()
     } else if (outlineAction.value === 'chapter') {
-      await addChapter({ title: outlineForm.value.title || selection.value.text, summary: outlineForm.value.summary || '' });
-      toast(t.value('writeQuick.chapterSaved'));
-      window.dispatchEvent(new CustomEvent('inkflow-outline-changed'));
+      await addChapter({
+        title: outlineForm.value.title || selection.value.text,
+        summary: outlineForm.value.summary || '',
+      })
+      toast(t.value('writeQuick.chapterSaved'))
+      outlineStore.load()
     } else if (outlineAction.value === 'note' && scene.value) {
-      const newNote = (scene.value.notes || '') + (scene.value.notes ? '\n' : '') + selection.value.text;
-      await updateScene(scene.value.id, { notes: newNote });
-      scene.value = { ...scene.value, notes: newNote };
-      toast(t.value('writeQuick.noteSaved'));
+      const newNote =
+        (scene.value.notes || '') + (scene.value.notes ? '\n' : '') + selection.value.text
+      await updateScene(scene.value.id, { notes: newNote })
+      scene.value = { ...scene.value, notes: newNote }
+      toast(t.value('writeQuick.noteSaved'))
     }
-    clearSelection();
+    clearSelection()
   } catch (e) {
-    saveError.value = e?.message || t.value('story.saveError');
+    saveError.value = e?.message || t.value('story.saveError')
   }
 }
 
 async function load() {
-  loading.value = true;
-  const [s, chars] = await Promise.all([getScene(sceneId.value), getCharacters()]);
-  characters.value = chars;
+  loading.value = true
+  const [s, chars] = await Promise.all([getScene(sceneId.value), getCharacters()])
+  characters.value = chars
   if (s) {
-    scene.value = s;
-    content.value = s.content ?? '';
-    lastSavedContent.value = content.value;
+    scene.value = s
+    content.value = s.content ?? ''
+    lastSavedContent.value = content.value
   } else {
-    scene.value = null;
+    scene.value = null
   }
-  sceneDirty.value = isDirty();
-  loading.value = false;
+  sceneDirty.value = isDirty()
+  loading.value = false
 }
 
 async function onGenerateScene() {
-  if (!scene.value) return;
-  saveError.value = '';
-  generatingScene.value = true;
+  if (!scene.value) return
+  saveError.value = ''
+  generatingScene.value = true
   try {
-    const storyId = getCurrentStoryId();
-    const prose = await generateSceneProse({ storyId, sceneId: scene.value.id });
-    content.value = prose;
-    lastSavedContent.value = prose;
-    sceneDirty.value = false;
-    clearBeforeUnload();
-    savedHint.value = true;
-    setTimeout(() => { savedHint.value = false; }, 2000);
-    triggerEntityScan(prose, storyId);
+    const storyId = getCurrentStoryId()
+    const prose = await generateSceneProse({ storyId, sceneId: scene.value.id })
+    content.value = prose
+    lastSavedContent.value = prose
+    sceneDirty.value = false
+    clearBeforeUnload()
+    savedHint.value = true
+    setTimeout(() => {
+      savedHint.value = false
+    }, 2000)
+    triggerEntityScan(prose, storyId)
   } catch (e) {
-    saveError.value = friendlyAiError(e);
+    saveError.value = friendlyAiError(e)
   } finally {
-    generatingScene.value = false;
+    generatingScene.value = false
   }
 }
 
-
 async function onCheckConsistency() {
-  if (!scene.value) return;
-  const storyId = getCurrentStoryId();
-  checkingConsistency.value = true;
-  saveError.value = '';
-  consistencyMessage.value = '';
+  if (!scene.value) return
+  const storyId = getCurrentStoryId()
+  checkingConsistency.value = true
+  saveError.value = ''
+  consistencyMessage.value = ''
   try {
-    const result = await checkConsistency({ storyId, sceneId: scene.value.id });
-    consistencyMessage.value = result || t.value('scene.noContradictions');
+    const result = await checkConsistency({ storyId, sceneId: scene.value.id })
+    consistencyMessage.value = result || t.value('scene.noContradictions')
   } catch (e) {
-    saveError.value = friendlyAiError(e);
+    saveError.value = friendlyAiError(e)
   } finally {
-    checkingConsistency.value = false;
+    checkingConsistency.value = false
   }
 }
 
 async function save() {
-  if (!scene.value) return;
-  saveError.value = '';
+  if (!scene.value) return
+  saveError.value = ''
   try {
-    await updateScene(scene.value.id, { content: content.value });
-    lastSavedContent.value = content.value;
-    sceneDirty.value = false;
-    clearBeforeUnload();
-    savedHint.value = true;
-    setTimeout(() => { savedHint.value = false; }, 2000);
+    await updateScene(scene.value.id, { content: content.value })
+    lastSavedContent.value = content.value
+    sceneDirty.value = false
+    clearBeforeUnload()
+    savedHint.value = true
+    setTimeout(() => {
+      savedHint.value = false
+    }, 2000)
   } catch (e) {
-    saveError.value = e?.message || t.value('story.saveError');
-    setBeforeUnload();
+    saveError.value = e?.message || t.value('story.saveError')
+    setBeforeUnload()
   }
 }
 
-const { setPending: setEntitySuggestions } = useEntitySuggestions();
-const { setWarnings: setConsistencyWarnings } = useConsistencyWarnings();
+const { setPending: setEntitySuggestions } = useEntitySuggestions()
+const { setWarnings: setConsistencyWarnings } = useConsistencyWarnings()
 
 function triggerEntityScan(text, storyId) {
   // Fire-and-forget: do not await, never block the UI
-  extractNewEntities({ sceneText: text, storyId }).then((found) => {
-    if (found.length) setEntitySuggestions(found, storyId);
-  }).catch(() => {});
+  extractNewEntities({ sceneText: text, storyId })
+    .then((found) => {
+      if (found.length) setEntitySuggestions(found, storyId)
+    })
+    .catch(() => {})
 }
 
 async function autoSave() {
-  if (!scene.value || !isDirty()) return;
+  if (!scene.value || !isDirty()) return
   try {
-    await updateScene(scene.value.id, { content: content.value });
-    lastSavedContent.value = content.value;
-    sceneDirty.value = false;
-    clearBeforeUnload();
-    savedHint.value = true;
-    setTimeout(() => { savedHint.value = false; }, 2000);
-    triggerEntityScan(content.value, getCurrentStoryId());
-    const _sid = scene.value.id;
-    const _chapterId = scene.value.chapterId;
-    const _storyId = getCurrentStoryId();
-    const _title = scene.value.title || '';
-    const _text = content.value;
-    runSummaryPipeline(_sid, _chapterId).catch(() => {});
-    updateSceneFacts({ sceneId: _sid, chapterId: _chapterId, storyId: _storyId, sceneText: _text }).catch(() => {});
+    await updateScene(scene.value.id, { content: content.value })
+    lastSavedContent.value = content.value
+    sceneDirty.value = false
+    clearBeforeUnload()
+    savedHint.value = true
+    setTimeout(() => {
+      savedHint.value = false
+    }, 2000)
+    triggerEntityScan(content.value, getCurrentStoryId())
+    const _sid = scene.value.id
+    const _chapterId = scene.value.chapterId
+    const _storyId = getCurrentStoryId()
+    const _title = scene.value.title || ''
+    const _text = content.value
+    runSummaryPipeline(_sid, _chapterId).catch(() => {})
+    updateSceneFacts({
+      sceneId: _sid,
+      chapterId: _chapterId,
+      storyId: _storyId,
+      sceneText: _text,
+    }).catch(() => {})
     quickConsistencyCheck({ sceneId: _sid, storyId: _storyId })
-      .then((issues) => { if (issues?.length) setConsistencyWarnings(issues, _title, _storyId); })
-      .catch(() => {});
+      .then((issues) => {
+        if (issues?.length) setConsistencyWarnings(issues, _title, _storyId)
+      })
+      .catch(() => {})
   } catch (e) {
-    saveError.value = e?.message || t.value('story.saveError');
-    setBeforeUnload();
+    saveError.value = e?.message || t.value('story.saveError')
+    setBeforeUnload()
   }
 }
 
 // Toggle focus mode with F key (when not in text field)
 function onKeyDown(e) {
   if (e.key === 'Escape' && focusMode.value) {
-    focusMode.value = false;
+    focusMode.value = false
   }
   if ((e.metaKey || e.ctrlKey) && e.key === 's') {
-    e.preventDefault();
-    save();
+    e.preventDefault()
+    save()
   }
 }
 
 function onProseGenerated(e) {
-  const prose = e.detail?.prose;
-  if (!prose || !scene.value) return;
-  content.value = prose;
-  lastSavedContent.value = prose;
-  sceneDirty.value = false;
-  clearBeforeUnload();
-  savedHint.value = true;
-  setTimeout(() => { savedHint.value = false; }, 2000);
-  triggerEntityScan(prose, getCurrentStoryId());
+  const prose = e.detail?.prose
+  if (!prose || !scene.value) return
+  content.value = prose
+  lastSavedContent.value = prose
+  sceneDirty.value = false
+  clearBeforeUnload()
+  savedHint.value = true
+  setTimeout(() => {
+    savedHint.value = false
+  }, 2000)
+  triggerEntityScan(prose, getCurrentStoryId())
 }
 
 onMounted(() => {
-  load();
-  window.addEventListener('keydown', onKeyDown);
-  window.addEventListener('inkflow-prose-generated', onProseGenerated);
+  load()
+  window.addEventListener('keydown', onKeyDown)
+  window.addEventListener('inkflow-prose-generated', onProseGenerated)
   watch(content, () => {
-    if (!scene.value) return;
-    sceneDirty.value = isDirty();
-    if (saveTimeout.value) clearTimeout(saveTimeout.value);
-    if (isDirty()) setBeforeUnload();
-    saveTimeout.value = setTimeout(() => { autoSave(); saveTimeout.value = null; }, 1800);
-  });
-  watch(sceneId, load);
-});
+    if (!scene.value) return
+    sceneDirty.value = isDirty()
+    if (saveTimeout.value) clearTimeout(saveTimeout.value)
+    if (isDirty()) setBeforeUnload()
+    saveTimeout.value = setTimeout(() => {
+      autoSave()
+      saveTimeout.value = null
+    }, 1800)
+  })
+  watch(sceneId, load)
+})
 
 onUnmounted(() => {
-  window.removeEventListener('keydown', onKeyDown);
-  window.removeEventListener('inkflow-prose-generated', onProseGenerated);
-  if (saveTimeout.value) clearTimeout(saveTimeout.value);
-  clearBeforeUnload();
-  sceneDirty.value = false;
-});
+  window.removeEventListener('keydown', onKeyDown)
+  window.removeEventListener('inkflow-prose-generated', onProseGenerated)
+  if (saveTimeout.value) clearTimeout(saveTimeout.value)
+  clearBeforeUnload()
+  sceneDirty.value = false
+})
 </script>
 
 <style scoped>
 .scene-editor-page {
   max-width: 800px;
-  transition: max-width 0.3s ease, padding 0.3s ease;
+  transition:
+    max-width 0.3s ease,
+    padding 0.3s ease;
 }
 
 /* Focus mode */
@@ -504,7 +657,10 @@ onUnmounted(() => {
   color: var(--text-muted);
   box-shadow: var(--shadow);
 }
-.focus-exit-btn:hover { color: var(--text); background: var(--border); }
+.focus-exit-btn:hover {
+  color: var(--text);
+  background: var(--border);
+}
 
 @media (min-width: 768px) {
   .focus-exit-btn {
@@ -570,7 +726,9 @@ onUnmounted(() => {
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
-.quick-popover-row { margin-bottom: var(--space-2); }
+.quick-popover-row {
+  margin-bottom: var(--space-2);
+}
 .quick-popover-row label {
   display: block;
   font-size: 0.8125rem;
@@ -589,7 +747,11 @@ onUnmounted(() => {
   background: var(--bg);
   color: var(--text);
 }
-.quick-popover-actions { display: flex; gap: var(--space-2); margin-top: var(--space-3); }
+.quick-popover-actions {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
 .prose-textarea {
   min-height: 400px;
   max-height: 85vh;
@@ -631,7 +793,17 @@ onUnmounted(() => {
   font-size: 0.875rem;
   color: var(--danger);
 }
-.consistency-result { margin-top: var(--space-4); }
-.consistency-result-title { font-size: 0.9375rem; font-weight: 600; margin: 0 0 var(--space-2); }
-.consistency-result-text { font-size: 0.875rem; white-space: pre-wrap; margin: 0; }
+.consistency-result {
+  margin-top: var(--space-4);
+}
+.consistency-result-title {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-2);
+}
+.consistency-result-text {
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  margin: 0;
+}
 </style>

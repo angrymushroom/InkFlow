@@ -1,11 +1,11 @@
-import { ref } from "vue";
-import { addIdea } from "@/db";
-import { useToast } from "@/composables/useToast";
+import { ref } from 'vue'
+import { addIdea } from '@/db'
+import { useToast } from '@/composables/useToast'
 
 // Module-level singleton — all components share the same state
-const pending = ref([]); // [{ name, type, description, selected }]
-const isExpanded = ref(false);
-const lockedStoryId = ref(null);
+const pending = ref([]) // [{ name, type, description, selected }]
+const isExpanded = ref(false)
+const lockedStoryId = ref(null)
 
 export function useEntitySuggestions() {
   /**
@@ -14,34 +14,34 @@ export function useEntitySuggestions() {
    * @param {string} storyId
    */
   function setPending(entities, storyId) {
-    if (!entities?.length) return;
+    if (!entities?.length) return
     // Guard: discard if storyId changed mid-session (prevent cross-story pollution)
     if (lockedStoryId.value && lockedStoryId.value !== storyId) {
-      pending.value = [];
-      isExpanded.value = false;
+      pending.value = []
+      isExpanded.value = false
     }
-    lockedStoryId.value = storyId;
-    pending.value = entities.map((e) => ({ ...e, selected: true }));
-    isExpanded.value = false;
+    lockedStoryId.value = storyId
+    pending.value = entities.map((e) => ({ ...e, selected: true }))
+    isExpanded.value = false
   }
 
   function dismiss() {
-    pending.value = [];
-    isExpanded.value = false;
+    pending.value = []
+    isExpanded.value = false
   }
 
   function toggleItem(index) {
     if (pending.value[index]) {
-      pending.value[index].selected = !pending.value[index].selected;
+      pending.value[index].selected = !pending.value[index].selected
     }
   }
 
   function toggleExpanded() {
-    isExpanded.value = !isExpanded.value;
+    isExpanded.value = !isExpanded.value
   }
 
   function selectAll() {
-    pending.value.forEach((e) => (e.selected = true));
+    pending.value.forEach((e) => (e.selected = true))
   }
 
   /**
@@ -49,30 +49,28 @@ export function useEntitySuggestions() {
    * @param {Function} t  - i18n translator (t.value in script setup)
    */
   async function saveSelected(t) {
-    const toSave = pending.value.filter((e) => e.selected);
-    if (!toSave.length) return;
+    const toSave = pending.value.filter((e) => e.selected)
+    if (!toSave.length) return
 
-    const storyId = lockedStoryId.value;
+    const storyId = lockedStoryId.value
     for (const entity of toSave) {
       await addIdea({
         storyId,
         title: entity.name,
         body: entity.description,
         type: entity.type,
-      });
+      })
     }
 
-    window.dispatchEvent(new CustomEvent("inkflow-ideas-changed"));
+    window.dispatchEvent(new CustomEvent('inkflow-ideas-changed'))
 
-    const { success } = useToast();
-    const count = toSave.length;
+    const { success } = useToast()
+    const count = toSave.length
     const msg =
-      count === 1
-        ? t("entitySuggestion.savedOne")
-        : t("entitySuggestion.saved", { count });
-    success(msg);
+      count === 1 ? t('entitySuggestion.savedOne') : t('entitySuggestion.saved', { count })
+    success(msg)
 
-    dismiss();
+    dismiss()
   }
 
   return {
@@ -84,5 +82,5 @@ export function useEntitySuggestions() {
     toggleExpanded,
     selectAll,
     saveSelected,
-  };
+  }
 }

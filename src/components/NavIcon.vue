@@ -12,7 +12,9 @@
   >
     <!-- ideas: lightbulb -->
     <template v-if="name === 'ideas'">
-      <path d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 3.1-2 5.7-4.9 6.7V17a1 1 0 0 1-1 1h-2.2a1 1 0 0 1-1-1v-1.3C7 14.7 5 12.1 5 9a7 7 0 0 1 7-7z" />
+      <path
+        d="M9 18h6M10 22h4M12 2a7 7 0 0 1 7 7c0 3.1-2 5.7-4.9 6.7V17a1 1 0 0 1-1 1h-2.2a1 1 0 0 1-1-1v-1.3C7 14.7 5 12.1 5 9a7 7 0 0 1 7-7z"
+      />
     </template>
     <!-- characters: user -->
     <template v-else-if="name === 'characters'">
@@ -59,5 +61,5 @@
 defineProps({
   name: { type: String, required: true },
   size: { type: Number, default: 20 },
-});
+})
 </script>

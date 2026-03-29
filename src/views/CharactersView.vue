@@ -7,48 +7,95 @@
     <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
     <div v-if="showForm" class="card form-card">
-      <h2 class="form-title">{{ editingId ? t('characters.editCharacter') : t('characters.newCharacter') }}</h2>
+      <h2 class="form-title">
+        {{ editingId ? t('characters.editCharacter') : t('characters.newCharacter') }}
+      </h2>
       <div class="form-group">
         <label>{{ t('characters.name') }}</label>
         <input v-model="form.name" type="text" :placeholder="t('characters.namePlaceholder')" />
       </div>
       <div class="form-group">
         <label>{{ t('characters.oneSentence') }}</label>
-        <input v-model="form.oneSentence" type="text" :placeholder="t('characters.oneSentencePlaceholder')" />
-        <AiExpandButton :current-value="form.oneSentence" :field-name="t('characters.fieldOneSentence')" @expanded="form.oneSentence = $event" />
+        <input
+          v-model="form.oneSentence"
+          type="text"
+          :placeholder="t('characters.oneSentencePlaceholder')"
+        />
+        <AiExpandButton
+          :current-value="form.oneSentence"
+          :field-name="t('characters.fieldOneSentence')"
+          @expanded="form.oneSentence = $event"
+        />
       </div>
       <div class="form-group">
         <label>{{ t('characters.goal') }}</label>
         <input v-model="form.goal" type="text" :placeholder="t('characters.goalPlaceholder')" />
-        <AiExpandButton :current-value="form.goal" :field-name="t('characters.fieldGoal')" @expanded="form.goal = $event" />
+        <AiExpandButton
+          :current-value="form.goal"
+          :field-name="t('characters.fieldGoal')"
+          @expanded="form.goal = $event"
+        />
       </div>
       <div class="form-group">
         <label>{{ t('characters.motivation') }}</label>
-        <ResizableTextarea v-model="form.motivation" :placeholder="t('characters.motivationPlaceholder')" :rows="2" />
-        <AiExpandButton :current-value="form.motivation" :field-name="t('characters.fieldMotivation')" @expanded="form.motivation = $event" />
+        <ResizableTextarea
+          v-model="form.motivation"
+          :placeholder="t('characters.motivationPlaceholder')"
+          :rows="2"
+        />
+        <AiExpandButton
+          :current-value="form.motivation"
+          :field-name="t('characters.fieldMotivation')"
+          @expanded="form.motivation = $event"
+        />
       </div>
       <div class="form-group">
         <label>{{ t('characters.conflict') }}</label>
-        <ResizableTextarea v-model="form.conflict" :placeholder="t('characters.conflictPlaceholder')" :rows="2" />
-        <AiExpandButton :current-value="form.conflict" :field-name="t('characters.fieldConflict')" @expanded="form.conflict = $event" />
+        <ResizableTextarea
+          v-model="form.conflict"
+          :placeholder="t('characters.conflictPlaceholder')"
+          :rows="2"
+        />
+        <AiExpandButton
+          :current-value="form.conflict"
+          :field-name="t('characters.fieldConflict')"
+          @expanded="form.conflict = $event"
+        />
       </div>
       <div class="form-group">
         <label>{{ t('characters.epiphany') }}</label>
-        <ResizableTextarea v-model="form.epiphany" :placeholder="t('characters.epiphanyPlaceholder')" :rows="2" />
-        <AiExpandButton :current-value="form.epiphany" :field-name="t('characters.fieldEpiphany')" @expanded="form.epiphany = $event" />
+        <ResizableTextarea
+          v-model="form.epiphany"
+          :placeholder="t('characters.epiphanyPlaceholder')"
+          :rows="2"
+        />
+        <AiExpandButton
+          :current-value="form.epiphany"
+          :field-name="t('characters.fieldEpiphany')"
+          @expanded="form.epiphany = $event"
+        />
       </div>
       <div class="form-actions">
         <button class="btn btn-ghost" @click="cancelForm">{{ t('ideas.cancel') }}</button>
-        <button class="btn btn-primary" @click="saveCharacter">{{ editingId ? t('ideas.save') : t('ideas.add') }}</button>
+        <button class="btn btn-primary" @click="saveCharacter">
+          {{ editingId ? t('ideas.save') : t('ideas.add') }}
+        </button>
       </div>
     </div>
 
-    <button v-if="!showForm" class="btn btn-primary" @click="openNew">+ {{ t('characters.newCharacter') }}</button>
+    <button v-if="!showForm" class="btn btn-primary" @click="openNew">
+      + {{ t('characters.newCharacter') }}
+    </button>
 
     <div v-if="!characters.length && !showForm" class="empty-state card">
       <OtterIllustration size="md" variant="idle" class="empty-otter" />
       <p>{{ t('characters.empty') }}</p>
-      <button type="button" class="btn btn-primary" style="margin-top: var(--space-3);" @click="openNew">
+      <button
+        type="button"
+        class="btn btn-primary"
+        style="margin-top: var(--space-3)"
+        @click="openNew"
+      >
         {{ t('characters.addFirst') }}
       </button>
     </div>
@@ -58,8 +105,20 @@
         <div class="char-header">
           <h3 class="char-name">{{ char.name || t('characters.unnamed') }}</h3>
           <div class="char-actions">
-            <button class="btn btn-ghost btn-sm btn-icon" @click="editCharacter(char)" :title="t('ideas.edit')">✏️</button>
-            <button class="btn btn-ghost btn-sm btn-icon" @click="confirmDelete(char)" :title="t('ideas.delete')">🗑️</button>
+            <button
+              class="btn btn-ghost btn-sm btn-icon"
+              @click="editCharacter(char)"
+              :title="t('ideas.edit')"
+            >
+              ✏️
+            </button>
+            <button
+              class="btn btn-ghost btn-sm btn-icon"
+              @click="confirmDelete(char)"
+              :title="t('ideas.delete')"
+            >
+              🗑️
+            </button>
           </div>
         </div>
         <p v-if="char.oneSentence" class="char-one-sentence">{{ char.oneSentence }}</p>
@@ -103,22 +162,34 @@
         <div class="form-group">
           <label>{{ t('characters.relFrom') }}</label>
           <select v-model="relForm.fromCharId" class="rel-select">
-            <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
+            <option v-for="c in characters" :key="c.id" :value="c.id">
+              {{ c.name || t('characters.unnamed') }}
+            </option>
           </select>
         </div>
         <div class="form-group">
           <label>{{ t('characters.relTo') }}</label>
           <select v-model="relForm.toCharId" class="rel-select">
-            <option v-for="c in characters" :key="c.id" :value="c.id">{{ c.name || t('characters.unnamed') }}</option>
+            <option v-for="c in characters" :key="c.id" :value="c.id">
+              {{ c.name || t('characters.unnamed') }}
+            </option>
           </select>
         </div>
         <div class="form-group">
           <label>{{ t('characters.relLabel') }}</label>
-          <input v-model="relForm.label" type="text" :placeholder="t('characters.relLabelPlaceholder')" />
+          <input
+            v-model="relForm.label"
+            type="text"
+            :placeholder="t('characters.relLabelPlaceholder')"
+          />
         </div>
         <div class="form-group">
           <label>{{ t('characters.relDescription') }}</label>
-          <ResizableTextarea v-model="relForm.description" :placeholder="t('characters.relDescriptionPlaceholder')" :rows="2" />
+          <ResizableTextarea
+            v-model="relForm.description"
+            :placeholder="t('characters.relDescriptionPlaceholder')"
+            :rows="2"
+          />
         </div>
         <div class="form-actions">
           <button class="btn btn-ghost" @click="cancelRelForm">{{ t('ideas.cancel') }}</button>
@@ -126,7 +197,9 @@
         </div>
       </div>
 
-      <button v-if="!showRelForm" class="btn btn-primary" @click="openRelForm">+ {{ t('characters.newRelationship') }}</button>
+      <button v-if="!showRelForm" class="btn btn-primary" @click="openRelForm">
+        + {{ t('characters.newRelationship') }}
+      </button>
 
       <div v-if="relationships.length" class="rel-list">
         <div v-for="rel in relationships" :key="rel.id" class="card rel-card">
@@ -136,7 +209,13 @@
               <span class="rel-arrow">{{ rel.label || '→' }}</span>
               <strong>{{ charName(rel.toCharId) }}</strong>
             </span>
-            <button class="btn btn-ghost btn-sm btn-icon" @click="confirmDeleteRel(rel)" :title="t('ideas.delete')">🗑️</button>
+            <button
+              class="btn btn-ghost btn-sm btn-icon"
+              @click="confirmDeleteRel(rel)"
+              :title="t('ideas.delete')"
+            >
+              🗑️
+            </button>
           </div>
           <p v-if="rel.description" class="rel-description">{{ rel.description }}</p>
         </div>
@@ -155,19 +234,31 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue';
-import { getCharacters, addCharacter, updateCharacter, deleteCharacter, getCharacterRelationships, addCharacterRelationship, deleteCharacterRelationship } from '@/db';
-import { useI18n } from '@/composables/useI18n';
-import AiExpandButton from '@/components/AiExpandButton.vue';
-import ResizableTextarea from '@/components/ResizableTextarea.vue';
-import ConfirmModal from '@/components/ConfirmModal.vue';
-import OtterIllustration from '@/components/OtterIllustration.vue';
+import { ref, onMounted, onUnmounted } from 'vue'
+import {
+  getCharacters,
+  addCharacter,
+  updateCharacter,
+  deleteCharacter,
+  getCharacterRelationships,
+  addCharacterRelationship,
+  deleteCharacterRelationship,
+} from '@/db'
+import { useI18n } from '@/composables/useI18n'
+import { useStoryStore } from '@/stores/story.js'
+import { useCharactersStore } from '@/stores/characters.js'
+import AiExpandButton from '@/components/AiExpandButton.vue'
+import ResizableTextarea from '@/components/ResizableTextarea.vue'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import OtterIllustration from '@/components/OtterIllustration.vue'
 
-const { t } = useI18n();
+const { t } = useI18n()
+const storyStore = useStoryStore()
+const charactersStore = useCharactersStore()
 
-const characters = ref([]);
-const showForm = ref(false);
-const editingId = ref(null);
+const characters = ref([])
+const showForm = ref(false)
+const editingId = ref(null)
 const form = ref({
   name: '',
   oneSentence: '',
@@ -175,19 +266,19 @@ const form = ref({
   motivation: '',
   conflict: '',
   epiphany: '',
-});
-const loadError = ref('');
-const saveError = ref('');
-const deleteModal = ref({ open: false, character: null });
+})
+const loadError = ref('')
+const saveError = ref('')
+const deleteModal = ref({ open: false, character: null })
 
 // Relationships
-const relationships = ref([]);
-const showRelForm = ref(false);
-const relForm = ref({ fromCharId: '', toCharId: '', label: '', description: '' });
-const deleteRelModal = ref({ open: false, relationship: null });
+const relationships = ref([])
+const showRelForm = ref(false)
+const relForm = ref({ fromCharId: '', toCharId: '', label: '', description: '' })
+const deleteRelModal = ref({ open: false, relationship: null })
 
 function charName(id) {
-  return characters.value.find((c) => c.id === id)?.name || id;
+  return characters.value.find((c) => c.id === id)?.name || id
 }
 
 function openRelForm() {
@@ -196,65 +287,65 @@ function openRelForm() {
     toCharId: characters.value[1]?.id ?? '',
     label: '',
     description: '',
-  };
-  showRelForm.value = true;
+  }
+  showRelForm.value = true
 }
 
 function cancelRelForm() {
-  showRelForm.value = false;
+  showRelForm.value = false
 }
 
 async function saveRelationship() {
-  saveError.value = '';
+  saveError.value = ''
   try {
-    await addCharacterRelationship(relForm.value);
-    relationships.value = await getCharacterRelationships();
-    cancelRelForm();
+    await addCharacterRelationship(relForm.value)
+    relationships.value = await getCharacterRelationships()
+    cancelRelForm()
   } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+    saveError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 function confirmDeleteRel(rel) {
-  deleteRelModal.value = { open: true, relationship: rel };
+  deleteRelModal.value = { open: true, relationship: rel }
 }
 
 async function doDeleteRel() {
-  const rel = deleteRelModal.value.relationship;
-  if (!rel) return;
-  deleteRelModal.value.open = false;
+  const rel = deleteRelModal.value.relationship
+  if (!rel) return
+  deleteRelModal.value.open = false
   try {
-    await deleteCharacterRelationship(rel.id);
-    relationships.value = await getCharacterRelationships();
+    await deleteCharacterRelationship(rel.id)
+    relationships.value = await getCharacterRelationships()
   } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+    saveError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 async function loadRelationships() {
   try {
-    relationships.value = await getCharacterRelationships();
+    relationships.value = await getCharacterRelationships()
   } catch (_) {}
 }
 
 async function load() {
-  loadError.value = '';
+  loadError.value = ''
   try {
-    characters.value = await getCharacters();
-    relationships.value = await getCharacterRelationships();
+    characters.value = await getCharacters()
+    relationships.value = await getCharacterRelationships()
   } catch (e) {
-    loadError.value = e?.message || t.value('common.loadErrorGeneric');
+    loadError.value = e?.message || t.value('common.loadErrorGeneric')
   }
 }
 
 function openNew() {
-  editingId.value = null;
-  form.value = { name: '', oneSentence: '', goal: '', motivation: '', conflict: '', epiphany: '' };
-  showForm.value = true;
+  editingId.value = null
+  form.value = { name: '', oneSentence: '', goal: '', motivation: '', conflict: '', epiphany: '' }
+  showForm.value = true
 }
 
 function editCharacter(c) {
-  editingId.value = c.id;
+  editingId.value = c.id
   form.value = {
     name: c.name ?? '',
     oneSentence: c.oneSentence ?? '',
@@ -262,58 +353,54 @@ function editCharacter(c) {
     motivation: c.motivation ?? '',
     conflict: c.conflict ?? '',
     epiphany: c.epiphany ?? '',
-  };
-  showForm.value = true;
+  }
+  showForm.value = true
 }
 
 function cancelForm() {
-  showForm.value = false;
-  editingId.value = null;
+  showForm.value = false
+  editingId.value = null
 }
 
 async function saveCharacter() {
-  saveError.value = '';
+  saveError.value = ''
   try {
     if (editingId.value) {
-      await updateCharacter(editingId.value, form.value);
+      await updateCharacter(editingId.value, form.value)
     } else {
-      await addCharacter(form.value);
+      await addCharacter(form.value)
     }
-    await load();
-    cancelForm();
-    window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+    await load()
+    cancelForm()
+    charactersStore.load()
   } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+    saveError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 function confirmDelete(char) {
-  deleteModal.value = { open: true, character: char };
+  deleteModal.value = { open: true, character: char }
 }
 
 async function doDelete() {
-  const char = deleteModal.value.character;
-  if (!char) return;
-  deleteModal.value.open = false;
-  saveError.value = '';
+  const char = deleteModal.value.character
+  if (!char) return
+  deleteModal.value.open = false
+  saveError.value = ''
   try {
-    await deleteCharacter(char.id);
-    await load(); // also reloads relationships since cascade cleaned them up
-    window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
+    await deleteCharacter(char.id)
+    await load() // also reloads relationships since cascade cleaned them up
+    charactersStore.load()
   } catch (e) {
-    saveError.value = e?.message || t.value('common.saveErrorGeneric');
+    saveError.value = e?.message || t.value('common.saveErrorGeneric')
   }
 }
 
 onMounted(() => {
-  load();
-  window.addEventListener('inkflow-story-switched', load);
-  window.addEventListener('inkflow-characters-changed', load);
-});
-onUnmounted(() => {
-  window.removeEventListener('inkflow-story-switched', load);
-  window.removeEventListener('inkflow-characters-changed', load);
-});
+  load()
+  watch(() => storyStore.activeStoryId, load)
+  watch(() => charactersStore.characters, async () => { await load() }, { deep: true })
+})
 </script>
 
 <style scoped>

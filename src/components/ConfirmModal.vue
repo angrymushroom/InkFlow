@@ -24,7 +24,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { computed } from 'vue'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -34,11 +34,11 @@ const props = defineProps({
   cancelLabel: { type: String, default: 'Cancel' },
   danger: { type: Boolean, default: false },
   loading: { type: Boolean, default: false },
-});
+})
 
-defineEmits(['update:modelValue', 'confirm']);
+defineEmits(['update:modelValue', 'confirm'])
 
-const titleId = computed(() => `confirm-modal-title-${Math.random().toString(36).slice(2)}`);
+const titleId = computed(() => `confirm-modal-title-${Math.random().toString(36).slice(2)}`)
 </script>
 
 <style scoped>

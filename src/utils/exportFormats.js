@@ -6,7 +6,7 @@
  * separately by src/db/index.js exportProject().
  */
 
-import { getStory, getChapters, getScenes } from '@/db';
+import { getStory, getChapters, getScenes } from '@/db'
 
 // ─── Shared data loading ───────────────────────────────────────────────────
 
@@ -15,26 +15,26 @@ async function loadStoryData(storyId) {
     getStory(storyId),
     getChapters(storyId),
     getScenes(storyId),
-  ]);
+  ])
   // Attach sorted scenes to each chapter
   const chaptersWithScenes = chapters.map((ch) => ({
     ...ch,
     scenes: rawScenes
       .filter((s) => s.chapterId === ch.id)
       .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)),
-  }));
-  return { story, chapters: chaptersWithScenes };
+  }))
+  return { story, chapters: chaptersWithScenes }
 }
 
 export function safeFilename(story, ext) {
-  const base = (story?.oneSentence || 'story')
-    .replace(/[^\w\s-]/g, '')
-    .trim()
-    .replace(/\s+/g, '-')
-    .slice(0, 60)
-    || 'story';
-  const date = new Date().toISOString().slice(0, 10);
-  return `${base}-${date}.${ext}`;
+  const base =
+    (story?.oneSentence || 'story')
+      .replace(/[^\w\s-]/g, '')
+      .trim()
+      .replace(/\s+/g, '-')
+      .slice(0, 60) || 'story'
+  const date = new Date().toISOString().slice(0, 10)
+  return `${base}-${date}.${ext}`
 }
 
 // ─── Plain text helpers ────────────────────────────────────────────────────
@@ -45,84 +45,84 @@ function escapeXml(str) {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
-    .replace(/'/g, '&apos;');
+    .replace(/'/g, '&apos;')
 }
 
 /** Convert plain prose (with \n line-breaks) to <p> elements for HTML/XHTML. */
 function proseToHtmlParagraphs(text) {
-  if (!text?.trim()) return '';
+  if (!text?.trim()) return ''
   return text
     .split(/\n\n+/)
     .map((para) => `<p>${escapeXml(para.replace(/\n/g, ' ').trim())}</p>`)
-    .join('\n');
+    .join('\n')
 }
 
 /** Convert plain prose to DOCX w:p elements. */
 function proseToDocxParagraphs(text, styleId = null) {
-  if (!text?.trim()) return '';
+  if (!text?.trim()) return ''
   return text
     .split(/\n\n+/)
     .map((para) => {
-      const pPr = styleId ? `<w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` : '';
+      const pPr = styleId ? `<w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` : ''
       const runs = para
         .replace(/\n/g, ' ')
         .trim()
         .split(/  +/)
         .map((seg) => `<w:r><w:t xml:space="preserve">${escapeXml(seg)}</w:t></w:r>`)
-        .join('');
-      return `<w:p>${pPr}${runs}</w:p>`;
+        .join('')
+      return `<w:p>${pPr}${runs}</w:p>`
     })
-    .join('\n');
+    .join('\n')
 }
 
 // ─── Markdown ─────────────────────────────────────────────────────────────
 
 export async function buildMarkdown(storyId) {
-  const { story, chapters } = await loadStoryData(storyId);
-  const lines = [];
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  lines.push(`# ${title}`, '');
+  const { story, chapters } = await loadStoryData(storyId)
+  const lines = []
+  const title = story?.oneSentence?.trim() || 'Untitled Story'
+  lines.push(`# ${title}`, '')
   for (const ch of chapters) {
-    lines.push(`## ${ch.title || 'Untitled Chapter'}`, '');
+    lines.push(`## ${ch.title || 'Untitled Chapter'}`, '')
     for (const sc of ch.scenes) {
-      lines.push(`### ${sc.title || 'Untitled Scene'}`, '');
+      lines.push(`### ${sc.title || 'Untitled Scene'}`, '')
       if (sc.content?.trim()) {
-        lines.push(sc.content.trim(), '');
+        lines.push(sc.content.trim(), '')
       }
     }
   }
-  return lines.join('\n');
+  return lines.join('\n')
 }
 
 // ─── Plain text ────────────────────────────────────────────────────────────
 
 export async function buildPlainText(storyId) {
-  const { story, chapters } = await loadStoryData(storyId);
-  const lines = [];
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  lines.push(title.toUpperCase(), '='.repeat(Math.min(title.length, 60)), '');
+  const { story, chapters } = await loadStoryData(storyId)
+  const lines = []
+  const title = story?.oneSentence?.trim() || 'Untitled Story'
+  lines.push(title.toUpperCase(), '='.repeat(Math.min(title.length, 60)), '')
   for (const ch of chapters) {
-    lines.push(ch.title || 'Untitled Chapter', '-'.repeat(40), '');
+    lines.push(ch.title || 'Untitled Chapter', '-'.repeat(40), '')
     for (const sc of ch.scenes) {
-      if (sc.title) lines.push(sc.title, '');
-      if (sc.content?.trim()) lines.push(sc.content.trim(), '');
+      if (sc.title) lines.push(sc.title, '')
+      if (sc.content?.trim()) lines.push(sc.content.trim(), '')
     }
   }
-  return lines.join('\n');
+  return lines.join('\n')
 }
 
 // ─── PDF (browser print-to-PDF) ────────────────────────────────────────────
 
 export async function openPrintWindow(storyId) {
-  const { story, chapters } = await loadStoryData(storyId);
-  const title = escapeXml(story?.oneSentence?.trim() || 'Untitled Story');
+  const { story, chapters } = await loadStoryData(storyId)
+  const title = escapeXml(story?.oneSentence?.trim() || 'Untitled Story')
 
-  let body = `<h1>${title}</h1>\n`;
+  let body = `<h1>${title}</h1>\n`
   for (const ch of chapters) {
-    body += `<h2>${escapeXml(ch.title || 'Untitled Chapter')}</h2>\n`;
+    body += `<h2>${escapeXml(ch.title || 'Untitled Chapter')}</h2>\n`
     for (const sc of ch.scenes) {
-      if (sc.title) body += `<h3>${escapeXml(sc.title)}</h3>\n`;
-      if (sc.content?.trim()) body += proseToHtmlParagraphs(sc.content) + '\n';
+      if (sc.title) body += `<h3>${escapeXml(sc.title)}</h3>\n`
+      if (sc.content?.trim()) body += proseToHtmlParagraphs(sc.content) + '\n'
     }
   }
 
@@ -146,61 +146,64 @@ export async function openPrintWindow(storyId) {
 </style>
 </head>
 <body>${body}</body>
-</html>`;
+</html>`
 
-  const win = window.open('', '_blank');
-  if (!win) return; // popup blocked
-  win.document.write(html);
-  win.document.close();
-  win.focus();
+  const win = window.open('', '_blank')
+  if (!win) return // popup blocked
+  win.document.write(html)
+  win.document.close()
+  win.focus()
   // Slight delay so fonts/layout settle before the print dialog
-  setTimeout(() => win.print(), 400);
+  setTimeout(() => win.print(), 400)
 }
 
 // ─── EPUB 3 ────────────────────────────────────────────────────────────────
 
 export async function buildEpubBlob(storyId) {
-  const JSZip = (await import('jszip')).default;
-  const { story, chapters } = await loadStoryData(storyId);
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  const uid = `inkflow-${storyId}-${Date.now()}`;
-  const zip = new JSZip();
+  const JSZip = (await import('jszip')).default
+  const { story, chapters } = await loadStoryData(storyId)
+  const title = story?.oneSentence?.trim() || 'Untitled Story'
+  const uid = `inkflow-${storyId}-${Date.now()}`
+  const zip = new JSZip()
 
   // mimetype must be first and uncompressed
-  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' });
+  zip.file('mimetype', 'application/epub+zip', { compression: 'STORE' })
 
-  zip.file('META-INF/container.xml', `<?xml version="1.0"?>
+  zip.file(
+    'META-INF/container.xml',
+    `<?xml version="1.0"?>
 <container version="1.0" xmlns="urn:oasis:names:tc:opendocument:xmlns:container">
   <rootfiles>
     <rootfile full-path="OEBPS/content.opf" media-type="application/oebps-package+xml"/>
   </rootfiles>
-</container>`);
+</container>`
+  )
 
   const css = `body{font-family:Georgia,"Times New Roman",serif;font-size:1em;line-height:1.7;margin:2em}
 h1{font-size:1.8em;margin-bottom:1.5em}
 h2{font-size:1.3em;margin-top:3em;border-bottom:1px solid #ccc;padding-bottom:.3em}
 h3{font-size:1em;font-style:italic;font-weight:normal;margin-top:1.8em;color:#555}
-p{margin:.6em 0}`;
-  zip.file('OEBPS/style.css', css);
+p{margin:.6em 0}`
+  zip.file('OEBPS/style.css', css)
 
   // Build chapter XHTML files
   const manifestItems = [
     '<item id="nav" href="nav.xhtml" media-type="application/xhtml+xml" properties="nav"/>',
     '<item id="css" href="style.css" media-type="text/css"/>',
-  ];
-  const spineItems = [];
-  const navEntries = [];
+  ]
+  const spineItems = []
+  const navEntries = []
 
   for (let i = 0; i < chapters.length; i++) {
-    const ch = chapters[i];
-    const chId = `ch${i + 1}`;
-    const chFile = `${chId}.xhtml`;
-    const chTitle = escapeXml(ch.title || `Chapter ${i + 1}`);
+    const ch = chapters[i]
+    const chId = `ch${i + 1}`
+    const chFile = `${chId}.xhtml`
+    const chTitle = escapeXml(ch.title || `Chapter ${i + 1}`)
 
-    let chBody = `<h2>${chTitle}</h2>\n`;
+    let chBody = `<h2>${chTitle}</h2>\n`
     for (const sc of ch.scenes) {
-      if (sc.title) chBody += `<h3>${escapeXml(sc.title)}</h3>\n`;
-      if (sc.content?.trim()) chBody += proseToHtmlParagraphs(sc.content) + '\n';
+      if (sc.title) chBody += `<h3>${escapeXml(sc.title)}</h3>\n`
+      if (sc.content?.trim()) chBody += proseToHtmlParagraphs(sc.content) + '\n'
     }
 
     const xhtml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -208,15 +211,17 @@ p{margin:.6em 0}`;
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en">
 <head><meta charset="utf-8"/><title>${chTitle}</title><link rel="stylesheet" href="style.css"/></head>
 <body>${chBody}</body>
-</html>`;
-    zip.file(`OEBPS/${chFile}`, xhtml);
-    manifestItems.push(`<item id="${chId}" href="${chFile}" media-type="application/xhtml+xml"/>`);
-    spineItems.push(`<itemref idref="${chId}"/>`);
-    navEntries.push(`<li><a href="${chFile}">${chTitle}</a></li>`);
+</html>`
+    zip.file(`OEBPS/${chFile}`, xhtml)
+    manifestItems.push(`<item id="${chId}" href="${chFile}" media-type="application/xhtml+xml"/>`)
+    spineItems.push(`<itemref idref="${chId}"/>`)
+    navEntries.push(`<li><a href="${chFile}">${chTitle}</a></li>`)
   }
 
   // nav.xhtml
-  zip.file('OEBPS/nav.xhtml', `<?xml version="1.0" encoding="UTF-8"?>
+  zip.file(
+    'OEBPS/nav.xhtml',
+    `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE html>
 <html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="en">
 <head><meta charset="utf-8"/><title>Contents</title></head>
@@ -228,10 +233,13 @@ p{margin:.6em 0}`;
     </ol>
   </nav>
 </body>
-</html>`);
+</html>`
+  )
 
   // content.opf
-  zip.file('OEBPS/content.opf', `<?xml version="1.0" encoding="UTF-8"?>
+  zip.file(
+    'OEBPS/content.opf',
+    `<?xml version="1.0" encoding="UTF-8"?>
 <package xmlns="http://www.idpf.org/2007/opf" version="3.0" unique-identifier="uid">
   <metadata xmlns:dc="http://purl.org/dc/elements/1.1/">
     <dc:title>${escapeXml(title)}</dc:title>
@@ -245,37 +253,49 @@ p{margin:.6em 0}`;
   <spine>
     ${spineItems.join('\n    ')}
   </spine>
-</package>`);
+</package>`
+  )
 
-  return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' });
+  return zip.generateAsync({ type: 'blob', mimeType: 'application/epub+zip' })
 }
 
 // ─── DOCX (Office Open XML) ────────────────────────────────────────────────
 
 export async function buildDocxBlob(storyId) {
-  const JSZip = (await import('jszip')).default;
-  const { story, chapters } = await loadStoryData(storyId);
-  const title = story?.oneSentence?.trim() || 'Untitled Story';
-  const zip = new JSZip();
+  const JSZip = (await import('jszip')).default
+  const { story, chapters } = await loadStoryData(storyId)
+  const title = story?.oneSentence?.trim() || 'Untitled Story'
+  const zip = new JSZip()
 
-  zip.file('[Content_Types].xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file(
+    '[Content_Types].xml',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
   <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/>
   <Default Extension="xml" ContentType="application/xml"/>
   <Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/>
   <Override PartName="/word/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.styles+xml"/>
-</Types>`);
+</Types>`
+  )
 
-  zip.file('_rels/.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file(
+    '_rels/.rels',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
   <Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/>
-</Relationships>`);
+</Relationships>`
+  )
 
-  zip.file('word/_rels/document.xml.rels', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`);
+  zip.file(
+    'word/_rels/document.xml.rels',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"/>`
+  )
 
   // Minimal styles: Title, Heading1 (chapter), Heading2 (scene), Normal
-  zip.file('word/styles.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file(
+    'word/styles.xml',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:styles xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main">
   <w:style w:type="paragraph" w:styleId="Normal"><w:name w:val="Normal"/>
     <w:pPr><w:spacing w:after="120"/></w:pPr>
@@ -293,25 +313,28 @@ export async function buildDocxBlob(storyId) {
     <w:pPr><w:spacing w:before="360" w:after="120"/></w:pPr>
     <w:rPr><w:i/><w:sz w:val="26"/><w:szCs w:val="26"/></w:rPr>
   </w:style>
-</w:styles>`);
+</w:styles>`
+  )
 
-  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main';
+  const W = 'http://schemas.openxmlformats.org/wordprocessingml/2006/main'
   const para = (text, styleId) => {
-    const pPr = styleId ? `<w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` : '';
-    const t = escapeXml(text);
-    return `<w:p>${pPr}<w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`;
-  };
+    const pPr = styleId ? `<w:pPr><w:pStyle w:val="${styleId}"/></w:pPr>` : ''
+    const t = escapeXml(text)
+    return `<w:p>${pPr}<w:r><w:t xml:space="preserve">${t}</w:t></w:r></w:p>`
+  }
 
-  let bodyXml = para(title, 'Title') + '\n';
+  let bodyXml = para(title, 'Title') + '\n'
   for (const ch of chapters) {
-    bodyXml += para(ch.title || 'Untitled Chapter', 'Heading1') + '\n';
+    bodyXml += para(ch.title || 'Untitled Chapter', 'Heading1') + '\n'
     for (const sc of ch.scenes) {
-      if (sc.title) bodyXml += para(sc.title, 'Heading2') + '\n';
-      if (sc.content?.trim()) bodyXml += proseToDocxParagraphs(sc.content) + '\n';
+      if (sc.title) bodyXml += para(sc.title, 'Heading2') + '\n'
+      if (sc.content?.trim()) bodyXml += proseToDocxParagraphs(sc.content) + '\n'
     }
   }
 
-  zip.file('word/document.xml', `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+  zip.file(
+    'word/document.xml',
+    `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <w:document xmlns:w="${W}">
   <w:body>
 ${bodyXml}
@@ -320,10 +343,11 @@ ${bodyXml}
       <w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440"/>
     </w:sectPr>
   </w:body>
-</w:document>`);
+</w:document>`
+  )
 
   return zip.generateAsync({
     type: 'blob',
     mimeType: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  });
+  })
 }

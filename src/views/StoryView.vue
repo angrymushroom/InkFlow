@@ -23,11 +23,7 @@
     </div>
 
     <div class="card form-card">
-      <div
-        v-for="field in currentTemplate.spineFields"
-        :key="field.key"
-        class="form-group"
-      >
+      <div v-for="field in currentTemplate.spineFields" :key="field.key" class="form-group">
         <label>{{ t(`templates.${templateId}.fields.${field.key}`) }}</label>
         <input
           v-if="field.type === 'input'"
@@ -40,7 +36,9 @@
           v-else
           :model-value="getFieldValue(field.prop)"
           :placeholder="t(`templates.${templateId}.placeholders.${field.key}`)"
-          :rows="field.key === 'you' || field.key === 'setup' || field.key === 'oneSentence' ? 3 : 2"
+          :rows="
+            field.key === 'you' || field.key === 'setup' || field.key === 'oneSentence' ? 3 : 2
+          "
           @update:model-value="setFieldValue(field.prop, $event)"
         />
         <AiExpandButton
@@ -59,7 +57,9 @@
 
     <section class="story-danger-zone">
       <h3 class="story-danger-zone-title">{{ t('story.deleteStorySection') }}</h3>
-      <p v-if="storyCount <= 1" class="story-danger-zone-hint">{{ t('story.cannotDeleteLastStory') }}</p>
+      <p v-if="storyCount <= 1" class="story-danger-zone-hint">
+        {{ t('story.cannotDeleteLastStory') }}
+      </p>
       <button
         type="button"
         class="btn btn-ghost btn-danger"
@@ -75,8 +75,15 @@
         <h3 class="modal-title">{{ t('story.deleteStoryConfirmTitle') }}</h3>
         <p class="modal-body">{{ t('story.deleteStoryConfirmBody') }}</p>
         <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" @click="showDeleteModal = false">{{ t('ideas.cancel') }}</button>
-          <button type="button" class="btn btn-danger" :disabled="deleteInProgress" @click="confirmDeleteStory">
+          <button type="button" class="btn btn-ghost" @click="showDeleteModal = false">
+            {{ t('ideas.cancel') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-danger"
+            :disabled="deleteInProgress"
+            @click="confirmDeleteStory"
+          >
             {{ t('story.deleteStoryConfirmButton') }}
           </button>
         </div>
@@ -86,23 +93,25 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useRouter } from 'vue-router';
-import { getStory, saveStory, getStories, deleteStory } from '@/db';
-import { useI18n } from '@/composables/useI18n';
-import { useToast } from '@/composables/useToast';
-import { storyDirty } from '@/stores/unsaved';
-import AiExpandButton from '@/components/AiExpandButton.vue';
-import ResizableTextarea from '@/components/ResizableTextarea.vue';
-import { TEMPLATES, getSpineFieldValue, setSpineFieldPatch } from '@/data/templates';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { useRouter } from 'vue-router'
+import { getStory, saveStory, getStories, deleteStory } from '@/db'
+import { useI18n } from '@/composables/useI18n'
+import { useStoryStore } from '@/stores/story.js'
+import { useToast } from '@/composables/useToast'
+import { storyDirty } from '@/stores/unsaved'
+import AiExpandButton from '@/components/AiExpandButton.vue'
+import ResizableTextarea from '@/components/ResizableTextarea.vue'
+import { TEMPLATES, getSpineFieldValue, setSpineFieldPatch } from '@/data/templates'
 
-const { t } = useI18n();
-const { success: toastSuccess } = useToast();
-const router = useRouter();
+const { t } = useI18n()
+const { success: toastSuccess } = useToast()
+const router = useRouter()
+const storyStore = useStoryStore()
 
-const storyCount = ref(1);
-const showDeleteModal = ref(false);
-const deleteInProgress = ref(false);
+const storyCount = ref(1)
+const showDeleteModal = ref(false)
+const deleteInProgress = ref(false)
 
 const story = ref({
   id: '',
@@ -114,33 +123,32 @@ const story = ref({
   disaster2: '',
   disaster3: '',
   ending: '',
-});
-const lastSavedJson = ref('');
-const savedHint = ref(false);
-const saveError = ref('');
-const loadError = ref('');
-const saveTimeout = ref(null);
-const beforeUnloadHandler = ref(null);
+})
+const lastSavedJson = ref('')
+const savedHint = ref(false)
+const saveError = ref('')
+const loadError = ref('')
+const saveTimeout = ref(null)
+const beforeUnloadHandler = ref(null)
 
-const templateId = computed(() => story.value.template ?? 'snowflake');
-const currentTemplate = computed(() => TEMPLATES[templateId.value] ?? TEMPLATES.snowflake);
+const templateId = computed(() => story.value.template ?? 'snowflake')
+const currentTemplate = computed(() => TEMPLATES[templateId.value] ?? TEMPLATES.snowflake)
 
 function getFieldValue(prop) {
-  return getSpineFieldValue(story.value, prop);
+  return getSpineFieldValue(story.value, prop)
 }
 
 function setFieldValue(prop, value) {
-  const patch = setSpineFieldPatch(story.value, prop, value);
-  Object.assign(story.value, patch);
+  const patch = setSpineFieldPatch(story.value, prop, value)
+  Object.assign(story.value, patch)
 }
 
 async function switchTemplate(newTemplateId) {
-  if (newTemplateId === templateId.value) return;
-  story.value.template = newTemplateId;
-  if (!story.value.templateFields) story.value.templateFields = {};
-  await save();
-  window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
-  toastSuccess(t.value(`templates.${newTemplateId}.name`));
+  if (newTemplateId === templateId.value) return
+  story.value.template = newTemplateId
+  if (!story.value.templateFields) story.value.templateFields = {}
+  await save()
+  toastSuccess(t.value(`templates.${newTemplateId}.name`))
 }
 
 function storySnapshot() {
@@ -154,32 +162,32 @@ function storySnapshot() {
     disaster2: story.value.disaster2 ?? '',
     disaster3: story.value.disaster3 ?? '',
     ending: story.value.ending ?? '',
-  });
+  })
 }
 
 function isDirty() {
-  return lastSavedJson.value !== storySnapshot();
+  return lastSavedJson.value !== storySnapshot()
 }
 
 function setBeforeUnload() {
-  if (beforeUnloadHandler.value) return;
+  if (beforeUnloadHandler.value) return
   beforeUnloadHandler.value = (e) => {
-    if (isDirty()) e.preventDefault();
-  };
-  window.addEventListener('beforeunload', beforeUnloadHandler.value);
+    if (isDirty()) e.preventDefault()
+  }
+  window.addEventListener('beforeunload', beforeUnloadHandler.value)
 }
 function clearBeforeUnload() {
   if (beforeUnloadHandler.value) {
-    window.removeEventListener('beforeunload', beforeUnloadHandler.value);
-    beforeUnloadHandler.value = null;
+    window.removeEventListener('beforeunload', beforeUnloadHandler.value)
+    beforeUnloadHandler.value = null
   }
 }
 
 async function load() {
-  loadError.value = '';
+  loadError.value = ''
   try {
-    const [s, list] = await Promise.all([getStory(), getStories()]);
-    storyCount.value = list?.length ?? 0;
+    const [s, list] = await Promise.all([getStory(), getStories()])
+    storyCount.value = list?.length ?? 0
     if (s) {
       story.value = {
         id: s.id ?? 'story',
@@ -191,90 +199,97 @@ async function load() {
         disaster2: s.disaster2 ?? '',
         disaster3: s.disaster3 ?? '',
         ending: s.ending ?? '',
-      };
+      }
     }
-    lastSavedJson.value = storySnapshot();
-    storyDirty.value = isDirty();
+    lastSavedJson.value = storySnapshot()
+    storyDirty.value = isDirty()
   } catch (e) {
-    loadError.value = e?.message || t('story.saveError');
+    loadError.value = e?.message || t('story.saveError')
   }
 }
 
 async function confirmDeleteStory() {
-  if (deleteInProgress.value || !story.value?.id) return;
-  deleteInProgress.value = true;
+  if (deleteInProgress.value || !story.value?.id) return
+  deleteInProgress.value = true
   try {
-    const { switchedToId } = await deleteStory(story.value.id);
-    showDeleteModal.value = false;
-    window.dispatchEvent(new CustomEvent('inkflow-story-deleted', { detail: { switchedToId } }));
+    const { switchedToId } = await deleteStory(story.value.id)
+    showDeleteModal.value = false
+    await storyStore.loadStories()
+    await storyStore.loadActiveStory()
     if (switchedToId) {
-      router.push('/story');
+      router.push('/story')
     }
   } catch (e) {
-    saveError.value = e?.message || t('story.saveError');
+    saveError.value = e?.message || t('story.saveError')
   } finally {
-    deleteInProgress.value = false;
+    deleteInProgress.value = false
   }
 }
 
 async function save() {
-  saveError.value = '';
+  saveError.value = ''
   try {
-    await saveStory(story.value);
-    lastSavedJson.value = storySnapshot();
-    storyDirty.value = false;
-    if (!isDirty()) clearBeforeUnload();
-    savedHint.value = true;
-    setTimeout(() => { savedHint.value = false; }, 2000);
-    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
+    await saveStory(story.value)
+    lastSavedJson.value = storySnapshot()
+    storyDirty.value = false
+    if (!isDirty()) clearBeforeUnload()
+    savedHint.value = true
+    setTimeout(() => {
+      savedHint.value = false
+    }, 2000)
+    storyStore.loadActiveStory()
   } catch (e) {
-    saveError.value = e?.message || t('story.saveError');
-    setBeforeUnload();
+    saveError.value = e?.message || t('story.saveError')
+    setBeforeUnload()
   }
 }
 
 async function autoSave() {
-  if (!isDirty()) return;
+  if (!isDirty()) return
   try {
-    await saveStory(story.value);
-    lastSavedJson.value = storySnapshot();
-    storyDirty.value = false;
-    if (!isDirty()) clearBeforeUnload();
-    savedHint.value = true;
-    setTimeout(() => { savedHint.value = false; }, 2000);
+    await saveStory(story.value)
+    lastSavedJson.value = storySnapshot()
+    storyDirty.value = false
+    if (!isDirty()) clearBeforeUnload()
+    savedHint.value = true
+    setTimeout(() => {
+      savedHint.value = false
+    }, 2000)
   } catch (e) {
-    saveError.value = e?.message || t('story.saveError');
-    setBeforeUnload();
+    saveError.value = e?.message || t('story.saveError')
+    setBeforeUnload()
   }
 }
 
-async function onExternalStorySaved() {
-  // Only reload if the user has no local unsaved edits, to avoid overwriting them.
-  if (!storyDirty.value) await load();
-}
-
 onMounted(async () => {
-  await load();
-  window.addEventListener('inkflow-story-switched', load);
-  window.addEventListener('inkflow-story-saved', onExternalStorySaved);
-  watch(story, () => {
-    storyDirty.value = isDirty();
-    if (saveTimeout.value) clearTimeout(saveTimeout.value);
-    saveTimeout.value = setTimeout(() => {
-      autoSave();
-      saveTimeout.value = null;
-    }, 1800);
-    if (isDirty()) setBeforeUnload();
-  }, { deep: true });
-});
+  await load()
+  watch(
+    story,
+    () => {
+      storyDirty.value = isDirty()
+      if (saveTimeout.value) clearTimeout(saveTimeout.value)
+      saveTimeout.value = setTimeout(() => {
+        autoSave()
+        saveTimeout.value = null
+      }, 1800)
+      if (isDirty()) setBeforeUnload()
+    },
+    { deep: true }
+  )
+  // Reload form when user switches to a different story
+  watch(
+    () => storyStore.activeStoryId,
+    async () => {
+      if (!storyDirty.value) await load()
+    }
+  )
+})
 
 onUnmounted(() => {
-  window.removeEventListener('inkflow-story-switched', load);
-  window.removeEventListener('inkflow-story-saved', onExternalStorySaved);
-  if (saveTimeout.value) clearTimeout(saveTimeout.value);
-  clearBeforeUnload();
-  storyDirty.value = false;
-});
+  if (saveTimeout.value) clearTimeout(saveTimeout.value)
+  clearBeforeUnload()
+  storyDirty.value = false
+})
 </script>
 
 <style scoped>
@@ -328,7 +343,10 @@ onUnmounted(() => {
   background: var(--bg);
   color: var(--text-muted);
   cursor: pointer;
-  transition: border-color 0.15s, color 0.15s, background 0.15s;
+  transition:
+    border-color 0.15s,
+    color 0.15s,
+    background 0.15s;
 }
 .template-selector-btn:hover {
   border-color: var(--accent);
@@ -384,7 +402,9 @@ onUnmounted(() => {
   padding: var(--space-5);
   max-width: 28rem;
   width: 100%;
-  box-shadow: var(--shadow-md), 0 0 0 1px rgba(0, 0, 0, 0.05);
+  box-shadow:
+    var(--shadow-md),
+    0 0 0 1px rgba(0, 0, 0, 0.05);
 }
 .modal-title {
   margin: 0 0 var(--space-2);

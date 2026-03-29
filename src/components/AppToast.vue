@@ -2,12 +2,7 @@
   <Teleport to="body">
     <div class="toast-container" aria-live="polite">
       <transition-group name="toast">
-        <div
-          v-for="toast in toasts"
-          :key="toast.id"
-          class="toast"
-          :class="`toast--${toast.type}`"
-        >
+        <div v-for="toast in toasts" :key="toast.id" class="toast" :class="`toast--${toast.type}`">
           <span class="toast-icon">{{ iconFor(toast.type) }}</span>
           <span class="toast-message">{{ toast.message }}</span>
         </div>
@@ -17,12 +12,12 @@
 </template>
 
 <script setup>
-import { toasts } from '@/composables/useToast';
+import { toasts } from '@/composables/useToast'
 
 function iconFor(type) {
-  if (type === 'success') return '✓';
-  if (type === 'error') return '✕';
-  return 'ℹ';
+  if (type === 'success') return '✓'
+  if (type === 'error') return '✕'
+  return 'ℹ'
 }
 </script>
 
@@ -74,7 +69,9 @@ function iconFor(type) {
 }
 .toast-enter-active,
 .toast-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .toast-enter-from {
   opacity: 0;

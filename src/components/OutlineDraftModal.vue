@@ -45,7 +45,10 @@
                     </label>
                     <label class="outline-draft-label">
                       {{ t('outline.oneSentenceSummary') }}
-                      <textarea v-model="local.sections[scope][ci].scenes[si].oneSentence" rows="2" />
+                      <textarea
+                        v-model="local.sections[scope][ci].scenes[si].oneSentence"
+                        rows="2"
+                      />
                     </label>
                     <label class="outline-draft-label">
                       {{ t('outline.notes') }}
@@ -60,11 +63,7 @@
 
         <!-- All-sections mode: show every beat -->
         <template v-else>
-          <section
-            v-for="beat in beats"
-            :key="beat"
-            class="outline-draft-section"
-          >
+          <section v-for="beat in beats" :key="beat" class="outline-draft-section">
             <h3 class="outline-draft-section-title">{{ t(`outline.section.${beat}`) }}</h3>
             <div v-if="!sectionChapters(beat).length" class="outline-draft-empty">
               {{ t('outline.aiDraftEmptySection') }}
@@ -96,7 +95,10 @@
                     </label>
                     <label class="outline-draft-label">
                       {{ t('outline.oneSentenceSummary') }}
-                      <textarea v-model="local.sections[beat][ci].scenes[si].oneSentence" rows="2" />
+                      <textarea
+                        v-model="local.sections[beat][ci].scenes[si].oneSentence"
+                        rows="2"
+                      />
                     </label>
                     <label class="outline-draft-label">
                       {{ t('outline.notes') }}
@@ -123,33 +125,33 @@
 </template>
 
 <script setup>
-import { computed, reactive, watch } from 'vue';
-import { useI18n } from '@/composables/useI18n';
+import { computed, reactive, watch } from 'vue'
+import { useI18n } from '@/composables/useI18n'
 
 const props = defineProps({
   open: { type: Boolean, default: false },
   draft: { type: Object, default: () => ({ sections: {} }) },
   beats: { type: Array, default: () => [] },
   scope: { type: String, default: 'all' },
-});
+})
 
-const emit = defineEmits(['close', 'apply']);
-const { t } = useI18n();
+const emit = defineEmits(['close', 'apply'])
+const { t } = useI18n()
 
 const title = computed(() => {
-  if (props.scope === 'all') return t.value('outline.aiDraftTitle');
-  const sectionName = t.value(`outline.section.${props.scope}`);
-  return t.value('outline.aiDraftSectionTitle', { section: sectionName });
-});
+  if (props.scope === 'all') return t.value('outline.aiDraftTitle')
+  const sectionName = t.value(`outline.section.${props.scope}`)
+  return t.value('outline.aiDraftSectionTitle', { section: sectionName })
+})
 
-const local = reactive({ sections: {} });
+const local = reactive({ sections: {} })
 
 function resetLocal(from) {
-  const src = from && typeof from === 'object' ? from : { sections: {} };
-  const sections = src.sections || {};
-  const next = {};
+  const src = from && typeof from === 'object' ? from : { sections: {} }
+  const sections = src.sections || {}
+  const next = {}
   for (const key of Object.keys(sections)) {
-    const arr = Array.isArray(sections[key]) ? sections[key] : [];
+    const arr = Array.isArray(sections[key]) ? sections[key] : []
     next[key] = arr.map((ch) => ({
       chapterTitle: ch.chapterTitle ?? '',
       chapterSummary: ch.chapterSummary ?? '',
@@ -160,19 +162,27 @@ function resetLocal(from) {
             notes: sc.notes ?? '',
           }))
         : [],
-    }));
+    }))
   }
-  local.sections = next;
+  local.sections = next
 }
 
-watch(() => props.draft, (val) => { resetLocal(val); }, { immediate: true, deep: false });
+watch(
+  () => props.draft,
+  (val) => {
+    resetLocal(val)
+  },
+  { immediate: true, deep: false }
+)
 
-const sectionChapters = (beat) => (local.sections && local.sections[beat]) || [];
+const sectionChapters = (beat) => (local.sections && local.sections[beat]) || []
 
-function onClose() { emit('close'); }
+function onClose() {
+  emit('close')
+}
 
 function onApply() {
-  const payload = { sections: {} };
+  const payload = { sections: {} }
   for (const key of Object.keys(local.sections || {})) {
     payload.sections[key] = local.sections[key].map((ch) => ({
       chapterTitle: ch.chapterTitle ?? '',
@@ -182,9 +192,9 @@ function onApply() {
         oneSentence: sc.oneSentence ?? '',
         notes: sc.notes ?? '',
       })),
-    }));
+    }))
   }
-  emit('apply', payload);
+  emit('apply', payload)
 }
 </script>
 

@@ -12,7 +12,9 @@
         <span class="otter-avatar" aria-hidden="true">🦦</span>
         <div>
           <div class="otter-name">Pip</div>
-          <div class="otter-tagline">{{ contextLoaded && storyTitle ? storyTitle : t('pip.storyCompanion') }}</div>
+          <div class="otter-tagline">
+            {{ contextLoaded && storyTitle ? storyTitle : t('pip.storyCompanion') }}
+          </div>
         </div>
       </div>
       <div class="otter-header-right">
@@ -22,9 +24,27 @@
           class="otter-clear-btn"
           :title="t('pip.clearChat')"
           @click="clearChat"
-        >{{ t('pip.clearChat') }}</button>
-        <button type="button" class="otter-close-btn" aria-label="Close chat" @click="$emit('close')">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        >
+          {{ t('pip.clearChat') }}
+        </button>
+        <button
+          type="button"
+          class="otter-close-btn"
+          aria-label="Close chat"
+          @click="$emit('close')"
+        >
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            aria-hidden="true"
+          >
+            <path d="M18 6 6 18M6 6l12 12" />
+          </svg>
         </button>
       </div>
     </div>
@@ -44,7 +64,10 @@
           :class="msg.role === 'assistant' ? 'otter-msg--assistant' : 'otter-msg--user'"
         >
           <span v-if="msg.role === 'assistant'" class="otter-msg-icon" aria-hidden="true">🦦</span>
-          <div class="otter-bubble" :class="{ 'otter-bubble--typing': msg.streaming && !msg.content }">
+          <div
+            class="otter-bubble"
+            :class="{ 'otter-bubble--typing': msg.streaming && !msg.content }"
+          >
             <template v-if="msg.streaming && !msg.content">
               <span class="typing-dot"></span>
               <span class="typing-dot"></span>
@@ -58,19 +81,40 @@
           <template v-for="(a, j) in msg.actions" :key="j">
             <div v-if="a.status === 'pending'" class="otter-action-pending">
               <span class="otter-action-pending-label">{{ a.label }}</span>
-              <button class="otter-action-btn otter-action-btn--save" @click="confirmAction(a)">Save</button>
-              <button class="otter-action-btn otter-action-btn--skip" @click="skipAction(a)">Skip</button>
+              <button class="otter-action-btn otter-action-btn--save" @click="confirmAction(a)">
+                Save
+              </button>
+              <button class="otter-action-btn otter-action-btn--skip" @click="skipAction(a)">
+                Skip
+              </button>
             </div>
-            <span v-else-if="a.status === 'applying'" class="otter-action-chip otter-action-chip--muted">⏳ Saving…</span>
-            <span v-else-if="a.status === 'applied'" class="otter-action-chip">✓ {{ a.resultLabel }}</span>
-            <span v-else-if="a.status === 'skipped'" class="otter-action-chip otter-action-chip--muted">✗ Skipped</span>
-            <span v-else-if="a.status === 'error'" class="otter-action-chip otter-action-chip--error">✗ {{ a.resultLabel }}</span>
+            <span
+              v-else-if="a.status === 'applying'"
+              class="otter-action-chip otter-action-chip--muted"
+              >⏳ Saving…</span
+            >
+            <span v-else-if="a.status === 'applied'" class="otter-action-chip"
+              >✓ {{ a.resultLabel }}</span
+            >
+            <span
+              v-else-if="a.status === 'skipped'"
+              class="otter-action-chip otter-action-chip--muted"
+              >✗ Skipped</span
+            >
+            <span
+              v-else-if="a.status === 'error'"
+              class="otter-action-chip otter-action-chip--error"
+              >✗ {{ a.resultLabel }}</span
+            >
           </template>
         </div>
       </template>
 
       <!-- Typing indicator: only shown before the streaming placeholder appears -->
-      <div v-if="isLoading && !(messages.length && 'streaming' in messages[messages.length - 1])" class="otter-msg otter-msg--assistant">
+      <div
+        v-if="isLoading && !(messages.length && 'streaming' in messages[messages.length - 1])"
+        class="otter-msg otter-msg--assistant"
+      >
         <span class="otter-msg-icon" aria-hidden="true">🦦</span>
         <div class="otter-bubble otter-bubble--typing">
           <span class="typing-dot"></span>
@@ -83,12 +127,18 @@
     <!-- No API key state -->
     <div v-if="!hasApiKey" class="otter-no-key">
       <p>{{ t('pip.noApiKey') }}</p>
-      <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">{{ t('pip.goToSettings') }}</router-link>
+      <router-link to="/settings" class="btn btn-ghost btn-sm" @click="$emit('close')">{{
+        t('pip.goToSettings')
+      }}</router-link>
     </div>
 
     <!-- Input resize handle + input (shown when API key is set) -->
     <template v-if="hasApiKey">
-      <div class="otter-input-drag-bar" @mousedown.prevent="startTextareaResize" @touchstart.prevent="startTextareaResize" />
+      <div
+        class="otter-input-drag-bar"
+        @mousedown.prevent="startTextareaResize"
+        @touchstart.prevent="startTextareaResize"
+      />
       <div class="otter-input-row">
         <textarea
           ref="inputEl"
@@ -108,7 +158,20 @@
           aria-label="Send message"
           @click="send"
         >
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22 11 13 2 9l20-7z"/></svg>
+          <svg
+            width="16"
+            height="16"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M22 2 11 13" />
+            <path d="M22 2 15 22 11 13 2 9l20-7z" />
+          </svg>
         </button>
       </div>
     </template>
@@ -116,62 +179,84 @@
 
   <!-- Scrim (all screen sizes) -->
   <Teleport to="body">
-    <div
-      v-if="open"
-      class="otter-scrim"
-      aria-hidden="true"
-      @click="$emit('close')"
-    />
+    <div v-if="open" class="otter-scrim" aria-hidden="true" @click="$emit('close')" />
   </Teleport>
 </template>
 
 <script setup>
-import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue';
-import { chatWithAiStream, getApiKey, CONTEXTS, tierForContext, classifyAiError } from '@/services/ai';
-import { useOutline } from '@/composables/useOutline';
-import { useI18n } from '@/composables/useI18n';
+import { ref, computed, watch, watchEffect, nextTick, onMounted, onUnmounted } from 'vue'
 import {
-  getCurrentStoryId, getStoryById, getStory, saveStory,
-  getIdeas, getCharacters, addCharacter, updateCharacter,
-  getChapters, addChapter, updateChapter, reorderChapters,
-  getScene, getScenes, getScenesByChapter, addScene, updateScene,
-  getChatMessages, saveChatMessage, clearChatHistory,
-} from '@/db';
-import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates';
-import { generateSceneProse } from '@/services/generation';
+  chatWithAiStream,
+  getApiKey,
+  CONTEXTS,
+  tierForContext,
+  classifyAiError,
+} from '@/services/ai'
+import { useOutline } from '@/composables/useOutline'
+import { useOutlineStore } from '@/stores/outline.js'
+import { useI18n } from '@/composables/useI18n'
+import { useStoryStore } from '@/stores/story.js'
+import {
+  getCurrentStoryId,
+  getStoryById,
+  getStory,
+  saveStory,
+  getIdeas,
+  getCharacters,
+  addCharacter,
+  updateCharacter,
+  getChapters,
+  addChapter,
+  updateChapter,
+  reorderChapters,
+  getScene,
+  getScenes,
+  getScenesByChapter,
+  addScene,
+  updateScene,
+  getChatMessages,
+  saveChatMessage,
+  clearChatHistory,
+} from '@/db'
+import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates'
+import { generateSceneProse } from '@/services/generation'
 
 const props = defineProps({
   open: Boolean,
   sceneId: { type: String, default: null },
-});
-const emit = defineEmits(['close']);
+})
+const emit = defineEmits(['close'])
 
-const HISTORY_LIMIT = 20;
+const HISTORY_LIMIT = 20
 
-const { load: reloadOutline } = useOutline();
-const { t } = useI18n();
+const { load: reloadOutline } = useOutline()
+const { t } = useI18n()
+const storyStore = useStoryStore()
+const outlineStore = useOutlineStore()
 
 // ---- Story context ----
-const storyContext = ref('');
-const storyTitle = ref('');
-const contextLoading = ref(false);
-const contextLoaded = ref(false);
-const hasStoryContent = ref(false);
-const welcomeWithContext = ref('');
+const storyContext = ref('')
+const storyTitle = ref('')
+const contextLoading = ref(false)
+const contextLoaded = ref(false)
+const hasStoryContent = ref(false)
+const welcomeWithContext = ref('')
 // Locked story ID for the current Pip session — prevents mid-session story
 // switches from silently redirecting writes to the wrong story.
-const contextStoryId = ref(null);
-const storyGaps = ref(null);
-const currentSceneInfo = ref(null); // { title, wordCount, hasContent }
+const contextStoryId = ref(null)
+const storyGaps = ref(null)
+const currentSceneInfo = ref(null) // { title, wordCount, hasContent }
 
-function truncate(s, n) { return s && s.length > n ? s.slice(0, n) + '…' : (s || ''); }
+function truncate(s, n) {
+  return s && s.length > n ? s.slice(0, n) + '…' : s || ''
+}
 
 function countWords(text) {
-  if (!text) return 0;
+  if (!text) return 0
   // CJK: count characters; otherwise count space-separated tokens
-  const cjkCount = (text.match(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length;
-  if (cjkCount > text.length * 0.3) return cjkCount;
-  return text.trim().split(/\s+/).filter(Boolean).length;
+  const cjkCount = (text.match(/[\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af]/g) || []).length
+  if (cjkCount > text.length * 0.3) return cjkCount
+  return text.trim().split(/\s+/).filter(Boolean).length
 }
 
 function computeWelcomeMessage(gaps) {
@@ -181,52 +266,68 @@ function computeWelcomeMessage(gaps) {
       welcomeWithContext.value = t.value('pip.welcomeSceneWithProse', {
         title: currentSceneInfo.value.title,
         n: currentSceneInfo.value.wordCount,
-      });
+      })
     } else {
       welcomeWithContext.value = t.value('pip.welcomeSceneNoProse', {
         title: currentSceneInfo.value.title,
-      });
+      })
     }
-    return;
+    return
   }
   if (!gaps) {
-    welcomeWithContext.value = t.value('pip.welcomeDefault');
-    return;
+    welcomeWithContext.value = t.value('pip.welcomeDefault')
+    return
   }
-  const { template, filledCount, nextMissingField, hasCharacters, hasChapters, totalChapters, writtenScenes, totalScenes } = gaps;
+  const {
+    template,
+    filledCount,
+    nextMissingField,
+    hasCharacters,
+    hasChapters,
+    totalChapters,
+    writtenScenes,
+    totalScenes,
+  } = gaps
   if (filledCount === 0) {
-    const question = t.value(template.fields[0].coachQuestionKey);
-    welcomeWithContext.value = t.value('pip.welcomeEmpty', { question });
+    const question = t.value(template.fields[0].coachQuestionKey)
+    welcomeWithContext.value = t.value('pip.welcomeEmpty', { question })
   } else if (nextMissingField) {
-    const question = t.value(nextMissingField.coachQuestionKey);
-    welcomeWithContext.value = t.value('pip.welcomeProgress', { question });
+    const question = t.value(nextMissingField.coachQuestionKey)
+    welcomeWithContext.value = t.value('pip.welcomeProgress', { question })
   } else if (!hasCharacters) {
-    welcomeWithContext.value = t.value('pip.welcomeNeedCharacters');
+    welcomeWithContext.value = t.value('pip.welcomeNeedCharacters')
   } else if (!hasChapters) {
-    welcomeWithContext.value = t.value('pip.welcomeNeedChapters');
+    welcomeWithContext.value = t.value('pip.welcomeNeedChapters')
   } else if (writtenScenes > 0) {
-    welcomeWithContext.value = t.value('pip.welcomeBack', { chapters: totalChapters, n: writtenScenes });
+    welcomeWithContext.value = t.value('pip.welcomeBack', {
+      chapters: totalChapters,
+      n: writtenScenes,
+    })
   } else {
-    welcomeWithContext.value = t.value('pip.welcomeHasOutline', { chapters: totalChapters, n: totalScenes });
+    welcomeWithContext.value = t.value('pip.welcomeHasOutline', {
+      chapters: totalChapters,
+      n: totalScenes,
+    })
   }
 }
 
 // Re-run welcome message when locale changes (t is a computed ref)
-watchEffect(() => { computeWelcomeMessage(storyGaps.value); });
-
+watchEffect(() => {
+  computeWelcomeMessage(storyGaps.value)
+})
 
 async function loadStoryContext() {
-  contextLoading.value = true;
-  contextLoaded.value = false;
-  storyContext.value = '';
-  hasStoryContent.value = false;
+  contextLoading.value = true
+  contextLoaded.value = false
+  storyContext.value = ''
+  hasStoryContent.value = false
 
   try {
-    const storyId = getCurrentStoryId();
-    contextStoryId.value = storyId;
+    const storyId = getCurrentStoryId()
+    contextStoryId.value = storyId
     if (!storyId) {
-      computeWelcomeMessage(null);
-      return;
+      computeWelcomeMessage(null)
+      return
     }
 
     const [story, ideas, characters, chapters, scenes] = await Promise.all([
@@ -235,15 +336,15 @@ async function loadStoryContext() {
       getCharacters(storyId),
       getChapters(storyId),
       getScenes(storyId),
-    ]);
+    ])
 
     if (!story) {
-      computeWelcomeMessage(null);
-      return;
+      computeWelcomeMessage(null)
+      return
     }
-    storyTitle.value = truncate(story.oneSentence || t.value('sidebar.untitledStory'), 28);
+    storyTitle.value = truncate(story.oneSentence || t.value('sidebar.untitledStory'), 28)
 
-    const lines = [];
+    const lines = []
 
     const spineFields = [
       ['One-sentence summary', story.oneSentence],
@@ -252,65 +353,67 @@ async function loadStoryContext() {
       ['Disaster 2', story.disaster2],
       ['Disaster 3', story.disaster3],
       ['Ending', story.ending],
-    ].filter(([, v]) => v?.trim());
+    ].filter(([, v]) => v?.trim())
 
     if (spineFields.length) {
-      lines.push('=== STORY SPINE ===');
+      lines.push('=== STORY SPINE ===')
       for (const [label, val] of spineFields) {
-        lines.push(`${label}: ${truncate(val, 300)}`);
+        lines.push(`${label}: ${truncate(val, 300)}`)
       }
-      hasStoryContent.value = true;
+      hasStoryContent.value = true
     }
 
     if (characters?.length) {
-      lines.push('\n=== CHARACTERS ===');
+      lines.push('\n=== CHARACTERS ===')
       for (const c of characters.slice(0, 10)) {
-        const parts = [`- ${c.name || 'Unnamed'}`];
-        if (c.oneSentence) parts.push(truncate(c.oneSentence, 120));
-        if (c.goal) parts.push(`Goal: ${truncate(c.goal, 80)}`);
-        if (c.epiphany) parts.push(`Epiphany: ${truncate(c.epiphany, 80)}`);
-        lines.push(parts.join(' | '));
+        const parts = [`- ${c.name || 'Unnamed'}`]
+        if (c.oneSentence) parts.push(truncate(c.oneSentence, 120))
+        if (c.goal) parts.push(`Goal: ${truncate(c.goal, 80)}`)
+        if (c.epiphany) parts.push(`Epiphany: ${truncate(c.epiphany, 80)}`)
+        lines.push(parts.join(' | '))
       }
-      hasStoryContent.value = true;
+      hasStoryContent.value = true
     }
 
     if (ideas?.length) {
-      lines.push('\n=== IDEAS ===');
+      lines.push('\n=== IDEAS ===')
       for (const idea of ideas.slice(0, 15)) {
-        lines.push(`- [${idea.type}] ${idea.title || 'Untitled'}: ${truncate(idea.body, 120)}`);
+        lines.push(`- [${idea.type}] ${idea.title || 'Untitled'}: ${truncate(idea.body, 120)}`)
       }
-      hasStoryContent.value = true;
+      hasStoryContent.value = true
     }
 
     if (chapters?.length) {
-      lines.push('\n=== OUTLINE ===');
-      const scenesByChapter = new Map();
+      lines.push('\n=== OUTLINE ===')
+      const scenesByChapter = new Map()
       for (const sc of scenes || []) {
-        const list = scenesByChapter.get(sc.chapterId) || [];
-        list.push(sc);
-        scenesByChapter.set(sc.chapterId, list);
+        const list = scenesByChapter.get(sc.chapterId) || []
+        list.push(sc)
+        scenesByChapter.set(sc.chapterId, list)
       }
       for (const ch of chapters.slice(0, 20)) {
-        const beat = ch.beat ? ` [${ch.beat}]` : '';
-        lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`);
-        if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`);
-        const scs = scenesByChapter.get(ch.id) || [];
+        const beat = ch.beat ? ` [${ch.beat}]` : ''
+        lines.push(`Chapter: ${truncate(ch.title || 'Untitled', 60)}${beat}`)
+        if (ch.summary) lines.push(`  Summary: ${truncate(ch.summary, 200)}`)
+        const scs = scenesByChapter.get(ch.id) || []
         for (const sc of scs.slice(0, 6)) {
-          const written = sc.content?.trim() ? ' ✓' : '';
-          lines.push(`  Scene: ${truncate(sc.title || 'Untitled', 60)}${written}`);
-          if (sc.oneSentenceSummary) lines.push(`    ${truncate(sc.oneSentenceSummary, 100)}`);
+          const written = sc.content?.trim() ? ' ✓' : ''
+          lines.push(`  Scene: ${truncate(sc.title || 'Untitled', 60)}${written}`)
+          if (sc.oneSentenceSummary) lines.push(`    ${truncate(sc.oneSentenceSummary, 100)}`)
         }
       }
-      hasStoryContent.value = true;
+      hasStoryContent.value = true
     }
 
     // Compute template-aware gaps
-    const template = WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ?? WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID];
-    const filledFields = template.fields.filter((f) => story[f.key]?.trim());
-    const missingFields = template.fields.filter((f) => !story[f.key]?.trim());
-    const nextMissingField = missingFields[0] ?? null;
-    const writtenScenes = (scenes || []).filter((s) => s.content?.trim()).length;
-    const totalScenes = (scenes || []).length;
+    const template =
+      WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ??
+      WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID]
+    const filledFields = template.fields.filter((f) => story[f.key]?.trim())
+    const missingFields = template.fields.filter((f) => !story[f.key]?.trim())
+    const nextMissingField = missingFields[0] ?? null
+    const writtenScenes = (scenes || []).filter((s) => s.content?.trim()).length
+    const totalScenes = (scenes || []).length
 
     storyGaps.value = {
       template,
@@ -322,7 +425,7 @@ async function loadStoryContext() {
       totalChapters: chapters?.length || 0,
       writtenScenes,
       totalScenes,
-    };
+    }
 
     // Append template-aware status block to context (Pip reads this during conversation)
     const statusLines = [
@@ -331,285 +434,309 @@ async function loadStoryContext() {
       `- Structure: ${filledFields.length}/${template.fields.length} fields filled${missingFields.length ? ` (${missingFields.map((f) => f.label).join(', ')} still needed)` : ' (complete)'}`,
       `- Characters defined: ${characters?.length || 0}`,
       `- Chapters planned: ${chapters?.length || 0} | Scenes planned: ${totalScenes} | Scenes written: ${writtenScenes}`,
-    ];
+    ]
     if (nextMissingField) {
-      statusLines.push(`- Coaching priority: Ask about "${nextMissingField.label}" next`);
+      statusLines.push(`- Coaching priority: Ask about "${nextMissingField.label}" next`)
     }
 
     // Inject current scene prose when the writer has a scene open
     if (props.sceneId) {
-      const currentScene = await getScene(props.sceneId);
+      const currentScene = await getScene(props.sceneId)
       if (currentScene) {
         currentSceneInfo.value = {
           title: currentScene.title || t.value('outline.untitledScene'),
           wordCount: countWords(currentScene.content || ''),
           hasContent: !!currentScene.content?.trim(),
-        };
-        lines.push('\n=== CURRENT SCENE (OPEN IN EDITOR) ===');
-        lines.push(`Title: ${currentScene.title || 'Untitled'}`);
-        if (currentScene.oneSentenceSummary) lines.push(`Summary: ${currentScene.oneSentenceSummary}`);
-        if (currentScene.notes) lines.push(`Notes: ${truncate(currentScene.notes, 200)}`);
+        }
+        lines.push('\n=== CURRENT SCENE (OPEN IN EDITOR) ===')
+        lines.push(`Title: ${currentScene.title || 'Untitled'}`)
+        if (currentScene.oneSentenceSummary)
+          lines.push(`Summary: ${currentScene.oneSentenceSummary}`)
+        if (currentScene.notes) lines.push(`Notes: ${truncate(currentScene.notes, 200)}`)
         if (currentScene.content?.trim()) {
-          const prose = currentScene.content.length > 1500
-            ? currentScene.content.slice(0, 1500) + '\n[... truncated]'
-            : currentScene.content;
-          lines.push(`\nProse written so far:\n${prose}`);
+          const prose =
+            currentScene.content.length > 1500
+              ? currentScene.content.slice(0, 1500) + '\n[... truncated]'
+              : currentScene.content
+          lines.push(`\nProse written so far:\n${prose}`)
         } else {
-          lines.push('(No prose written yet)');
+          lines.push('(No prose written yet)')
         }
       } else {
-        currentSceneInfo.value = null;
+        currentSceneInfo.value = null
       }
     } else {
-      currentSceneInfo.value = null;
+      currentSceneInfo.value = null
     }
 
-    storyContext.value = lines.join('\n') + statusLines.join('\n');
-    contextLoaded.value = true;
+    storyContext.value = lines.join('\n') + statusLines.join('\n')
+    contextLoaded.value = true
 
     // Restore chat history from DB (only if no in-memory messages for this session)
     if (messages.value.length === 0) {
-      const history = await getChatMessages(storyId);
+      const history = await getChatMessages(storyId)
       if (history.length > 0) {
-        messages.value = history.map((m) => ({ role: m.role, content: m.content, actions: [] }));
-        await scrollToBottom();
+        messages.value = history.map((m) => ({ role: m.role, content: m.content, actions: [] }))
+        await scrollToBottom()
       }
     }
 
     // Set proactive welcome message (shown only when messages is empty)
-    computeWelcomeMessage(storyGaps.value);
+    computeWelcomeMessage(storyGaps.value)
   } finally {
-    contextLoading.value = false;
+    contextLoading.value = false
   }
 }
 
-watch(() => props.open, (val) => {
-  if (val) loadStoryContext();
-});
+watch(
+  () => props.open,
+  (val) => {
+    if (val) loadStoryContext()
+  }
+)
 
 // Reload context when the writer switches to a different scene while Pip is open
-watch(() => props.sceneId, (newId, oldId) => {
-  if (newId !== oldId && props.open) loadStoryContext();
-});
+watch(
+  () => props.sceneId,
+  (newId, oldId) => {
+    if (newId !== oldId && props.open) loadStoryContext()
+  }
+)
 
 // When the user switches stories while Pip is open, clear current messages and
 // reload context (which will restore the new story's chat history from DB).
 // Pending actions already carry a storyId stamp and still apply to the correct story.
-function onStorySwitched() {
-  messages.value = [];
-  loadStoryContext();
-}
-
-onMounted(() => {
-  window.addEventListener('inkflow-story-switched', onStorySwitched);
-});
-
-onUnmounted(() => {
-  window.removeEventListener('inkflow-story-switched', onStorySwitched);
-});
+watch(
+  () => storyStore.activeStoryId,
+  (newId, oldId) => {
+    if (newId !== oldId && props.open) {
+      messages.value = []
+      loadStoryContext()
+    }
+  }
+)
 
 // ---- Action parsing and applying ----
-const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g;
+const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g
 
 function parseActions(text) {
-  const actions = [];
-  const cleanText = text.replace(ACTION_RE, (_, json) => {
-    try {
-      actions.push(JSON.parse(json.trim()));
-    } catch {
-      // ignore malformed action blocks
-    }
-    return '';
-  }).replace(/\n{3,}/g, '\n\n').trim();
-  return { cleanText, actions };
+  const actions = []
+  const cleanText = text
+    .replace(ACTION_RE, (_, json) => {
+      try {
+        actions.push(JSON.parse(json.trim()))
+      } catch {
+        // ignore malformed action blocks
+      }
+      return ''
+    })
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+  return { cleanText, actions }
 }
 
 function actionLabel(action) {
   if (action.type === 'update_spine') {
-    const keys = Object.keys(action.fields || {});
-    return `Update story spine${keys.length ? ` (${keys.join(', ')})` : ''}`;
+    const keys = Object.keys(action.fields || {})
+    return `Update story spine${keys.length ? ` (${keys.join(', ')})` : ''}`
   }
-  if (action.type === 'upsert_character') return `Character "${action.name}"`;
-  if (action.type === 'add_chapter') return `Add chapter "${action.title}"`;
-  if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`;
-  if (action.type === 'add_scene') return action.after_scene_title
-    ? `Add scene "${action.title}" after "${action.after_scene_title}"`
-    : `Add scene "${action.title}" → "${action.chapter_title_match}"`;
-  if (action.type === 'update_scene') return `Update scene "${action.title_match}"`;
-  if (action.type === 'recommend_template') return `Switch to ${action.template} template`;
-  if (action.type === 'generate_prose') return 'Generate scene prose';
-  return action.type;
+  if (action.type === 'upsert_character') return `Character "${action.name}"`
+  if (action.type === 'add_chapter') return `Add chapter "${action.title}"`
+  if (action.type === 'update_chapter') return `Update chapter "${action.title_match}"`
+  if (action.type === 'add_scene')
+    return action.after_scene_title
+      ? `Add scene "${action.title}" after "${action.after_scene_title}"`
+      : `Add scene "${action.title}" → "${action.chapter_title_match}"`
+  if (action.type === 'update_scene') return `Update scene "${action.title_match}"`
+  if (action.type === 'recommend_template') return `Switch to ${action.template} template`
+  if (action.type === 'generate_prose') return 'Generate scene prose'
+  return action.type
 }
 
 // Each actionObj carries the storyId that was active when the AI generated it.
 // This prevents a mid-session story switch from silently redirecting writes.
 async function applySingleAction(actionObj) {
-  const action = actionObj.raw;
+  const action = actionObj.raw
   // Use the per-action locked storyId; fall back to current only if somehow missing.
-  const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId();
+  const storyId = actionObj.storyId || contextStoryId.value || getCurrentStoryId()
 
   if (action.type === 'recommend_template' && action.template) {
-    const current = await getStoryById(storyId);
-    if (!current) throw new Error('No story found');
-    await saveStory({ ...current, template: action.template });
-    window.dispatchEvent(new CustomEvent('inkflow-story-saved'));
-    return `Switched to ${action.template.replace(/_/g, ' ')} template`;
+    const current = await getStoryById(storyId)
+    if (!current) throw new Error('No story found')
+    await saveStory({ ...current, template: action.template })
+    storyStore.loadActiveStory()
+    return `Switched to ${action.template.replace(/_/g, ' ')} template`
   }
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
-    const current = await getStoryById(storyId);
-    if (!current) throw new Error('No story found');
-    const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending'];
-    const patch = {};
+    const current = await getStoryById(storyId)
+    if (!current) throw new Error('No story found')
+    const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending']
+    const patch = {}
     for (const key of SPINE_KEYS) {
-      if (action.fields[key] != null) patch[key] = String(action.fields[key]);
+      if (action.fields[key] != null) patch[key] = String(action.fields[key])
     }
-    if (Object.keys(patch).length === 0) throw new Error('No fields to update');
-    await saveStory({ ...current, ...patch });
-    return `Story spine updated (${Object.keys(patch).join(', ')})`;
+    if (Object.keys(patch).length === 0) throw new Error('No fields to update')
+    await saveStory({ ...current, ...patch })
+    return `Story spine updated (${Object.keys(patch).join(', ')})`
   }
   if (action.type === 'upsert_character' && action.name) {
-    const name = String(action.name).trim();
-    const existing = await getCharacters(storyId);
-    const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase());
-    const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany'];
-    const fields = {};
+    const name = String(action.name).trim()
+    const existing = await getCharacters(storyId)
+    const match = existing.find((c) => c.name?.toLowerCase() === name.toLowerCase())
+    const CHAR_KEYS = ['oneSentence', 'goal', 'motivation', 'conflict', 'epiphany']
+    const fields = {}
     for (const key of CHAR_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key])
     }
     if (match) {
-      await updateCharacter(match.id, { name, ...fields });
-      return `Character "${name}" updated`;
+      await updateCharacter(match.id, { name, ...fields })
+      return `Character "${name}" updated`
     } else {
-      await addCharacter({ storyId, name, ...fields });
-      return `Character "${name}" created`;
+      await addCharacter({ storyId, name, ...fields })
+      return `Character "${name}" created`
     }
   }
   if (action.type === 'add_chapter' && action.title) {
-    const title = String(action.title).trim();
-    const CHAPTER_KEYS = ['beat', 'summary'];
-    const fields = {};
+    const title = String(action.title).trim()
+    const CHAPTER_KEYS = ['beat', 'summary']
+    const fields = {}
     for (const key of CHAPTER_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-      else if (action[key] != null) fields[key] = String(action[key]);
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key])
+      else if (action[key] != null) fields[key] = String(action[key])
     }
-    const newChapter = await addChapter({ storyId, title, ...fields });
+    const newChapter = await addChapter({ storyId, title, ...fields })
     if (action.after_chapter_title) {
-      const allChapters = await getChapters(storyId);
+      const allChapters = await getChapters(storyId)
       const afterIdx = allChapters.findIndex(
-        (c) => c.id !== newChapter.id && c.title?.toLowerCase() === String(action.after_chapter_title).toLowerCase()
-      );
+        (c) =>
+          c.id !== newChapter.id &&
+          c.title?.toLowerCase() === String(action.after_chapter_title).toLowerCase()
+      )
       if (afterIdx >= 0) {
-        const withoutNew = allChapters.filter((c) => c.id !== newChapter.id);
+        const withoutNew = allChapters.filter((c) => c.id !== newChapter.id)
         const reordered = [
           ...withoutNew.slice(0, afterIdx + 1),
           newChapter,
           ...withoutNew.slice(afterIdx + 1),
-        ];
-        await reorderChapters(storyId, reordered.map((c) => c.id));
+        ]
+        await reorderChapters(
+          storyId,
+          reordered.map((c) => c.id)
+        )
       }
     }
-    return `Chapter "${title}" added`;
+    return `Chapter "${title}" added`
   }
   if (action.type === 'update_chapter' && action.title_match) {
-    const existing = await getChapters(storyId);
-    const match = existing.find((c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase());
-    if (!match) throw new Error(`Chapter not found: "${action.title_match}"`);
-    const CHAPTER_KEYS = ['title', 'beat', 'summary'];
-    const fields = {};
+    const existing = await getChapters(storyId)
+    const match = existing.find(
+      (c) => c.title?.toLowerCase() === String(action.title_match).toLowerCase()
+    )
+    if (!match) throw new Error(`Chapter not found: "${action.title_match}"`)
+    const CHAPTER_KEYS = ['title', 'beat', 'summary']
+    const fields = {}
     for (const key of CHAPTER_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key])
     }
-    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
-    await updateChapter(match.id, fields);
-    return `Chapter "${match.title}" updated`;
+    if (Object.keys(fields).length === 0) throw new Error('No fields to update')
+    await updateChapter(match.id, fields)
+    return `Chapter "${match.title}" updated`
   }
   if (action.type === 'add_scene' && action.title && action.chapter_title_match) {
-    const chapters = await getChapters(storyId);
-    const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
-    if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`);
-    const title = String(action.title).trim();
-    const SCENE_KEYS = ['oneSentenceSummary', 'notes'];
-    const fields = {};
+    const chapters = await getChapters(storyId)
+    const chapter = chapters.find(
+      (c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase()
+    )
+    if (!chapter) throw new Error(`Chapter not found: "${action.chapter_title_match}"`)
+    const title = String(action.title).trim()
+    const SCENE_KEYS = ['oneSentenceSummary', 'notes']
+    const fields = {}
     for (const key of SCENE_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
-      else if (action[key] != null) fields[key] = String(action[key]);
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key])
+      else if (action[key] != null) fields[key] = String(action[key])
     }
     if (action.after_scene_title) {
-      const scenesInChapter = await getScenesByChapter(chapter.id);
+      const scenesInChapter = await getScenesByChapter(chapter.id)
       const afterScene = scenesInChapter.find(
         (s) => s.title?.toLowerCase() === String(action.after_scene_title).toLowerCase()
-      );
+      )
       if (afterScene) {
-        const insertOrder = afterScene.order + 1;
+        const insertOrder = afterScene.order + 1
         for (const s of scenesInChapter) {
-          if (s.order >= insertOrder) await updateScene(s.id, { order: s.order + 1 });
+          if (s.order >= insertOrder) await updateScene(s.id, { order: s.order + 1 })
         }
-        await addScene({ chapterId: chapter.id, title, order: insertOrder, ...fields });
-        return `Scene "${title}" inserted after "${afterScene.title}" in "${chapter.title}"`;
+        await addScene({ chapterId: chapter.id, title, order: insertOrder, ...fields })
+        return `Scene "${title}" inserted after "${afterScene.title}" in "${chapter.title}"`
       }
     }
-    await addScene({ chapterId: chapter.id, title, ...fields });
-    return `Scene "${title}" added to "${chapter.title}"`;
+    await addScene({ chapterId: chapter.id, title, ...fields })
+    return `Scene "${title}" added to "${chapter.title}"`
   }
   if (action.type === 'update_scene' && action.title_match) {
-    const allScenes = await getScenes(storyId);
-    let match = null;
+    const allScenes = await getScenes(storyId)
+    let match = null
     if (action.chapter_title_match) {
-      const chapters = await getChapters(storyId);
-      const chapter = chapters.find((c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase());
+      const chapters = await getChapters(storyId)
+      const chapter = chapters.find(
+        (c) => c.title?.toLowerCase() === String(action.chapter_title_match).toLowerCase()
+      )
       if (chapter) {
-        match = allScenes.find((s) => s.chapterId === chapter.id && s.title?.toLowerCase() === String(action.title_match).toLowerCase());
+        match = allScenes.find(
+          (s) =>
+            s.chapterId === chapter.id &&
+            s.title?.toLowerCase() === String(action.title_match).toLowerCase()
+        )
       }
     }
-    if (!match) match = allScenes.find((s) => s.title?.toLowerCase() === String(action.title_match).toLowerCase());
-    if (!match) throw new Error(`Scene not found: "${action.title_match}"`);
-    const SCENE_KEYS = ['title', 'oneSentenceSummary', 'notes'];
-    const fields = {};
+    if (!match)
+      match = allScenes.find(
+        (s) => s.title?.toLowerCase() === String(action.title_match).toLowerCase()
+      )
+    if (!match) throw new Error(`Scene not found: "${action.title_match}"`)
+    const SCENE_KEYS = ['title', 'oneSentenceSummary', 'notes']
+    const fields = {}
     for (const key of SCENE_KEYS) {
-      if (action.fields?.[key] != null) fields[key] = String(action.fields[key]);
+      if (action.fields?.[key] != null) fields[key] = String(action.fields[key])
     }
-    if (Object.keys(fields).length === 0) throw new Error('No fields to update');
-    await updateScene(match.id, fields);
-    return `Scene "${match.title}" updated`;
+    if (Object.keys(fields).length === 0) throw new Error('No fields to update')
+    await updateScene(match.id, fields)
+    return `Scene "${match.title}" updated`
   }
   if (action.type === 'generate_prose') {
-    if (!props.sceneId) throw new Error('No scene is currently open in the editor');
-    const prose = await generateSceneProse({ storyId, sceneId: props.sceneId });
-    window.dispatchEvent(new CustomEvent('inkflow-prose-generated', { detail: { prose } }));
-    return 'Scene prose generated';
+    if (!props.sceneId) throw new Error('No scene is currently open in the editor')
+    const prose = await generateSceneProse({ storyId, sceneId: props.sceneId })
+    window.dispatchEvent(new CustomEvent('inkflow-prose-generated', { detail: { prose } }))
+    return 'Scene prose generated'
   }
-  throw new Error(`Unknown action: ${action.type}`);
+  throw new Error(`Unknown action: ${action.type}`)
 }
 
 // ---- Action confirm / skip ----
 async function confirmAction(actionObj) {
-  if (actionObj.status !== 'pending') return;
-  actionObj.status = 'applying';
+  if (actionObj.status !== 'pending') return
+  actionObj.status = 'applying'
   try {
-    actionObj.resultLabel = await applySingleAction(actionObj);
-    actionObj.status = 'applied';
-    loadStoryContext();
-    reloadOutline();
-    // Notify CharactersView (and sidebar) to reload when a character was saved
-    if (actionObj.raw?.type === 'upsert_character') {
-      window.dispatchEvent(new CustomEvent('inkflow-characters-changed'));
-    }
+    actionObj.resultLabel = await applySingleAction(actionObj)
+    actionObj.status = 'applied'
+    loadStoryContext()
+    reloadOutline()
+    outlineStore.load(actionObj.storyId || contextStoryId.value)
   } catch (e) {
-    actionObj.resultLabel = e?.message || 'Failed';
-    actionObj.status = 'error';
+    actionObj.resultLabel = e?.message || 'Failed'
+    actionObj.status = 'error'
   }
 }
 
 function skipAction(actionObj) {
-  if (actionObj.status !== 'pending') return;
-  actionObj.status = 'skipped';
+  if (actionObj.status !== 'pending') return
+  actionObj.status = 'skipped'
 }
 
 async function clearChat() {
-  const storyId = contextStoryId.value;
-  if (storyId) await clearChatHistory(storyId);
-  messages.value = [];
-  computeWelcomeMessage(storyGaps.value);
+  const storyId = contextStoryId.value
+  if (storyId) await clearChatHistory(storyId)
+  messages.value = []
+  computeWelcomeMessage(storyGaps.value)
 }
 
 // ---- System prompt (Phase 3) ----
@@ -700,177 +827,176 @@ This runs the full AI prose generation pipeline for the scene currently open in 
 Only emit this when the writer explicitly asks you to generate or write the scene — not for feedback or discussion requests.`
 
 const systemPrompt = computed(() => {
-  if (!storyContext.value) return BASE_SYSTEM_PROMPT;
-  return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`;
-});
+  if (!storyContext.value) return BASE_SYSTEM_PROMPT
+  return `${BASE_SYSTEM_PROMPT}\n\n${storyContext.value}`
+})
 
 // ---- Panel resize ----
-const PANEL_WIDTH_KEY = 'inkflow_pip_width';
-const PANEL_MIN = 280;
-const PANEL_MAX = 680;
-const panelWidth = ref(parseInt(localStorage.getItem(PANEL_WIDTH_KEY) || '320', 10));
-const isResizing = ref(false);
-const panelStyle = computed(() => ({ width: `min(${panelWidth.value}px, 90vw)` }));
+const PANEL_WIDTH_KEY = 'inkflow_pip_width'
+const PANEL_MIN = 280
+const PANEL_MAX = 680
+const panelWidth = ref(parseInt(localStorage.getItem(PANEL_WIDTH_KEY) || '320', 10))
+const isResizing = ref(false)
+const panelStyle = computed(() => ({ width: `min(${panelWidth.value}px, 90vw)` }))
 
 function startResize(e) {
-  if (window.innerWidth <= 767) return;
-  isResizing.value = true;
-  const startX = e.clientX;
-  const startWidth = panelWidth.value;
+  if (window.innerWidth <= 767) return
+  isResizing.value = true
+  const startX = e.clientX
+  const startWidth = panelWidth.value
 
   function onMove(e) {
-    const delta = startX - e.clientX;
-    panelWidth.value = Math.min(PANEL_MAX, Math.max(PANEL_MIN, startWidth + delta));
+    const delta = startX - e.clientX
+    panelWidth.value = Math.min(PANEL_MAX, Math.max(PANEL_MIN, startWidth + delta))
   }
   function onUp() {
-    isResizing.value = false;
-    localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth.value));
-    window.removeEventListener('mousemove', onMove);
-    window.removeEventListener('mouseup', onUp);
+    isResizing.value = false
+    localStorage.setItem(PANEL_WIDTH_KEY, String(panelWidth.value))
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
   }
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
 }
 
 // ---- Chat ----
-const messages = ref([]);
-const inputText = ref('');
-const isLoading = ref(false);
-const messagesEl = ref(null);
-const inputEl = ref(null);
+const messages = ref([])
+const inputText = ref('')
+const isLoading = ref(false)
+const messagesEl = ref(null)
+const inputEl = ref(null)
 
-const hasApiKey = computed(() => !!getApiKey()?.trim());
+const hasApiKey = computed(() => !!getApiKey()?.trim())
 
 // ---- Textarea resize ----
-const TEXTAREA_MIN = 40;
-const TEXTAREA_MAX = 400;
-const textareaManualHeight = ref(null); // null = auto-grow mode
+const TEXTAREA_MIN = 40
+const TEXTAREA_MAX = 400
+const textareaManualHeight = ref(null) // null = auto-grow mode
 
 function autoGrow(e) {
-  if (textareaManualHeight.value !== null) return; // manual mode active
-  const el = e?.target ?? inputEl.value;
-  if (!el) return;
-  el.style.height = 'auto';
-  el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  if (textareaManualHeight.value !== null) return // manual mode active
+  const el = e?.target ?? inputEl.value
+  if (!el) return
+  el.style.height = 'auto'
+  el.style.height = Math.min(el.scrollHeight, 200) + 'px'
 }
 
 function resetTextareaHeight() {
-  textareaManualHeight.value = null;
+  textareaManualHeight.value = null
   nextTick(() => {
-    if (inputEl.value) inputEl.value.style.height = '';
-  });
+    if (inputEl.value) inputEl.value.style.height = ''
+  })
 }
 
 function startTextareaResize(e) {
-  const startY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
-  const startHeight = textareaManualHeight.value ?? (inputEl.value?.offsetHeight ?? TEXTAREA_MIN);
+  const startY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
+  const startHeight = textareaManualHeight.value ?? inputEl.value?.offsetHeight ?? TEXTAREA_MIN
 
   function onMove(e) {
-    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0;
-    const delta = startY - clientY; // drag up = taller
-    textareaManualHeight.value = Math.min(TEXTAREA_MAX, Math.max(TEXTAREA_MIN, startHeight + delta));
+    const clientY = e.clientY ?? e.touches?.[0]?.clientY ?? 0
+    const delta = startY - clientY // drag up = taller
+    textareaManualHeight.value = Math.min(TEXTAREA_MAX, Math.max(TEXTAREA_MIN, startHeight + delta))
   }
   function onUp() {
-    window.removeEventListener('mousemove', onMove);
-    window.removeEventListener('mouseup', onUp);
-    window.removeEventListener('touchmove', onMove);
-    window.removeEventListener('touchend', onUp);
-    window.removeEventListener('touchcancel', onUp);
+    window.removeEventListener('mousemove', onMove)
+    window.removeEventListener('mouseup', onUp)
+    window.removeEventListener('touchmove', onMove)
+    window.removeEventListener('touchend', onUp)
+    window.removeEventListener('touchcancel', onUp)
   }
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
-  window.addEventListener('touchmove', onMove, { passive: false });
-  window.addEventListener('touchend', onUp);
-  window.addEventListener('touchcancel', onUp);
+  window.addEventListener('mousemove', onMove)
+  window.addEventListener('mouseup', onUp)
+  window.addEventListener('touchmove', onMove, { passive: false })
+  window.addEventListener('touchend', onUp)
+  window.addEventListener('touchcancel', onUp)
 }
 
 function pipErrorMessage(e) {
-  const type = classifyAiError(e);
+  const type = classifyAiError(e)
   if (type === 'network')
-    return "I couldn't reach the AI — looks like a network issue. Check your connection and try again. 🦦";
+    return "I couldn't reach the AI — looks like a network issue. Check your connection and try again. 🦦"
   if (type === 'invalid_key')
-    return "Your API key doesn't seem to work. Head to Settings → AI to check it. 🦦";
+    return "Your API key doesn't seem to work. Head to Settings → AI to check it. 🦦"
   if (type === 'access_denied')
-    return "Access was denied — your API key may not have the right permissions. Check Settings → AI. 🦦";
+    return 'Access was denied — your API key may not have the right permissions. Check Settings → AI. 🦦'
   if (type === 'rate_limit')
-    return "I hit a rate or quota limit on the current model. I tried lighter fallbacks but all were busy too — give it a minute and try again. 🦦";
+    return 'I hit a rate or quota limit on the current model. I tried lighter fallbacks but all were busy too — give it a minute and try again. 🦦'
   if (type === 'service_down')
-    return "The AI service seems temporarily unavailable. Try again in a moment. 🦦";
+    return 'The AI service seems temporarily unavailable. Try again in a moment. 🦦'
   if (type === 'safety')
-    return "My response was blocked by a content safety filter. Try rephrasing your message. 🦦";
+    return 'My response was blocked by a content safety filter. Try rephrasing your message. 🦦'
   if (type === 'token_limit')
-    return "My response got too long for the model to finish. Try asking me to keep it shorter, or break the request into smaller steps. 🦦";
+    return 'My response got too long for the model to finish. Try asking me to keep it shorter, or break the request into smaller steps. 🦦'
   if (type === 'context_too_long')
-    return "Our conversation got too long for the model to handle — I automatically trimmed older messages but it still didn't fit. Try starting a fresh chat. 🦦";
-  if (type === 'empty')
-    return "I got a blank response. Try sending your message again. 🦦";
+    return "Our conversation got too long for the model to handle — I automatically trimmed older messages but it still didn't fit. Try starting a fresh chat. 🦦"
+  if (type === 'empty') return 'I got a blank response. Try sending your message again. 🦦'
   // Strip trailing punctuation before appending to avoid double-period
-  const raw = (e?.message || 'please try again').replace(/[.!?]+$/, '');
-  return `Something went wrong — ${raw}. 🦦`;
+  const raw = (e?.message || 'please try again').replace(/[.!?]+$/, '')
+  return `Something went wrong — ${raw}. 🦦`
 }
 
 async function scrollToBottom() {
-  await nextTick();
+  await nextTick()
   if (messagesEl.value) {
-    messagesEl.value.scrollTop = messagesEl.value.scrollHeight;
+    messagesEl.value.scrollTop = messagesEl.value.scrollHeight
   }
 }
 
 async function send() {
-  const text = inputText.value.trim();
-  if (!text || isLoading.value) return;
+  const text = inputText.value.trim()
+  if (!text || isLoading.value) return
 
-  messages.value.push({ role: 'user', content: text });
-  inputText.value = '';
-  resetTextareaHeight();
-  isLoading.value = true;
-  inputEl.value?.focus();
-  await scrollToBottom();
+  messages.value.push({ role: 'user', content: text })
+  inputText.value = ''
+  resetTextareaHeight()
+  isLoading.value = true
+  inputEl.value?.focus()
+  await scrollToBottom()
 
   // Add streaming placeholder — Pip's bubble appears immediately with typing dots
-  messages.value.push({ role: 'assistant', content: '', actions: [], streaming: true });
-  const streamMsg = messages.value[messages.value.length - 1];
-  await scrollToBottom();
+  messages.value.push({ role: 'assistant', content: '', actions: [], streaming: true })
+  const streamMsg = messages.value[messages.value.length - 1]
+  await scrollToBottom()
 
   try {
     // Auto-retry on token limit: first trim history, then also strip story context
     const RETRIES = [
-      { limit: HISTORY_LIMIT, useContext: true  },
-      { limit: 8,             useContext: true  },
-      { limit: 4,             useContext: false }, // drop story context as last resort
-    ];
-    let raw = null;
-    let lastErr = null;
+      { limit: HISTORY_LIMIT, useContext: true },
+      { limit: 8, useContext: true },
+      { limit: 4, useContext: false }, // drop story context as last resort
+    ]
+    let raw = null
+    let lastErr = null
     for (const { limit, useContext } of RETRIES) {
       try {
         // Reset content for retry attempts
-        streamMsg.content = '';
+        streamMsg.content = ''
         const history = messages.value
           .filter((m) => !m.streaming)
           .slice(-limit)
-          .map((m) => ({ role: m.role, content: m.content }));
+          .map((m) => ({ role: m.role, content: m.content }))
         raw = await chatWithAiStream({
           messages: history,
           systemPrompt: useContext ? systemPrompt.value : BASE_SYSTEM_PROMPT,
           tier: tierForContext(hasStoryContent.value ? CONTEXTS.CHAT_WITH_TOOLS : CONTEXTS.CHAT),
           maxTokens: 4096,
           onChunk: (chunk) => {
-            streamMsg.content += chunk;
-            scrollToBottom();
+            streamMsg.content += chunk
+            scrollToBottom()
           },
-        });
-        lastErr = null;
-        break;
+        })
+        lastErr = null
+        break
       } catch (e) {
-        lastErr = e;
-        const errType = classifyAiError(e);
-        if (errType !== 'token_limit' && errType !== 'context_too_long') throw e;
-        if (errType === 'token_limit') throw e; // output truncated — retrying won't help
+        lastErr = e
+        const errType = classifyAiError(e)
+        if (errType !== 'token_limit' && errType !== 'context_too_long') throw e
+        if (errType === 'token_limit') throw e // output truncated — retrying won't help
       }
     }
-    if (lastErr) throw lastErr;
+    if (lastErr) throw lastErr
 
-    const { cleanText, actions } = parseActions(raw);
+    const { cleanText, actions } = parseActions(raw)
     const pendingActions = actions.map((a) => ({
       raw: a,
       label: actionLabel(a),
@@ -878,27 +1004,27 @@ async function send() {
       resultLabel: null,
       // Stamp the story that was active when the AI generated these actions.
       storyId: contextStoryId.value,
-    }));
+    }))
 
     // Finalize the streaming message in-place
-    streamMsg.content = cleanText;
-    streamMsg.actions = pendingActions;
-    delete streamMsg.streaming;
+    streamMsg.content = cleanText
+    streamMsg.actions = pendingActions
+    delete streamMsg.streaming
 
     // Persist this exchange to DB so it survives page refresh
     if (contextStoryId.value) {
-      await saveChatMessage(contextStoryId.value, 'user', text);
-      await saveChatMessage(contextStoryId.value, 'assistant', cleanText);
+      await saveChatMessage(contextStoryId.value, 'user', text)
+      await saveChatMessage(contextStoryId.value, 'assistant', cleanText)
     }
   } catch (e) {
     // Show error in the streaming placeholder rather than pushing a new message
-    streamMsg.content = pipErrorMessage(e);
-    streamMsg.actions = [];
-    delete streamMsg.streaming;
+    streamMsg.content = pipErrorMessage(e)
+    streamMsg.actions = []
+    delete streamMsg.streaming
   } finally {
-    isLoading.value = false;
-    await scrollToBottom();
-    inputEl.value?.focus();
+    isLoading.value = false
+    await scrollToBottom()
+    inputEl.value?.focus()
   }
 }
 </script>
@@ -946,7 +1072,9 @@ async function send() {
   opacity: 0.35;
 }
 @media (max-width: 767px) {
-  .otter-resize-handle { display: none; }
+  .otter-resize-handle {
+    display: none;
+  }
 }
 
 @media (max-width: 767px) {
@@ -1002,7 +1130,9 @@ async function send() {
   font-size: 0.75rem;
   padding: 2px var(--space-2);
   border-radius: var(--radius-sm);
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .otter-clear-btn:hover {
   color: var(--text);
@@ -1018,7 +1148,9 @@ async function send() {
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: color 0.15s, background 0.15s;
+  transition:
+    color 0.15s,
+    background 0.15s;
 }
 .otter-close-btn:hover {
   color: var(--text);
@@ -1049,7 +1181,9 @@ async function send() {
   font-size: 2.5rem;
   line-height: 1;
 }
-.otter-welcome p { margin: 0; }
+.otter-welcome p {
+  margin: 0;
+}
 
 .otter-msg {
   display: flex;
@@ -1119,7 +1253,9 @@ async function send() {
   font-weight: 500;
   cursor: pointer;
   border: 1px solid;
-  transition: background 0.15s, color 0.15s;
+  transition:
+    background 0.15s,
+    color 0.15s;
 }
 .otter-action-btn--save {
   background: color-mix(in srgb, var(--success, #16a34a) 12%, transparent);
@@ -1179,11 +1315,23 @@ async function send() {
   display: inline-block;
   animation: otter-typing 1.4s ease-in-out infinite;
 }
-.typing-dot:nth-child(2) { animation-delay: 0.2s; }
-.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+.typing-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
 @keyframes otter-typing {
-  0%, 80%, 100% { opacity: 0.25; transform: scale(0.85); }
-  40% { opacity: 1; transform: scale(1); }
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+    transform: scale(0.85);
+  }
+  40% {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 /* ---- Textarea drag bar ---- */

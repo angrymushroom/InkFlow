@@ -2,7 +2,8 @@ export default {
   common: {
     unsavedLeave: 'Tienes cambios sin guardar. ¿Salir de todos modos?',
     loadErrorGeneric: 'No se pudo cargar. Vuelve a intentarlo o revisa el respaldo en Ajustes.',
-    saveErrorGeneric: 'No se pudo guardar. En navegación privada o sin espacio, descarga un respaldo en Ajustes.',
+    saveErrorGeneric:
+      'No se pudo guardar. En navegación privada o sin espacio, descarga un respaldo en Ajustes.',
   },
   nav: {
     ideas: 'Ideas',
@@ -37,14 +38,16 @@ export default {
   },
   ideas: {
     title: 'Ideas',
-    subtitle: 'Captura tramas, rasgos de personaje, mundo o escenas. Sin estructura todavía — solo captura.',
+    subtitle:
+      'Captura tramas, rasgos de personaje, mundo o escenas. Sin estructura todavía — solo captura.',
     newIdea: 'Nueva idea',
     editIdea: 'Editar idea',
     titleLabel: 'Título',
     bodyLabel: 'Cuerpo',
     typeLabel: 'Tipo',
     shortTitle: 'Título corto',
-    bodyPlaceholder: 'Idea rápida... Escribe /ai y haz clic en Expandir con IA para desarrollarla con tu Historia e Ideas.',
+    bodyPlaceholder:
+      'Idea rápida... Escribe /ai y haz clic en Expandir con IA para desarrollarla con tu Historia e Ideas.',
     plot: 'Trama',
     subplot: 'Subtrama',
     scene: 'Escena',
@@ -90,7 +93,8 @@ export default {
   },
   entities: {
     title: 'Entidades',
-    subtitle: 'Gestiona personajes, lugares, objetos y demás elementos de la historia. Elige un tipo para ver y editar.',
+    subtitle:
+      'Gestiona personajes, lugares, objetos y demás elementos de la historia. Elige un tipo para ver y editar.',
     filterByType: 'Filtrar por tipo',
     typeCharacters: 'Personajes',
     addCharacter: 'Añadir personaje',
@@ -104,7 +108,8 @@ export default {
   templates: {
     snowflake: {
       name: 'Copo de nieve',
-      subtitle: 'Estructura descendente: una frase → planteamiento → tres desastres escalantes → final.',
+      subtitle:
+        'Estructura descendente: una frase → planteamiento → tres desastres escalantes → final.',
       fields: {
         oneSentence: 'Resumen en una frase',
         setup: 'Planteamiento',
@@ -124,7 +129,8 @@ export default {
     },
     save_the_cat: {
       name: 'Salva al gato',
-      subtitle: 'Estructura en beats: logline → catalizador → diversión → punto medio → todo perdido → final.',
+      subtitle:
+        'Estructura en beats: logline → catalizador → diversión → punto medio → todo perdido → final.',
       fields: {
         logline: 'Logline',
         catalyst: 'Catalizador (Acto 1)',
@@ -144,7 +150,8 @@ export default {
     },
     story_circle: {
       name: 'Círculo narrativo',
-      subtitle: 'Círculo de Dan Harmon en 8 segmentos: personaje en equilibrio → necesidad → viaje → transformación.',
+      subtitle:
+        'Círculo de Dan Harmon en 8 segmentos: personaje en equilibrio → necesidad → viaje → transformación.',
       fields: {
         you: 'Tú (equilibrio)',
         need: 'Necesidad',
@@ -168,7 +175,8 @@ export default {
     },
     hero_journey: {
       name: 'El viaje del héroe',
-      subtitle: 'Monomito de Campbell: el héroe abandona su mundo, afronta pruebas, supera la ordalia, regresa transformado.',
+      subtitle:
+        'Monomito de Campbell: el héroe abandona su mundo, afronta pruebas, supera la ordalia, regresa transformado.',
       fields: {
         premise: 'Premisa',
         call: 'La llamada a la aventura',
@@ -186,7 +194,8 @@ export default {
     },
     kishotenketsu: {
       name: '起承转合',
-      subtitle: 'Estructura este-asiática en 4 actos: introducir (起), desarrollar (承), giro (转, sin conflicto necesario), resolver (合).',
+      subtitle:
+        'Estructura este-asiática en 4 actos: introducir (起), desarrollar (承), giro (转, sin conflicto necesario), resolver (合).',
       fields: {
         ki: '起 — Introducción',
         sho: '承 — Desarrollo',
@@ -203,12 +212,15 @@ export default {
   },
   story: {
     title: 'Historia',
-    subtitle: 'Pasos 1–2 del copo de nieve: una frase, luego desarrollo (planteamiento, tres desastres y final).',
+    subtitle:
+      'Pasos 1–2 del copo de nieve: una frase, luego desarrollo (planteamiento, tres desastres y final).',
     templateLabel: 'Plantilla',
     oneSentence: 'Resumen en una frase',
-    oneSentencePlaceholder: 'Tu historia en una frase (quién, qué, qué está en juego). Usa /ai para enriquecer desde Ideas.',
+    oneSentencePlaceholder:
+      'Tu historia en una frase (quién, qué, qué está en juego). Usa /ai para enriquecer desde Ideas.',
     setup: 'Planteamiento',
-    setupPlaceholder: 'Situación inicial y mundo. Usa /ai + Expandir con IA para relacionar tus Ideas.',
+    setupPlaceholder:
+      'Situación inicial y mundo. Usa /ai + Expandir con IA para relacionar tus Ideas.',
     disaster1: 'Desastre 1',
     disaster1Placeholder: 'Primer giro importante. Escribe una idea corta, /ai y Expandir con IA.',
     disaster2: 'Desastre 2',
@@ -219,7 +231,8 @@ export default {
     endingPlaceholder: 'Resolución',
     saveStory: 'Guardar esqueleto de historia',
     saved: 'Guardado',
-    saveError: 'No se pudo guardar. Si estás en navegación privada o sin espacio, descarga un respaldo y usa una ventana normal.',
+    saveError:
+      'No se pudo guardar. Si estás en navegación privada o sin espacio, descarga un respaldo y usa una ventana normal.',
     fieldOneSentence: 'Resumen en una frase',
     fieldSetup: 'Planteamiento',
     fieldDisaster1: 'Desastre 1',
@@ -229,13 +242,15 @@ export default {
     deleteStorySection: 'Eliminar historia',
     deleteStory: 'Eliminar esta historia',
     deleteStoryConfirmTitle: '¿Eliminar esta historia?',
-    deleteStoryConfirmBody: 'Se eliminará permanentemente esta historia y todas sus ideas, personajes, capítulos y escenas. Esta acción no se puede deshacer.',
+    deleteStoryConfirmBody:
+      'Se eliminará permanentemente esta historia y todas sus ideas, personajes, capítulos y escenas. Esta acción no se puede deshacer.',
     deleteStoryConfirmButton: 'Eliminar historia',
     cannotDeleteLastStory: 'Debes tener al menos una historia.',
   },
   characters: {
     title: 'Personajes',
-    subtitle: 'Paso 3: para cada personaje principal — nombre, una frase, objetivo, motivación, conflicto, epifanía.',
+    subtitle:
+      'Paso 3: para cada personaje principal — nombre, una frase, objetivo, motivación, conflicto, epifanía.',
     newCharacter: 'Nuevo personaje',
     editCharacter: 'Editar personaje',
     name: 'Nombre',
@@ -260,7 +275,8 @@ export default {
     fieldEpiphany: 'Epifanía del personaje',
     confirmDelete: '¿Eliminar este personaje?',
     relationships: 'Relaciones',
-    relationshipsSubtitle: 'Define conexiones entre personajes: rivalidades, alianzas, familia y más.',
+    relationshipsSubtitle:
+      'Define conexiones entre personajes: rivalidades, alianzas, familia y más.',
     newRelationship: 'Nueva relación',
     relFrom: 'Personaje A',
     relTo: 'Personaje B',
@@ -272,7 +288,8 @@ export default {
   },
   outline: {
     title: 'Esquema',
-    subtitle: 'Organiza capítulos y escenas según tu esqueleto (Planteamiento, tres Desastres, Final).',
+    subtitle:
+      'Organiza capítulos y escenas según tu esqueleto (Planteamiento, tres Desastres, Final).',
     newChapter: 'Nuevo capítulo',
     editChapter: 'Editar capítulo',
     chapterTitle: 'Título',
@@ -331,16 +348,23 @@ export default {
       ketsu: '合',
     },
     sectionTip: {
-      setup: 'Inicio: presenta el mundo, el protagonista y la situación antes de que todo se complique.',
-      disaster1: 'Primer desastre: rompe el statu quo y empuja al protagonista a una nueva situación.',
-      disaster2: 'Segundo desastre: sube las apuestas, profundiza el conflicto y empeora la situación.',
+      setup:
+        'Inicio: presenta el mundo, el protagonista y la situación antes de que todo se complique.',
+      disaster1:
+        'Primer desastre: rompe el statu quo y empuja al protagonista a una nueva situación.',
+      disaster2:
+        'Segundo desastre: sube las apuestas, profundiza el conflicto y empeora la situación.',
       disaster3: 'Tercer desastre / clímax: la mayor crisis, donde todo está en juego.',
       ending: 'Final: resolución y consecuencias después del clímax.',
-      ungrouped: 'Capítulos que aún no están vinculados a una sección del esqueleto. Asígnalos para mantener la estructura alineada.',
+      ungrouped:
+        'Capítulos que aún no están vinculados a una sección del esqueleto. Asígnalos para mantener la estructura alineada.',
       act1: 'De la imagen de apertura al inicio del segundo acto: establece el tono, presenta al protagonista y lanza el incidente desencadenante.',
-      act2a: 'Diversión y juegos: la promesa de la premisa cumplida — el protagonista en el nuevo mundo, explorando antes de que lleguen las apuestas reales.',
-      midpoint: 'El giro central: una falsa victoria o falsa derrota que sube las apuestas y cambia la dirección.',
-      act2b: 'Los antagonistas se acercan hasta que todo está perdido: presión creciente, traiciones y el momento más oscuro antes del final.',
+      act2a:
+        'Diversión y juegos: la promesa de la premisa cumplida — el protagonista en el nuevo mundo, explorando antes de que lleguen las apuestas reales.',
+      midpoint:
+        'El giro central: una falsa victoria o falsa derrota que sube las apuestas y cambia la dirección.',
+      act2b:
+        'Los antagonistas se acercan hasta que todo está perdido: presión creciente, traiciones y el momento más oscuro antes del final.',
       act3: 'Inicio del tercer acto hasta la imagen final: el protagonista sintetiza lo aprendido y resuelve el conflicto.',
       you: 'El protagonista en su mundo cómodo y familiar — estasis antes del viaje.',
       need: 'Algo falta o no está bien — ¿qué necesita el protagonista, aunque no lo sepa?',
@@ -349,9 +373,12 @@ export default {
       find: 'El protagonista encuentra lo que buscaba.',
       take: 'Pero conseguirlo tiene un precio — un momento de sacrificio o consecuencia.',
       change: 'La transformación está completa — ya no es quien era al principio.',
-      departure: 'Establece el mundo ordinario del héroe, presenta la llamada a la aventura y muéstralo cruzando el umbral hacia lo desconocido.',
-      road_of_trials: 'El héroe afronta pruebas, hace aliados y enemigos, y madura a lo largo del viaje.',
-      ordeal: 'La crisis suprema — el héroe afronta su mayor miedo y vive una muerte y renacimiento simbólicos.',
+      departure:
+        'Establece el mundo ordinario del héroe, presenta la llamada a la aventura y muéstralo cruzando el umbral hacia lo desconocido.',
+      road_of_trials:
+        'El héroe afronta pruebas, hace aliados y enemigos, y madura a lo largo del viaje.',
+      ordeal:
+        'La crisis suprema — el héroe afronta su mayor miedo y vive una muerte y renacimiento simbólicos.',
       return: 'El héroe regresa a casa, transformado, portando lo que ha ganado.',
       ki: 'Presenta tus personajes, el mundo y la situación inicial. No se necesita conflicto — solo establece el escenario.',
       sho: 'Desarrolla y profundiza lo presentado. Construye atmósfera, relaciones y textura.',
@@ -359,20 +386,26 @@ export default {
       ketsu: 'Reúne todos los hilos. El giro de Ten encuentra aquí su significado.',
     },
     spineLabel: 'Nota del esqueleto para esta sección',
-    spineNotFilled: 'Esta parte del esqueleto aún no está rellenada en la pestaña Historia. Puedes seguir esquematizando, pero conviene completarla para tener mejor guía.',
-    noChaptersInSection: 'Todavía no hay capítulos en esta sección. Añade uno o deja que la IA proponga sugerencias.',
+    spineNotFilled:
+      'Esta parte del esqueleto aún no está rellenada en la pestaña Historia. Puedes seguir esquematizando, pero conviene completarla para tener mejor guía.',
+    noChaptersInSection:
+      'Todavía no hay capítulos en esta sección. Añade uno o deja que la IA proponga sugerencias.',
     aiDraftAll: 'Esquema completo con IA desde el esqueleto',
     aiDraftSection: 'Esquema de esta sección con IA',
     aiDraftTitle: 'Borrador de esquema con IA a partir del esqueleto',
     aiDraftSectionTitle: 'Borrador IA para {section}',
-    aiDraftHint: 'Revisa y ajusta estas sugerencias de capítulos y escenas. Al hacer clic en Aplicar, se crearán como capítulos y escenas reales en las secciones correspondientes.',
+    aiDraftHint:
+      'Revisa y ajusta estas sugerencias de capítulos y escenas. Al hacer clic en Aplicar, se crearán como capítulos y escenas reales en las secciones correspondientes.',
     aiDraftScenesLabel: 'Escenas de este capítulo',
     aiDraftEmptySection: 'No hay sugerencias para esta sección en el borrador actual.',
     aiDraftApply: 'Aplicar esquema',
-    aiDraftError: 'No se pudo generar el esquema con IA. Revisa tu clave en Ajustes → IA y vuelve a intentarlo.',
+    aiDraftError:
+      'No se pudo generar el esquema con IA. Revisa tu clave en Ajustes → IA y vuelve a intentarlo.',
     aiDrafting: 'Esquematizando…',
-    aiExtraContextChapterPrefix: 'Este capítulo debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
-    aiExtraContextScenePrefix: 'Esta escena debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
+    aiExtraContextChapterPrefix:
+      'Este capítulo debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
+    aiExtraContextScenePrefix:
+      'Esta escena debe encajar en la sección «{section}» del esqueleto. Mantente coherente con esa parte:',
     editInStory: 'Editar en Historia →',
     spineRefLabel: 'Eje de la historia',
     addFirstScene: 'Añadir primera escena',
@@ -385,16 +418,21 @@ export default {
     empty: 'Aún no hay escenas. Añade capítulos y escenas en el Esquema.',
     goToOutline: 'Ir al Esquema',
     generateContinue: 'Generar desde donde lo dejé',
-    generateContinueHint: 'La IA escribirá las escenas sin contenido a partir de "{{name}}". Las escenas ya escritas no se tocarán.',
+    generateContinueHint:
+      'La IA escribirá las escenas sin contenido a partir de "{{name}}". Las escenas ya escritas no se tocarán.',
     generateAll: 'Regenerar todo',
     generateAllDone: 'Todas las escenas ya están escritas.',
-    generateAllDoneHint: 'Cada escena tiene contenido. Puedes regenerar todo, pero se sobrescribirá la prosa existente.',
-    generateConfirm: '¿Generar {{count}} escena(s) a partir de "{{name}}"? Las escenas anteriores ya escritas no se modificarán.',
-    generateAllConfirm: '¿Regenerar las {{count}} escena(s)? Esto sobrescribirá toda la prosa existente.',
+    generateAllDoneHint:
+      'Cada escena tiene contenido. Puedes regenerar todo, pero se sobrescribirá la prosa existente.',
+    generateConfirm:
+      '¿Generar {{count}} escena(s) a partir de "{{name}}"? Las escenas anteriores ya escritas no se modificarán.',
+    generateAllConfirm:
+      '¿Regenerar las {{count}} escena(s)? Esto sobrescribirá toda la prosa existente.',
     generating: 'Generando…',
     generatingProgress: 'Escena {{current}} de {{total}}: {{name}}',
     generateDone: '{{generated}} escena(s) generada(s).',
-    generatePartial: '{{generated}} generada(s), {{errors}} fallida(s). Comprueba tu clave API en Ajustes.',
+    generatePartial:
+      '{{generated}} generada(s), {{errors}} fallida(s). Comprueba tu clave API en Ajustes.',
     totalWords: 'palabras totales',
     scenesWritten: 'escenas escritas',
     scenesTotal: 'escenas totales',
@@ -462,16 +500,19 @@ export default {
   },
   export: {
     title: 'Exportar',
-    subtitle: 'Respalda tu proyecto como JSON. Luego puedes importarlo o usarlo en otro dispositivo.',
+    subtitle:
+      'Respalda tu proyecto como JSON. Luego puedes importarlo o usarlo en otro dispositivo.',
     language: 'Idioma',
     languageSubtitle: 'Idioma de la app y de la escritura.',
     ai: 'IA (Expandir con /ai)',
-    aiHint: 'Escribe una idea corta en cualquier tarjeta, luego /ai y "✨ Expandir con IA" para obtener un párrafo más completo usando tus Ideas e Historia. Las claves solo se guardan en este navegador.',
+    aiHint:
+      'Escribe una idea corta en cualquier tarjeta, luego /ai y "✨ Expandir con IA" para obtener un párrafo más completo usando tus Ideas e Historia. Las claves solo se guardan en este navegador.',
     provider: 'Proveedor',
     apiKey: 'Clave API',
     apiKeyHint: 'Obtén tu clave API en la plataforma del proveedor:',
     apiKeyGetKey: 'Obtener clave API',
-    apiKeyPrivacyNote: 'Las claves API se guardan solo en el localStorage de tu navegador. Nunca se envían a nuestros servidores.',
+    apiKeyPrivacyNote:
+      'Las claves API se guardan solo en el localStorage de tu navegador. Nunca se envían a nuestros servidores.',
     apiKeyStoredLocally: 'Las claves API se guardan solo en este dispositivo.',
     show: 'Mostrar',
     hide: 'Ocultar',
@@ -483,7 +524,8 @@ export default {
     exportErrorGeneric: 'No se pudo exportar. Vuelve a intentarlo o copia el texto en otro sitio.',
     exportFormat: 'Formato',
     formatJson: 'JSON — respaldo completo',
-    formatJsonHint: 'Guarda todo: estructura narrativa, personajes, ideas, capítulos y escenas. Úsalo para restaurar el proyecto en otro dispositivo.',
+    formatJsonHint:
+      'Guarda todo: estructura narrativa, personajes, ideas, capítulos y escenas. Úsalo para restaurar el proyecto en otro dispositivo.',
     formatStoryHint: 'Solo prosa de la historia — títulos de capítulos y contenido de escenas.',
     formatMarkdown: 'Markdown (.md)',
     formatTxt: 'Texto plano (.txt)',
@@ -505,7 +547,8 @@ export default {
     qualityBias: 'Calidad de IA',
     qualityBiasFaster: 'Más rápido',
     qualityBiasBest: 'Mejor calidad',
-    qualityBiasHint: '"Más rápido" usa modelos ligeros para menor coste y mayor velocidad. "Mejor calidad" mejora la escritura de escenas, esquemas y expansión de campos usando el modelo avanzado.',
+    qualityBiasHint:
+      '"Más rápido" usa modelos ligeros para menor coste y mayor velocidad. "Mejor calidad" mejora la escritura de escenas, esquemas y expansión de campos usando el modelo avanzado.',
   },
   storySwitcher: {
     current: 'Actual',
@@ -524,12 +567,14 @@ export default {
     titleExpand: 'Expandir esto con IA usando Ideas e Historia',
     titleSetup: 'Configura tu clave API primero',
     setupTitle: 'Configura la IA para usar Expandir con IA',
-    setupText: 'Añade tu clave API en Exportar → IA. Puedes usar Google Gemini (gratis) u OpenAI. La clave solo se guarda en este navegador.',
+    setupText:
+      'Añade tu clave API en Exportar → IA. Puedes usar Google Gemini (gratis) u OpenAI. La clave solo se guarda en este navegador.',
     goToSetup: 'Ir a Configuración',
     close: 'Cerrar',
     checkKey: 'Revisar clave o Probar API en Exportar → IA',
     previewTitle: 'Sugerencia de la IA',
-    previewHint: 'Puedes editar el texto y luego Aplicar, probar de nuevo otra idea, o Quedarte con el tuyo.',
+    previewHint:
+      'Puedes editar el texto y luego Aplicar, probar de nuevo otra idea, o Quedarte con el tuyo.',
     previewPlaceholder: 'Texto generado por la IA…',
     apply: 'Aplicar',
     tryAgain: 'Probar de nuevo',
@@ -537,44 +582,52 @@ export default {
     generating: 'Generando…',
   },
   pip: {
-    storyCompanion: "Compañero de escritura",
-    readingStory: "Leyendo tu historia…",
-    thinking: "Pip está pensando…",
-    inputPlaceholder: "Habla con Pip…",
-    noApiKey: "Configura tu clave API en Ajustes para chatear con Pip 🦦",
-    goToSettings: "Ir a Ajustes",
-    clearChat: "Borrar chat",
-    clearChatConfirm: "¿Borrar el historial del chat para esta historia?",
-    welcomeDefault: "¡Hola! Soy Pip 🦦 Cuéntame la historia que quieres escribir — ¡o salúdame y encontraremos una idea juntos!",
-    welcomeEmpty: "¡Hola! Soy Pip 🦦 {question}",
-    welcomeProgress: "¡Buen progreso! Sigamos — {question}",
-    welcomeNeedCharacters: "¡La estructura de tu historia está completa! Ahora démosles vida a tus personajes. ¿Quién es tu protagonista?",
-    welcomeNeedChapters: "¡Buena base! ¿Quieres empezar a planificar tus capítulos?",
-    welcomeSceneWithProse: "Trabajando en '{title}' — {n} palabras escritas. ¿En qué puedo ayudarte?",
+    storyCompanion: 'Compañero de escritura',
+    readingStory: 'Leyendo tu historia…',
+    thinking: 'Pip está pensando…',
+    inputPlaceholder: 'Habla con Pip…',
+    noApiKey: 'Configura tu clave API en Ajustes para chatear con Pip 🦦',
+    goToSettings: 'Ir a Ajustes',
+    clearChat: 'Borrar chat',
+    clearChatConfirm: '¿Borrar el historial del chat para esta historia?',
+    welcomeDefault:
+      '¡Hola! Soy Pip 🦦 Cuéntame la historia que quieres escribir — ¡o salúdame y encontraremos una idea juntos!',
+    welcomeEmpty: '¡Hola! Soy Pip 🦦 {question}',
+    welcomeProgress: '¡Buen progreso! Sigamos — {question}',
+    welcomeNeedCharacters:
+      '¡La estructura de tu historia está completa! Ahora démosles vida a tus personajes. ¿Quién es tu protagonista?',
+    welcomeNeedChapters: '¡Buena base! ¿Quieres empezar a planificar tus capítulos?',
+    welcomeSceneWithProse:
+      "Trabajando en '{title}' — {n} palabras escritas. ¿En qué puedo ayudarte?",
     welcomeSceneNoProse: "¿Listo para trabajar en '{title}'? Puedo escribirla o pensamos juntos.",
-    welcomeBack: "¡Bienvenido de vuelta! Has escrito {n} escenas en {chapters} capítulos. ¿Quieres continuar o centrarte en algo específico?",
-    welcomeHasOutline: "Tu esquema está listo: {chapters} capítulos, {n} escenas. ¿Listo para empezar a escribir?",
+    welcomeBack:
+      '¡Bienvenido de vuelta! Has escrito {n} escenas en {chapters} capítulos. ¿Quieres continuar o centrarte en algo específico?',
+    welcomeHasOutline:
+      'Tu esquema está listo: {chapters} capítulos, {n} escenas. ¿Listo para empezar a escribir?',
     coachQuestion: {
       snowflake: {
-        oneSentence: "Cuéntame tu idea de historia — incluso una frase es suficiente para empezar.",
-        setup: "¿Cómo comienza la historia? ¿Cómo era el mundo antes de que todo cambiara?",
-        disaster1: "¿Cuál es el primer gran punto de inflexión — el momento en que las cosas salen mal?",
-        disaster2: "¿Cómo escalan las apuestas? ¿Qué hace las cosas aún más difíciles para tu protagonista?",
-        disaster3: "¿Cuál es el momento más oscuro — cuando toda esperanza parece perdida?",
-        ending: "¿Cómo se resuelve? ¿Qué ha aprendido o en qué se ha convertido tu protagonista?",
+        oneSentence: 'Cuéntame tu idea de historia — incluso una frase es suficiente para empezar.',
+        setup: '¿Cómo comienza la historia? ¿Cómo era el mundo antes de que todo cambiara?',
+        disaster1:
+          '¿Cuál es el primer gran punto de inflexión — el momento en que las cosas salen mal?',
+        disaster2:
+          '¿Cómo escalan las apuestas? ¿Qué hace las cosas aún más difíciles para tu protagonista?',
+        disaster3: '¿Cuál es el momento más oscuro — cuando toda esperanza parece perdida?',
+        ending: '¿Cómo se resuelve? ¿Qué ha aprendido o en qué se ha convertido tu protagonista?',
       },
       hero_journey: {
-        premise: "Háblame de tu héroe y su mundo antes de que comience la aventura.",
-        call: "¿Qué evento o encuentro aleja a tu héroe de su vida ordinaria?",
-        trials: "¿Qué desafíos, aliados y enemigos encontrará tu héroe en el camino?",
-        ordeal: "¿Cuál es el momento más oscuro — la crisis que tu héroe debe superar para renacer?",
-        elixir: "¿Qué trae tu héroe de vuelta y cómo lo ha cambiado el viaje?",
+        premise: 'Háblame de tu héroe y su mundo antes de que comience la aventura.',
+        call: '¿Qué evento o encuentro aleja a tu héroe de su vida ordinaria?',
+        trials: '¿Qué desafíos, aliados y enemigos encontrará tu héroe en el camino?',
+        ordeal:
+          '¿Cuál es el momento más oscuro — la crisis que tu héroe debe superar para renacer?',
+        elixir: '¿Qué trae tu héroe de vuelta y cómo lo ha cambiado el viaje?',
       },
       kishotenketsu: {
-        ki: "Presenta tu historia — ¿quiénes son los personajes y cuál es la situación inicial?",
-        sho: "¿Cómo se desarrolla la situación? ¿Qué detalles y profundidad puedes añadir?",
-        ten: "¿Cuál es el giro inesperado o cambio de perspectiva? Recuerda — no tiene que ser un conflicto.",
-        ketsu: "¿Cómo se reúnen todos los hilos al final?",
+        ki: 'Presenta tu historia — ¿quiénes son los personajes y cuál es la situación inicial?',
+        sho: '¿Cómo se desarrolla la situación? ¿Qué detalles y profundidad puedes añadir?',
+        ten: '¿Cuál es el giro inesperado o cambio de perspectiva? Recuerda — no tiene que ser un conflicto.',
+        ketsu: '¿Cómo se reúnen todos los hilos al final?',
       },
     },
   },
@@ -591,7 +644,8 @@ export default {
     submit: 'Enviar',
     required: 'Por favor, escribe algún comentario.',
     thankYou: '¡Gracias!',
-    thankYouMsg: 'Tu comentario ha sido copiado al portapapeles. Puedes pegarlo en un correo o en un issue de GitHub.',
+    thankYouMsg:
+      'Tu comentario ha sido copiado al portapapeles. Puedes pegarlo en un correo o en un issue de GitHub.',
     done: 'Listo',
   },
   entitySuggestion: {

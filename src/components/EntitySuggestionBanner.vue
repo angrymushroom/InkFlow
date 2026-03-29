@@ -16,7 +16,13 @@
             <button class="esb-btn esb-btn--ghost" @click="toggleExpanded">
               {{ isExpanded ? t('entitySuggestion.collapse') : t('entitySuggestion.review') }}
             </button>
-            <button class="esb-btn esb-btn--ghost esb-close" @click="dismiss" :title="t('entitySuggestion.skip')">×</button>
+            <button
+              class="esb-btn esb-btn--ghost esb-close"
+              @click="dismiss"
+              :title="t('entitySuggestion.skip')"
+            >
+              ×
+            </button>
           </div>
         </div>
 
@@ -36,7 +42,9 @@
                 @change="toggleItem(i)"
               />
               <span class="esb-item-name">{{ entity.name }}</span>
-              <span class="esb-item-type">{{ t(`entitySuggestion.typeLabels.${entity.type}`) }}</span>
+              <span class="esb-item-type">{{
+                t(`entitySuggestion.typeLabels.${entity.type}`)
+              }}</span>
               <span class="esb-item-desc">{{ entity.description }}</span>
             </label>
 
@@ -65,23 +73,23 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { useEntitySuggestions } from '@/composables/useEntitySuggestions';
-import { useI18n } from '@/composables/useI18n';
+import { ref, computed } from 'vue'
+import { useEntitySuggestions } from '@/composables/useEntitySuggestions'
+import { useI18n } from '@/composables/useI18n'
 
-const { t } = useI18n();
+const { t } = useI18n()
 const { pending, isExpanded, dismiss, toggleItem, toggleExpanded, selectAll, saveSelected } =
-  useEntitySuggestions();
+  useEntitySuggestions()
 
-const saving = ref(false);
-const hasSelected = computed(() => pending.value.some((e) => e.selected));
+const saving = ref(false)
+const hasSelected = computed(() => pending.value.some((e) => e.selected))
 
 async function handleSave() {
-  saving.value = true;
+  saving.value = true
   try {
-    await saveSelected(t.value);
+    await saveSelected(t.value)
   } finally {
-    saving.value = false;
+    saving.value = false
   }
 }
 </script>
@@ -97,7 +105,7 @@ async function handleSave() {
   background: var(--bg-elevated, #fff);
   border: 1px solid var(--border, #e0e0e0);
   border-radius: var(--radius, 8px);
-  box-shadow: var(--shadow-md, 0 4px 16px rgba(0,0,0,.12));
+  box-shadow: var(--shadow-md, 0 4px 16px rgba(0, 0, 0, 0.12));
   overflow: hidden;
 }
 
@@ -143,7 +151,7 @@ async function handleSave() {
   transition: background 0.1s;
 }
 .esb-item:hover {
-  background: var(--bg-hover, rgba(0,0,0,.04));
+  background: var(--bg-hover, rgba(0, 0, 0, 0.04));
 }
 .esb-item--checked .esb-item-name {
   color: var(--text, #222);
@@ -211,14 +219,16 @@ async function handleSave() {
   font-size: 0.8125rem;
   font-weight: 500;
   padding: 5px 10px;
-  transition: background 0.15s, opacity 0.15s;
+  transition:
+    background 0.15s,
+    opacity 0.15s;
 }
 .esb-btn--ghost {
   background: transparent;
   color: var(--text-muted, #888);
 }
 .esb-btn--ghost:hover {
-  background: var(--bg-hover, rgba(0,0,0,.06));
+  background: var(--bg-hover, rgba(0, 0, 0, 0.06));
   color: var(--text, #222);
 }
 .esb-btn--primary {
@@ -244,7 +254,9 @@ async function handleSave() {
 /* Transitions */
 .banner-enter-active,
 .banner-leave-active {
-  transition: opacity 0.2s ease, transform 0.2s ease;
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
 }
 .banner-enter-from,
 .banner-leave-to {

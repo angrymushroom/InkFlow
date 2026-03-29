@@ -11,21 +11,36 @@
     "test:run": "vitest run",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed"
+    "test:e2e:headed": "playwright test --headed",
+    "lint": "eslint src --ext .vue,.js",
+    "lint:fix": "eslint src --ext .vue,.js --fix",
+    "format": "prettier --write src",
+    "typecheck": "vue-tsc --noEmit"
   },
   "dependencies": {
     "dexie": "^3.2.2",
     "jszip": "^3.10.1",
+    "pinia": "^3.0.4",
     "sortablejs": "^1.15.2",
     "vue": "^3.4.15",
+    "vue-i18n": "^9.14.5",
     "vue-router": "^4.2.5"
   },
   "devDependencies": {
+    "@pinia/testing": "^1.0.3",
     "@playwright/test": "^1.58.2",
     "@vitejs/plugin-vue": "^5.0.3",
+    "@vue/eslint-config-prettier": "^10.2.0",
     "@vue/test-utils": "^2.4.6",
+    "@vue/tsconfig": "^0.9.1",
+    "eslint": "^10.1.0",
+    "eslint-plugin-vue": "^10.8.0",
+    "globals": "^17.4.0",
     "jsdom": "^28.1.0",
+    "prettier": "^3.8.1",
+    "typescript": "^6.0.2",
     "vite": "^5.1.0",
-    "vitest": "^4.0.18"
+    "vitest": "^4.0.18",
+    "vue-tsc": "^3.2.6"
   }
 }

@@ -50,18 +50,31 @@
         />
         <p class="form-hint form-hint-small">
           {{ t('export.apiKeyHint') }}
-          <a v-if="providerKeyHelpUrl" :href="providerKeyHelpUrl" target="_blank" rel="noopener">{{ providerKeyHelpLabel }}</a>
+          <a v-if="providerKeyHelpUrl" :href="providerKeyHelpUrl" target="_blank" rel="noopener">{{
+            providerKeyHelpLabel
+          }}</a>
         </p>
         <div class="form-row">
           <button type="button" class="btn btn-ghost btn-sm" @click="showKey = !showKey">
             {{ showKey ? t('export.hide') : t('export.show') }}
           </button>
-          <button type="button" class="btn btn-primary btn-sm" @click="saveKey">{{ t('export.saveKey') }}</button>
-          <button type="button" class="btn btn-ghost btn-sm" :disabled="testing || !apiKey.trim()" @click="testApi">
+          <button type="button" class="btn btn-primary btn-sm" @click="saveKey">
+            {{ t('export.saveKey') }}
+          </button>
+          <button
+            type="button"
+            class="btn btn-ghost btn-sm"
+            :disabled="testing || !apiKey.trim()"
+            @click="testApi"
+          >
             {{ testing ? t('export.testing') : t('export.testApi') }}
           </button>
         </div>
-        <p v-if="testMessage" class="test-message" :class="testSuccess ? 'test-success' : 'test-error'">
+        <p
+          v-if="testMessage"
+          class="test-message"
+          :class="testSuccess ? 'test-success' : 'test-error'"
+        >
           {{ testMessage }}
         </p>
       </div>
@@ -73,13 +86,17 @@
             class="bias-btn"
             :class="{ 'bias-btn--active': qualityBias === 'faster' }"
             @click="onBiasChange('faster')"
-          >⚡ {{ t('export.qualityBiasFaster') }}</button>
+          >
+            ⚡ {{ t('export.qualityBiasFaster') }}
+          </button>
           <button
             type="button"
             class="bias-btn"
             :class="{ 'bias-btn--active': qualityBias === 'best' }"
             @click="onBiasChange('best')"
-          >✨ {{ t('export.qualityBiasBest') }}</button>
+          >
+            ✨ {{ t('export.qualityBiasBest') }}
+          </button>
         </div>
         <p class="form-hint form-hint-small">{{ t('export.qualityBiasHint') }}</p>
       </div>
@@ -105,7 +122,9 @@
       </div>
       <p class="form-hint format-hint">{{ formatHint }}</p>
       <p v-if="exportFormat === 'pdf'" class="form-hint pdf-note">{{ t('export.pdfNote') }}</p>
-      <p v-if="exportFormat === 'json' && backupNudge" class="form-hint backup-nudge">{{ t('export.backupNudge') }}</p>
+      <p v-if="exportFormat === 'json' && backupNudge" class="form-hint backup-nudge">
+        {{ t('export.backupNudge') }}
+      </p>
       <p v-if="exportError" class="test-message test-error">{{ exportError }}</p>
 
       <div class="import-divider"></div>
@@ -121,7 +140,9 @@
       <div class="about-row">
         <span class="about-name">InkFlow</span>
         <span class="about-version">v{{ appVersion }}</span>
-        <button class="btn btn-ghost btn-sm" @click="showChangelog = true">{{ t('settings.whatsNew') }}</button>
+        <button class="btn btn-ghost btn-sm" @click="showChangelog = true">
+          {{ t('settings.whatsNew') }}
+        </button>
       </div>
     </div>
 
@@ -160,198 +181,263 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useTheme } from '@/composables/useTheme';
-import { useToast } from '@/composables/useToast';
-import { exportProject as doExportJson, importProject, getCurrentStoryId, getStory } from '@/db';
-import { buildMarkdown, buildPlainText, buildEpubBlob, buildDocxBlob, openPrintWindow, safeFilename } from '@/utils/exportFormats';
+import { ref, computed, onMounted } from 'vue'
+import { useTheme } from '@/composables/useTheme'
+import { useToast } from '@/composables/useToast'
+import { exportProject as doExportJson, importProject, getCurrentStoryId, getStory } from '@/db'
 import {
-  PROVIDERS, getProvider, setProvider, getApiKey, setApiKey,
-  testApiKey, QUALITY_BIAS, getQualityBias, setQualityBias,
-} from '@/services/ai';
-import { useI18n } from '@/composables/useI18n';
-import { LOCALES } from '@/locales';
-import ConfirmModal from '@/components/ConfirmModal.vue';
-import ChangelogModal from '@/components/ChangelogModal.vue';
-import { APP_VERSION } from '@/data/changelog';
+  buildMarkdown,
+  buildPlainText,
+  buildEpubBlob,
+  buildDocxBlob,
+  openPrintWindow,
+  safeFilename,
+} from '@/utils/exportFormats'
+import {
+  PROVIDERS,
+  getProvider,
+  setProvider,
+  getApiKey,
+  setApiKey,
+  testApiKey,
+  QUALITY_BIAS,
+  getQualityBias,
+  setQualityBias,
+} from '@/services/ai'
+import { useI18n } from '@/composables/useI18n'
+import { LOCALES } from '@/locales'
+import ConfirmModal from '@/components/ConfirmModal.vue'
+import ChangelogModal from '@/components/ChangelogModal.vue'
+import { APP_VERSION } from '@/data/changelog'
 
-const { locale, t, setLocale } = useI18n();
-const appVersion = APP_VERSION;
-const showChangelog = ref(false);
-const { theme, setTheme } = useTheme();
-const { success: toastSuccess, error: toastError } = useToast();
-const localeOptions = LOCALES;
-const currentLocale = ref(locale.value);
+const { locale, t, setLocale } = useI18n()
+const appVersion = APP_VERSION
+const showChangelog = ref(false)
+const { theme, setTheme } = useTheme()
+const { success: toastSuccess, error: toastError } = useToast()
+const localeOptions = LOCALES
+const currentLocale = ref(locale.value)
 
-function onThemeChange(e) { setTheme(e.target.value); }
+function onThemeChange(e) {
+  setTheme(e.target.value)
+}
 
-const providers = PROVIDERS;
-const provider = ref(getProvider());
-const apiKey = ref('');
-const showKey = ref(false);
-const testing = ref(false);
-const testMessage = ref('');
-const testSuccess = ref(false);
+const providers = PROVIDERS
+const provider = ref(getProvider())
+const apiKey = ref('')
+const showKey = ref(false)
+const testing = ref(false)
+const testMessage = ref('')
+const testSuccess = ref(false)
 
-const providerConfig      = computed(() => providers.find((x) => x.id === provider.value));
-const providerLabel       = computed(() => providerConfig.value?.name ?? 'API');
-const providerPlaceholder = computed(() => providerConfig.value?.placeholder ?? 'API key');
-const providerKeyHelpUrl  = computed(() => providerConfig.value?.keyHelpUrl ?? '');
-const providerKeyHelpLabel = computed(() => providerConfig.value?.keyHelpLabel ?? t.value('export.apiKeyGetKey'));
+const providerConfig = computed(() => providers.find((x) => x.id === provider.value))
+const providerLabel = computed(() => providerConfig.value?.name ?? 'API')
+const providerPlaceholder = computed(() => providerConfig.value?.placeholder ?? 'API key')
+const providerKeyHelpUrl = computed(() => providerConfig.value?.keyHelpUrl ?? '')
+const providerKeyHelpLabel = computed(
+  () => providerConfig.value?.keyHelpLabel ?? t.value('export.apiKeyGetKey')
+)
 
-const qualityBias = ref(getQualityBias());
-const exportFormat = ref('json');
-const exporting = ref(false);
-const exportError = ref('');
-const importError = ref('');
-const importConfirmOpen = ref(false);
-let pendingImportData = null;
+const qualityBias = ref(getQualityBias())
+const exportFormat = ref('json')
+const exporting = ref(false)
+const exportError = ref('')
+const importError = ref('')
+const importConfirmOpen = ref(false)
+let pendingImportData = null
 
 const formatHint = computed(() => {
-  if (exportFormat.value === 'json') return t.value('export.formatJsonHint');
-  if (exportFormat.value === 'pdf') return t.value('export.formatStoryHint');
-  return t.value('export.formatStoryHint');
-});
+  if (exportFormat.value === 'json') return t.value('export.formatJsonHint')
+  if (exportFormat.value === 'pdf') return t.value('export.formatStoryHint')
+  return t.value('export.formatStoryHint')
+})
 
-const LAST_EXPORT_KEY = 'inkflow_last_export_at';
-const BACKUP_NUDGE_DAYS = 30;
-const backupNudge = ref(false);
+const LAST_EXPORT_KEY = 'inkflow_last_export_at'
+const BACKUP_NUDGE_DAYS = 30
+const backupNudge = ref(false)
 
-function loadKey() { apiKey.value = getApiKey(); }
-function onBiasChange(bias) { qualityBias.value = bias; setQualityBias(bias); }
-function onProviderChange() { setProvider(provider.value); loadKey(); }
+function loadKey() {
+  apiKey.value = getApiKey()
+}
+function onBiasChange(bias) {
+  qualityBias.value = bias
+  setQualityBias(bias)
+}
+function onProviderChange() {
+  setProvider(provider.value)
+  loadKey()
+}
 
 onMounted(() => {
-  loadKey();
-  currentLocale.value = locale.value;
-  checkBackupNudge();
-});
+  loadKey()
+  currentLocale.value = locale.value
+  checkBackupNudge()
+})
 
-function onLocaleChange() { setLocale(currentLocale.value); }
+function onLocaleChange() {
+  setLocale(currentLocale.value)
+}
 
 function saveKey() {
-  setProvider(provider.value);
-  setApiKey(apiKey.value);
-  testMessage.value = '';
-  toastSuccess(t.value('export.keySaved'));
+  setProvider(provider.value)
+  setApiKey(apiKey.value)
+  testMessage.value = ''
+  toastSuccess(t.value('export.keySaved'))
 }
 
 async function testApi() {
   if (!apiKey.value?.trim()) {
-    testMessage.value = t.value('export.testError');
-    testSuccess.value = false;
-    return;
+    testMessage.value = t.value('export.testError')
+    testSuccess.value = false
+    return
   }
-  testing.value = true;
-  testMessage.value = '';
-  testSuccess.value = false;
+  testing.value = true
+  testMessage.value = ''
+  testSuccess.value = false
   try {
-    await testApiKey(apiKey.value.trim(), provider.value);
-    testMessage.value = t.value('export.testSuccess');
-    testSuccess.value = true;
+    await testApiKey(apiKey.value.trim(), provider.value)
+    testMessage.value = t.value('export.testSuccess')
+    testSuccess.value = true
   } catch (e) {
-    testMessage.value = e?.message || t.value('export.testError');
-    testSuccess.value = false;
+    testMessage.value = e?.message || t.value('export.testError')
+    testSuccess.value = false
   } finally {
-    testing.value = false;
+    testing.value = false
   }
 }
 
 function downloadBlob(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(url);
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = filename
+  a.click()
+  URL.revokeObjectURL(url)
 }
 
 async function doExport() {
-  exportError.value = '';
-  exporting.value = true;
-  const storyId = getCurrentStoryId();
-  const dateStr = new Date().toISOString().slice(0, 10);
+  exportError.value = ''
+  exporting.value = true
+  const storyId = getCurrentStoryId()
+  const dateStr = new Date().toISOString().slice(0, 10)
   try {
     if (exportFormat.value === 'json') {
-      const data = await doExportJson();
-      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-      downloadBlob(blob, `inkflow-backup-${dateStr}.json`);
-      try { localStorage.setItem(LAST_EXPORT_KEY, String(Date.now())); } catch (_) {}
-      backupNudge.value = false;
+      const data = await doExportJson()
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })
+      downloadBlob(blob, `inkflow-backup-${dateStr}.json`)
+      try {
+        localStorage.setItem(LAST_EXPORT_KEY, String(Date.now()))
+      } catch (_) {}
+      backupNudge.value = false
     } else {
-      const story = await getStory(storyId);
+      const story = await getStory(storyId)
       if (exportFormat.value === 'markdown') {
-        const md = await buildMarkdown(storyId);
-        downloadBlob(new Blob([md], { type: 'text/markdown;charset=utf-8' }), safeFilename(story, 'md'));
+        const md = await buildMarkdown(storyId)
+        downloadBlob(
+          new Blob([md], { type: 'text/markdown;charset=utf-8' }),
+          safeFilename(story, 'md')
+        )
       } else if (exportFormat.value === 'txt') {
-        const txt = await buildPlainText(storyId);
-        downloadBlob(new Blob([txt], { type: 'text/plain;charset=utf-8' }), safeFilename(story, 'txt'));
+        const txt = await buildPlainText(storyId)
+        downloadBlob(
+          new Blob([txt], { type: 'text/plain;charset=utf-8' }),
+          safeFilename(story, 'txt')
+        )
       } else if (exportFormat.value === 'pdf') {
-        await openPrintWindow(storyId);
+        await openPrintWindow(storyId)
       } else if (exportFormat.value === 'epub') {
-        downloadBlob(await buildEpubBlob(storyId), safeFilename(story, 'epub'));
+        downloadBlob(await buildEpubBlob(storyId), safeFilename(story, 'epub'))
       } else if (exportFormat.value === 'docx') {
-        downloadBlob(await buildDocxBlob(storyId), safeFilename(story, 'docx'));
+        downloadBlob(await buildDocxBlob(storyId), safeFilename(story, 'docx'))
       }
     }
   } catch (err) {
-    exportError.value = err?.message || t.value('export.exportErrorGeneric');
+    exportError.value = err?.message || t.value('export.exportErrorGeneric')
   } finally {
-    exporting.value = false;
+    exporting.value = false
   }
 }
 
 function checkBackupNudge() {
   try {
-    const raw = localStorage.getItem(LAST_EXPORT_KEY);
-    if (!raw) { backupNudge.value = true; return; }
-    const then = parseInt(raw, 10);
-    if (Number.isNaN(then) || Date.now() - then > BACKUP_NUDGE_DAYS * 24 * 60 * 60 * 1000) {
-      backupNudge.value = true;
+    const raw = localStorage.getItem(LAST_EXPORT_KEY)
+    if (!raw) {
+      backupNudge.value = true
+      return
     }
-  } catch (_) { backupNudge.value = false; }
+    const then = parseInt(raw, 10)
+    if (Number.isNaN(then) || Date.now() - then > BACKUP_NUDGE_DAYS * 24 * 60 * 60 * 1000) {
+      backupNudge.value = true
+    }
+  } catch (_) {
+    backupNudge.value = false
+  }
 }
 
 function onFileSelect(e) {
-  const file = e.target?.files?.[0];
-  if (!file) return;
-  importError.value = '';
-  const reader = new FileReader();
+  const file = e.target?.files?.[0]
+  if (!file) return
+  importError.value = ''
+  const reader = new FileReader()
   reader.onload = (ev) => {
     try {
-      pendingImportData = JSON.parse(ev.target?.result ?? '{}');
-      importConfirmOpen.value = true;
+      pendingImportData = JSON.parse(ev.target?.result ?? '{}')
+      importConfirmOpen.value = true
     } catch (err) {
-      importError.value = err?.message || t.value('export.importErrorGeneric');
+      importError.value = err?.message || t.value('export.importErrorGeneric')
     }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
+  }
+  reader.readAsText(file)
+  e.target.value = ''
 }
 
 async function doImport() {
-  importConfirmOpen.value = false;
-  if (!pendingImportData) return;
+  importConfirmOpen.value = false
+  if (!pendingImportData) return
   try {
-    await importProject(pendingImportData);
-    try { localStorage.setItem(LAST_EXPORT_KEY, String(Date.now())); } catch (_) {}
-    toastSuccess(t.value('export.importDone'));
-    setTimeout(() => window.location.reload(), 1200);
+    await importProject(pendingImportData)
+    try {
+      localStorage.setItem(LAST_EXPORT_KEY, String(Date.now()))
+    } catch (_) {}
+    toastSuccess(t.value('export.importDone'))
+    setTimeout(() => window.location.reload(), 1200)
   } catch (err) {
-    importError.value = err?.message || t.value('export.importErrorGeneric');
+    importError.value = err?.message || t.value('export.importErrorGeneric')
   } finally {
-    pendingImportData = null;
+    pendingImportData = null
   }
 }
 </script>
 
 <style scoped>
-.card-section { margin-bottom: var(--space-5); }
-.section-title { font-size: 1.125rem; font-weight: 600; margin: 0 0 var(--space-3); }
-.form-hint { font-size: 0.875rem; color: var(--text-muted); margin: 0 0 var(--space-3); }
-.form-hint code { background: var(--border); padding: 2px 6px; border-radius: 4px; font-size: 0.8125rem; }
-.form-row { display: flex; gap: var(--space-2); margin-top: var(--space-2); }
-.form-hint-small { margin-top: var(--space-1); font-size: 0.8125rem; }
+.card-section {
+  margin-bottom: var(--space-5);
+}
+.section-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin: 0 0 var(--space-3);
+}
+.form-hint {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin: 0 0 var(--space-3);
+}
+.form-hint code {
+  background: var(--border);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.8125rem;
+}
+.form-row {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+.form-hint-small {
+  margin-top: var(--space-1);
+  font-size: 0.8125rem;
+}
 .info-tooltip-wrapper {
   position: relative;
   display: inline-block;
@@ -367,7 +453,11 @@ async function doImport() {
   padding: 0;
   line-height: 1;
 }
-.info-btn:hover, .info-btn:focus { color: var(--accent); outline: none; }
+.info-btn:hover,
+.info-btn:focus {
+  color: var(--accent);
+  outline: none;
+}
 .info-tooltip {
   display: none;
   position: absolute;
@@ -388,21 +478,56 @@ async function doImport() {
   pointer-events: none;
 }
 .info-tooltip-wrapper:hover .info-tooltip,
-.info-tooltip-wrapper:focus-within .info-tooltip { display: block; }
-.bias-toggle { display: flex; gap: var(--space-2); margin-top: var(--space-1); }
-.bias-btn {
-  flex: 1; padding: var(--space-2) var(--space-3); font: inherit; font-size: 0.875rem;
-  border: 1px solid var(--border); border-radius: var(--radius-sm);
-  background: var(--bg); color: var(--text-muted); cursor: pointer;
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
+.info-tooltip-wrapper:focus-within .info-tooltip {
+  display: block;
 }
-.bias-btn:hover { border-color: var(--accent); color: var(--text); }
-.bias-btn--active { border-color: var(--accent); background: rgba(37,99,235,0.08); color: var(--accent); font-weight: 500; }
-.form-hint-small a { color: var(--accent); }
-.test-message { margin-top: var(--space-2); font-size: 0.875rem; }
-.test-success { color: var(--success); }
-.test-error { color: var(--danger); }
-.backup-nudge { margin-top: var(--space-1); font-style: italic; }
+.bias-toggle {
+  display: flex;
+  gap: var(--space-2);
+  margin-top: var(--space-1);
+}
+.bias-btn {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  font: inherit;
+  font-size: 0.875rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+.bias-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.bias-btn--active {
+  border-color: var(--accent);
+  background: rgba(37, 99, 235, 0.08);
+  color: var(--accent);
+  font-weight: 500;
+}
+.form-hint-small a {
+  color: var(--accent);
+}
+.test-message {
+  margin-top: var(--space-2);
+  font-size: 0.875rem;
+}
+.test-success {
+  color: var(--success);
+}
+.test-error {
+  color: var(--danger);
+}
+.backup-nudge {
+  margin-top: var(--space-1);
+  font-style: italic;
+}
 .export-format-group {
   display: flex;
   gap: var(--space-3);
@@ -423,19 +548,44 @@ async function doImport() {
   margin-top: var(--space-1);
   margin-bottom: 0;
 }
-.about-section { padding: var(--space-3) var(--space-4); }
-.about-row { display: flex; align-items: center; gap: var(--space-3); }
-.about-name { font-weight: 600; color: var(--text); }
-.about-version { font-size: 0.875rem; color: var(--text-muted); }
+.about-section {
+  padding: var(--space-3) var(--space-4);
+}
+.about-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.about-name {
+  font-weight: 600;
+  color: var(--text);
+}
+.about-version {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
 .import-divider {
   border-top: 1px solid var(--border);
   margin: var(--space-5) 0 var(--space-4);
 }
-.shortcuts-section { padding: var(--space-3) var(--space-4); }
-.shortcuts-table { width: 100%; border-collapse: collapse; }
-.shortcuts-table tr + tr td { border-top: 1px solid var(--border); }
-.shortcuts-table td { padding: var(--space-2) 0; vertical-align: middle; }
-.shortcut-keys { white-space: nowrap; padding-right: var(--space-4); }
+.shortcuts-section {
+  padding: var(--space-3) var(--space-4);
+}
+.shortcuts-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.shortcuts-table tr + tr td {
+  border-top: 1px solid var(--border);
+}
+.shortcuts-table td {
+  padding: var(--space-2) 0;
+  vertical-align: middle;
+}
+.shortcut-keys {
+  white-space: nowrap;
+  padding-right: var(--space-4);
+}
 kbd {
   display: inline-block;
   padding: 2px 6px;
@@ -446,5 +596,8 @@ kbd {
   border-radius: var(--radius-sm, 4px);
   color: var(--text);
 }
-.shortcut-desc { color: var(--text-muted); font-size: 0.9375rem; }
+.shortcut-desc {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+}
 </style>

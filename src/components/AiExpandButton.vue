@@ -17,8 +17,12 @@
         <h3 class="ai-setup-title">{{ t('ai.setupTitle') }}</h3>
         <p class="ai-setup-text">{{ t('ai.setupText') }}</p>
         <div class="ai-setup-actions">
-          <button type="button" class="btn btn-primary" @click="goToSetup">{{ t('ai.goToSetup') }}</button>
-          <button type="button" class="btn btn-ghost" @click="showSetupHint = false">{{ t('ai.close') }}</button>
+          <button type="button" class="btn btn-primary" @click="goToSetup">
+            {{ t('ai.goToSetup') }}
+          </button>
+          <button type="button" class="btn btn-ghost" @click="showSetupHint = false">
+            {{ t('ai.close') }}
+          </button>
         </div>
       </div>
     </div>
@@ -34,7 +38,9 @@
           rows="6"
           :placeholder="t('ai.previewPlaceholder')"
         />
-        <p v-if="error && showResultModal" class="ai-expand-error ai-result-inline-error">{{ error }}</p>
+        <p v-if="error && showResultModal" class="ai-expand-error ai-result-inline-error">
+          {{ error }}
+        </p>
         <div class="ai-result-actions">
           <button type="button" class="btn btn-primary" @click="applyResult">
             {{ t('ai.apply') }}
@@ -57,64 +63,60 @@
 </template>
 
 <script setup>
-import { ref, computed } from "vue";
-import { useRouter } from "vue-router";
-import { getApiKey, expandWithAi, friendlyAiError } from "@/services/ai";
-import { getStory, getIdeas, getCharacters } from "@/db";
-import { useI18n } from "@/composables/useI18n";
+import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { getApiKey, expandWithAi, friendlyAiError } from '@/services/ai'
+import { getStory, getIdeas, getCharacters } from '@/db'
+import { useI18n } from '@/composables/useI18n'
 
-const { t, locale } = useI18n();
+const { t, locale } = useI18n()
 
 const props = defineProps({
-  currentValue: { type: String, default: "" },
+  currentValue: { type: String, default: '' },
   fieldName: { type: String, required: true },
-  extraContext: { type: String, default: "" },
-});
+  extraContext: { type: String, default: '' },
+})
 
-const emit = defineEmits(["expanded"]);
+const emit = defineEmits(['expanded'])
 
-const router = useRouter();
-const expanding = ref(false);
-const error = ref("");
-const showSetupHint = ref(false);
-const showResultModal = ref(false);
-const editableResult = ref("");
+const router = useRouter()
+const expanding = ref(false)
+const error = ref('')
+const showSetupHint = ref(false)
+const showResultModal = ref(false)
+const editableResult = ref('')
 
-const hasKey = computed(() => !!getApiKey()?.trim());
+const hasKey = computed(() => !!getApiKey()?.trim())
 
 function onClick() {
   if (!hasKey.value) {
-    showSetupHint.value = true;
-    return;
+    showSetupHint.value = true
+    return
   }
-  runExpand();
+  runExpand()
 }
 
 function goToSetup() {
-  showSetupHint.value = false;
-  router.push("/settings");
+  showSetupHint.value = false
+  router.push('/settings')
 }
 
 function closeResultModal() {
-  showResultModal.value = false;
-  editableResult.value = "";
+  showResultModal.value = false
+  editableResult.value = ''
 }
 
 function applyResult() {
-  emit("expanded", editableResult.value?.trim() ?? "");
-  closeResultModal();
+  emit('expanded', editableResult.value?.trim() ?? '')
+  closeResultModal()
 }
 
 function keepMine() {
-  closeResultModal();
+  closeResultModal()
 }
 
 async function fetchExpansion() {
-  const [story, ideas, characters] = await Promise.all([
-    getStory(),
-    getIdeas(),
-    getCharacters(),
-  ]);
+  const [story, ideas, characters] = await Promise.all([getStory(), getIdeas(), getCharacters()])
   return expandWithAi({
     currentText: props.currentValue,
     fieldName: props.fieldName,
@@ -122,34 +124,34 @@ async function fetchExpansion() {
     ideas: ideas || [],
     characters: characters || [],
     locale: locale.value,
-    extraContext: props.extraContext || "",
-  });
+    extraContext: props.extraContext || '',
+  })
 }
 
 async function tryAgain() {
-  error.value = "";
-  expanding.value = true;
+  error.value = ''
+  expanding.value = true
   try {
-    const result = await fetchExpansion();
-    editableResult.value = result;
+    const result = await fetchExpansion()
+    editableResult.value = result
   } catch (e) {
-    error.value = friendlyAiError(e);
+    error.value = friendlyAiError(e)
   } finally {
-    expanding.value = false;
+    expanding.value = false
   }
 }
 
 async function runExpand() {
-  error.value = "";
-  expanding.value = true;
+  error.value = ''
+  expanding.value = true
   try {
-    const result = await fetchExpansion();
-    editableResult.value = result;
-    showResultModal.value = true;
+    const result = await fetchExpansion()
+    editableResult.value = result
+    showResultModal.value = true
   } catch (e) {
-    error.value = friendlyAiError(e);
+    error.value = friendlyAiError(e)
   } finally {
-    expanding.value = false;
+    expanding.value = false
   }
 }
 </script>

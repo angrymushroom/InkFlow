@@ -5,13 +5,17 @@
 
     <div v-if="loadError" class="load-error card">
       <p>{{ loadError }}</p>
-      <router-link to="/settings" class="btn btn-ghost btn-sm" style="margin-top: var(--space-2);">{{ t('nav.settings') }}</router-link>
+      <router-link to="/settings" class="btn btn-ghost btn-sm" style="margin-top: var(--space-2)">{{
+        t('nav.settings')
+      }}</router-link>
     </div>
 
     <div v-else-if="!scenes.length" class="empty-state card">
       <OtterIllustration size="md" variant="idle" class="empty-otter" />
       <p>{{ t('write.empty') }}</p>
-      <router-link to="/outline" class="btn btn-primary" style="margin-top: var(--space-3);">{{ t('write.goToOutline') }}</router-link>
+      <router-link to="/outline" class="btn btn-primary" style="margin-top: var(--space-3)">{{
+        t('write.goToOutline')
+      }}</router-link>
     </div>
 
     <template v-else>
@@ -72,7 +76,10 @@
           </div>
           <div class="generate-progress">
             <div class="generate-progress-track">
-              <div class="generate-progress-fill" :style="{ width: generateProgressPercent + '%' }"></div>
+              <div
+                class="generate-progress-fill"
+                :style="{ width: generateProgressPercent + '%' }"
+              ></div>
             </div>
           </div>
         </template>
@@ -92,7 +99,9 @@
         <div v-for="ch in chapters" :key="ch.id" class="chapter-group">
           <div class="chapter-group-header">
             <h3 class="chapter-group-title">{{ ch.title || t('outline.untitledChapter') }}</h3>
-            <span class="chapter-word-count">{{ chapterWordCount(ch.id).toLocaleString() }} {{ t('write.words') }}</span>
+            <span class="chapter-word-count"
+              >{{ chapterWordCount(ch.id).toLocaleString() }} {{ t('write.words') }}</span
+            >
           </div>
           <div class="scene-links">
             <router-link
@@ -103,13 +112,28 @@
               :class="{ 'scene-link--checkpoint': scene.id === checkpointSceneId }"
             >
               <div class="scene-link-main">
-                <span class="scene-link-title">{{ scene.title || t('outline.untitledScene') }}</span>
-                <span v-if="scene.oneSentenceSummary" class="scene-link-summary">{{ scene.oneSentenceSummary }}</span>
+                <span class="scene-link-title">{{
+                  scene.title || t('outline.untitledScene')
+                }}</span>
+                <span v-if="scene.oneSentenceSummary" class="scene-link-summary">{{
+                  scene.oneSentenceSummary
+                }}</span>
               </div>
               <div class="scene-link-right">
-                <span v-if="scene.id === checkpointSceneId && !allWritten" class="scene-link-checkpoint-badge">▶</span>
-                <span class="scene-link-wc" :class="{ 'scene-link-wc--empty': sceneWordCount(scene) === 0 }">
-                  {{ sceneWordCount(scene) > 0 ? sceneWordCount(scene).toLocaleString() + ' ' + t('write.words') : t('write.notStarted') }}
+                <span
+                  v-if="scene.id === checkpointSceneId && !allWritten"
+                  class="scene-link-checkpoint-badge"
+                  >▶</span
+                >
+                <span
+                  class="scene-link-wc"
+                  :class="{ 'scene-link-wc--empty': sceneWordCount(scene) === 0 }"
+                >
+                  {{
+                    sceneWordCount(scene) > 0
+                      ? sceneWordCount(scene).toLocaleString() + ' ' + t('write.words')
+                      : t('write.notStarted')
+                  }}
                 </span>
               </div>
             </router-link>
@@ -121,141 +145,150 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
-import { useI18n } from '@/composables/useI18n';
-import { useOutline } from '@/composables/useOutline';
-import { getCurrentStoryId, getScenes } from '@/db';
-import { countWords } from '@/utils/wordCount';
-import { generateFromScene } from '@/services/generation';
-import { friendlyAiError } from '@/services/ai';
-import OtterIllustration from '@/components/OtterIllustration.vue';
+import { ref, computed, onMounted } from 'vue'
+import { useI18n } from '@/composables/useI18n'
+import { useOutline } from '@/composables/useOutline'
+import { getCurrentStoryId, getScenes } from '@/db'
+import { countWords } from '@/utils/wordCount'
+import { generateFromScene } from '@/services/generation'
+import { friendlyAiError } from '@/services/ai'
+import OtterIllustration from '@/components/OtterIllustration.vue'
 
-const { t } = useI18n();
-const { chapters, scenes, loadError, getScenesForChapter } = useOutline();
+const { t } = useI18n()
+const { chapters, scenes, loadError, getScenesForChapter } = useOutline()
 
-const generating = ref(false);
-const resultMessage = ref('');
-const resultHasErrors = ref(false);
-const progressCurrent = ref(0);
-const progressTotal = ref(0);
-const progressName = ref('');
-const allScenes = ref([]);
+const generating = ref(false)
+const resultMessage = ref('')
+const resultHasErrors = ref(false)
+const progressCurrent = ref(0)
+const progressTotal = ref(0)
+const progressName = ref('')
+const allScenes = ref([])
 
 onMounted(async () => {
   try {
-    allScenes.value = await getScenes(getCurrentStoryId());
+    allScenes.value = await getScenes(getCurrentStoryId())
   } catch (_) {}
-});
+})
 
 function scenesByChapter(chapterId) {
-  return getScenesForChapter(chapterId);
+  return getScenesForChapter(chapterId)
 }
 
 function sceneWordCount(scene) {
-  const full = allScenes.value.find((s) => s.id === scene.id);
-  return countWords(full?.content || '');
+  const full = allScenes.value.find((s) => s.id === scene.id)
+  return countWords(full?.content || '')
 }
 
 function chapterWordCount(chapterId) {
-  return scenesByChapter(chapterId).reduce((sum, s) => sum + sceneWordCount(s), 0);
+  return scenesByChapter(chapterId).reduce((sum, s) => sum + sceneWordCount(s), 0)
 }
 
 const totalWordCount = computed(() =>
   (scenes.value || []).reduce((sum, s) => sum + sceneWordCount(s), 0)
-);
+)
 
-const writtenSceneCount = computed(() =>
-  (scenes.value || []).filter((s) => sceneWordCount(s) > 0).length
-);
+const writtenSceneCount = computed(
+  () => (scenes.value || []).filter((s) => sceneWordCount(s) > 0).length
+)
 
 const completionPercent = computed(() => {
-  const total = scenes.value?.length || 0;
-  if (!total) return 0;
-  return Math.round((writtenSceneCount.value / total) * 100);
-});
+  const total = scenes.value?.length || 0
+  if (!total) return 0
+  return Math.round((writtenSceneCount.value / total) * 100)
+})
 
-const allWritten = computed(() =>
-  scenes.value?.length > 0 && writtenSceneCount.value === scenes.value.length
-);
+const allWritten = computed(
+  () => scenes.value?.length > 0 && writtenSceneCount.value === scenes.value.length
+)
 
 // The first unwritten scene — where generation will start
 const checkpointScene = computed(() => {
-  return (scenes.value || []).find((s) => sceneWordCount(s) === 0) || null;
-});
+  return (scenes.value || []).find((s) => sceneWordCount(s) === 0) || null
+})
 
-const checkpointSceneId = computed(() => checkpointScene.value?.id ?? null);
+const checkpointSceneId = computed(() => checkpointScene.value?.id ?? null)
 
 const continuHint = computed(() => {
-  if (!checkpointScene.value) return '';
-  const name = checkpointScene.value.title || t.value('outline.untitledScene');
-  return t.value('write.generateContinueHint').replace('{{name}}', name);
-});
+  if (!checkpointScene.value) return ''
+  const name = checkpointScene.value.title || t.value('outline.untitledScene')
+  return t.value('write.generateContinueHint').replace('{{name}}', name)
+})
 
 const progressLabel = computed(() =>
-  t.value('write.generatingProgress')
+  t
+    .value('write.generatingProgress')
     .replace('{{current}}', String(progressCurrent.value))
     .replace('{{total}}', String(progressTotal.value))
     .replace('{{name}}', progressName.value)
-);
+)
 
 const generateProgressPercent = computed(() => {
-  if (!progressTotal.value) return 0;
-  return Math.round(((progressCurrent.value - 1) / progressTotal.value) * 100);
-});
+  if (!progressTotal.value) return 0
+  return Math.round(((progressCurrent.value - 1) / progressTotal.value) * 100)
+})
 
 function onProgress({ current, total, sceneName }) {
-  progressCurrent.value = current;
-  progressTotal.value = total;
-  progressName.value = sceneName;
+  progressCurrent.value = current
+  progressTotal.value = total
+  progressName.value = sceneName
 }
 
 async function runGeneration(fromSceneId) {
-  generating.value = true;
-  resultMessage.value = '';
-  resultHasErrors.value = false;
-  progressCurrent.value = 0;
-  progressTotal.value = 0;
+  generating.value = true
+  resultMessage.value = ''
+  resultHasErrors.value = false
+  progressCurrent.value = 0
+  progressTotal.value = 0
   try {
-    const storyId = getCurrentStoryId();
-    const { generated, errors } = await generateFromScene(storyId, fromSceneId, { onProgress });
-    allScenes.value = await getScenes(storyId);
+    const storyId = getCurrentStoryId()
+    const { generated, errors } = await generateFromScene(storyId, fromSceneId, { onProgress })
+    allScenes.value = await getScenes(storyId)
     if (errors.length > 0) {
-      resultHasErrors.value = true;
-      resultMessage.value = t.value('write.generatePartial')
+      resultHasErrors.value = true
+      resultMessage.value = t
+        .value('write.generatePartial')
         .replace('{{generated}}', String(generated))
-        .replace('{{errors}}', String(errors.length));
+        .replace('{{errors}}', String(errors.length))
     } else {
-      resultMessage.value = t.value('write.generateDone').replace('{{generated}}', String(generated));
+      resultMessage.value = t
+        .value('write.generateDone')
+        .replace('{{generated}}', String(generated))
     }
-    setTimeout(() => { resultMessage.value = ''; }, 6000);
+    setTimeout(() => {
+      resultMessage.value = ''
+    }, 6000)
   } catch (e) {
-    resultHasErrors.value = true;
-    resultMessage.value = friendlyAiError(e);
-    setTimeout(() => { resultMessage.value = ''; }, 6000);
+    resultHasErrors.value = true
+    resultMessage.value = friendlyAiError(e)
+    setTimeout(() => {
+      resultMessage.value = ''
+    }, 6000)
   } finally {
-    generating.value = false;
-    progressCurrent.value = 0;
+    generating.value = false
+    progressCurrent.value = 0
   }
 }
 
 async function onGenerateContinue() {
-  const scene = checkpointScene.value;
-  if (!scene) return;
-  const remaining = (scenes.value || []).filter((s) => sceneWordCount(s) === 0).length;
-  const name = scene.title || t.value('outline.untitledScene');
-  const msg = t.value('write.generateConfirm')
+  const scene = checkpointScene.value
+  if (!scene) return
+  const remaining = (scenes.value || []).filter((s) => sceneWordCount(s) === 0).length
+  const name = scene.title || t.value('outline.untitledScene')
+  const msg = t
+    .value('write.generateConfirm')
     .replace('{{count}}', String(remaining))
-    .replace('{{name}}', name);
-  if (!confirm(msg)) return;
-  await runGeneration(scene.id);
+    .replace('{{name}}', name)
+  if (!confirm(msg)) return
+  await runGeneration(scene.id)
 }
 
 async function onGenerateAll() {
-  const list = scenes.value || [];
-  if (!list.length) return;
-  const msg = t.value('write.generateAllConfirm').replace('{{count}}', String(list.length));
-  if (!confirm(msg)) return;
-  await runGeneration(list[0].id);
+  const list = scenes.value || []
+  if (!list.length) return
+  const msg = t.value('write.generateAllConfirm').replace('{{count}}', String(list.length))
+  if (!confirm(msg)) return
+  await runGeneration(list[0].id)
 }
 </script>
 
@@ -398,7 +431,9 @@ async function onGenerateAll() {
   padding: var(--space-3);
   color: inherit;
   text-decoration: none;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
 }
 .scene-link:hover {
   background: var(--bg);
@@ -408,8 +443,14 @@ async function onGenerateAll() {
 .scene-link--checkpoint {
   border-color: var(--accent);
 }
-.scene-link-main { flex: 1; min-width: 0; }
-.scene-link-title { font-weight: 500; display: block; }
+.scene-link-main {
+  flex: 1;
+  min-width: 0;
+}
+.scene-link-title {
+  font-weight: 500;
+  display: block;
+}
 .scene-link-summary {
   display: block;
   font-size: 0.875rem;
@@ -441,5 +482,7 @@ async function onGenerateAll() {
   font-size: 0.9375rem;
   color: var(--danger);
 }
-.load-error p { margin: 0; }
+.load-error p {
+  margin: 0;
+}
 </style>

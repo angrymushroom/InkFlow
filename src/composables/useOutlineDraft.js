@@ -1,8 +1,8 @@
-import { ref } from 'vue';
-import { useToast } from '@/composables/useToast';
-import { draftOutlineFromSpine } from '@/services/outlineAi';
-import { friendlyAiError } from '@/services/ai';
-import { getCurrentStoryId, addChapter, addScene } from '@/db';
+import { ref } from 'vue'
+import { useToast } from '@/composables/useToast'
+import { draftOutlineFromSpine } from '@/services/outlineAi'
+import { friendlyAiError } from '@/services/ai'
+import { getCurrentStoryId, addChapter, addScene } from '@/db'
 
 /**
  * Manages AI outline drafting: per-beat and full-outline draft flows.
@@ -13,60 +13,70 @@ import { getCurrentStoryId, addChapter, addScene } from '@/db';
  *   onAfterChange — async callback; called after successfully applying a draft
  */
 export function useOutlineDraft({ story, beats, onAfterChange }) {
-  const { error: toastError } = useToast();
+  const { error: toastError } = useToast()
 
-  const draftOpen = ref(false);
-  const drafting = ref(false);
-  const draftData = ref(null);
-  const draftScope = ref('all');
+  const draftOpen = ref(false)
+  const drafting = ref(false)
+  const draftData = ref(null)
+  const draftScope = ref('all')
 
   async function draftForBeat(beat) {
-    drafting.value = true;
+    drafting.value = true
     try {
-      const storyId = story.value?.id || getCurrentStoryId();
-      draftData.value = await draftOutlineFromSpine({ storyId, scope: beat });
-      draftScope.value = beat;
-      draftOpen.value = true;
+      const storyId = story.value?.id || getCurrentStoryId()
+      draftData.value = await draftOutlineFromSpine({ storyId, scope: beat })
+      draftScope.value = beat
+      draftOpen.value = true
     } catch (e) {
-      toastError(friendlyAiError(e));
+      toastError(friendlyAiError(e))
     } finally {
-      drafting.value = false;
+      drafting.value = false
     }
   }
 
   async function draftAll() {
-    drafting.value = true;
+    drafting.value = true
     try {
-      const storyId = story.value?.id || getCurrentStoryId();
-      draftData.value = await draftOutlineFromSpine({ storyId, scope: 'all' });
-      draftScope.value = 'all';
-      draftOpen.value = true;
+      const storyId = story.value?.id || getCurrentStoryId()
+      draftData.value = await draftOutlineFromSpine({ storyId, scope: 'all' })
+      draftScope.value = 'all'
+      draftOpen.value = true
     } catch (e) {
-      toastError(friendlyAiError(e));
+      toastError(friendlyAiError(e))
     } finally {
-      drafting.value = false;
+      drafting.value = false
     }
   }
 
   async function applyDraft(payload) {
     try {
-      const sections = payload?.sections || {};
+      const sections = payload?.sections || {}
       for (const beat of beats.value) {
-        const chaptersList = Array.isArray(sections[beat]) ? sections[beat] : [];
+        const chaptersList = Array.isArray(sections[beat]) ? sections[beat] : []
         for (const ch of chaptersList) {
-          const created = await addChapter({ title: ch.chapterTitle ?? '', summary: ch.chapterSummary ?? '', beat });
-          for (const sc of (Array.isArray(ch.scenes) ? ch.scenes : [])) {
-            await addScene({ chapterId: created.id, title: sc.title ?? '', oneSentenceSummary: sc.oneSentence ?? '', notes: sc.notes ?? '', povCharacterId: '' });
+          const created = await addChapter({
+            title: ch.chapterTitle ?? '',
+            summary: ch.chapterSummary ?? '',
+            beat,
+          })
+          for (const sc of Array.isArray(ch.scenes) ? ch.scenes : []) {
+            await addScene({
+              chapterId: created.id,
+              title: sc.title ?? '',
+              oneSentenceSummary: sc.oneSentence ?? '',
+              notes: sc.notes ?? '',
+              povCharacterId: '',
+            })
           }
         }
       }
-      draftOpen.value = false;
-      draftData.value = null;
-      await onAfterChange();
+      draftOpen.value = false
+      draftData.value = null
+      await onAfterChange()
     } catch (e) {
-      toastError(friendlyAiError(e));
+      toastError(friendlyAiError(e))
     }
   }
 
-  return { draftOpen, drafting, draftData, draftScope, draftForBeat, draftAll, applyDraft };
+  return { draftOpen, drafting, draftData, draftScope, draftForBeat, draftAll, applyDraft }
 }

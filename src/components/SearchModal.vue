@@ -3,8 +3,20 @@
     <div v-if="modelValue" class="search-backdrop" @click.self="close">
       <div class="search-card" role="dialog" aria-modal="true" aria-label="Search">
         <div class="search-input-wrap">
-          <svg class="search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          <svg
+            class="search-icon"
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.35-4.35" />
           </svg>
           <input
             ref="inputRef"
@@ -46,111 +58,140 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, nextTick } from 'vue';
-import { useRouter } from 'vue-router';
-import { useI18n } from '@/composables/useI18n';
-import { getIdeas, getCharacters, getChapters, getScenes, getCurrentStoryId } from '@/db';
+import { ref, computed, watch, nextTick } from 'vue'
+import { useRouter } from 'vue-router'
+import { useI18n } from '@/composables/useI18n'
+import { getIdeas, getCharacters, getChapters, getScenes, getCurrentStoryId } from '@/db'
 
-const props = defineProps({ modelValue: { type: Boolean, required: true } });
-const emit = defineEmits(['update:modelValue']);
+const props = defineProps({ modelValue: { type: Boolean, required: true } })
+const emit = defineEmits(['update:modelValue'])
 
-const { t } = useI18n();
-const router = useRouter();
+const { t } = useI18n()
+const router = useRouter()
 
-const query = ref('');
-const activeIndex = ref(0);
-const inputRef = ref(null);
-const resultsRef = ref(null);
+const query = ref('')
+const activeIndex = ref(0)
+const inputRef = ref(null)
+const resultsRef = ref(null)
 
 // All searchable items, loaded once when modal opens
-const allItems = ref([]);
+const allItems = ref([])
 
 async function loadAll() {
-  const storyId = getCurrentStoryId();
+  const storyId = getCurrentStoryId()
   const [ideas, chars, chapters, scenes] = await Promise.all([
     getIdeas(storyId),
     getCharacters(storyId),
     getChapters(storyId),
     getScenes(storyId),
-  ]);
+  ])
   allItems.value = [
-    ...ideas.map((i) => ({ id: 'idea-' + i.id, type: 'idea', route: '/ideas', title: i.title || t.value('ideas.untitled'), excerpt: i.body || '' })),
-    ...chars.map((c) => ({ id: 'char-' + c.id, type: 'character', route: '/characters', title: c.name || t.value('characters.unnamed'), excerpt: c.oneSentence || '' })),
-    ...chapters.map((c) => ({ id: 'ch-' + c.id, type: 'chapter', route: '/outline', title: c.title || t.value('outline.untitledChapter'), excerpt: c.summary || '' })),
-    ...scenes.map((s) => ({ id: 'sc-' + s.id, type: 'scene', route: `/write/${s.id}`, title: s.title || t.value('outline.untitledScene'), excerpt: s.oneSentenceSummary || s.content?.slice(0, 80) || '' })),
-  ];
+    ...ideas.map((i) => ({
+      id: 'idea-' + i.id,
+      type: 'idea',
+      route: '/ideas',
+      title: i.title || t.value('ideas.untitled'),
+      excerpt: i.body || '',
+    })),
+    ...chars.map((c) => ({
+      id: 'char-' + c.id,
+      type: 'character',
+      route: '/characters',
+      title: c.name || t.value('characters.unnamed'),
+      excerpt: c.oneSentence || '',
+    })),
+    ...chapters.map((c) => ({
+      id: 'ch-' + c.id,
+      type: 'chapter',
+      route: '/outline',
+      title: c.title || t.value('outline.untitledChapter'),
+      excerpt: c.summary || '',
+    })),
+    ...scenes.map((s) => ({
+      id: 'sc-' + s.id,
+      type: 'scene',
+      route: `/write/${s.id}`,
+      title: s.title || t.value('outline.untitledScene'),
+      excerpt: s.oneSentenceSummary || s.content?.slice(0, 80) || '',
+    })),
+  ]
 }
 
-watch(() => props.modelValue, async (open) => {
-  if (open) {
-    query.value = '';
-    activeIndex.value = 0;
-    await loadAll();
-    await nextTick();
-    inputRef.value?.focus();
+watch(
+  () => props.modelValue,
+  async (open) => {
+    if (open) {
+      query.value = ''
+      activeIndex.value = 0
+      await loadAll()
+      await nextTick()
+      inputRef.value?.focus()
+    }
   }
-});
+)
 
 const typeLabels = computed(() => ({
   idea: t.value('search.typeIdea'),
   character: t.value('search.typeCharacter'),
   chapter: t.value('search.typeChapter'),
   scene: t.value('search.typeScene'),
-}));
+}))
 
 const results = computed(() => {
-  const q = query.value.toLowerCase().trim();
-  if (q.length < 2) return [];
+  const q = query.value.toLowerCase().trim()
+  if (q.length < 2) return []
   return allItems.value
     .filter((item) => {
-      return item.title.toLowerCase().includes(q) || item.excerpt.toLowerCase().includes(q);
+      return item.title.toLowerCase().includes(q) || item.excerpt.toLowerCase().includes(q)
     })
     .slice(0, 20)
     .map((item) => ({
       ...item,
       typeLabel: typeLabels.value[item.type] || item.type,
       excerpt: item.excerpt ? highlight(item.excerpt, q) : '',
-    }));
-});
+    }))
+})
 
-watch(results, () => { activeIndex.value = 0; });
+watch(results, () => {
+  activeIndex.value = 0
+})
 
 function highlight(text, q) {
-  const idx = text.toLowerCase().indexOf(q);
-  if (idx === -1) return text.slice(0, 80);
-  const start = Math.max(0, idx - 20);
-  const end = Math.min(text.length, idx + q.length + 60);
-  return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '');
+  const idx = text.toLowerCase().indexOf(q)
+  if (idx === -1) return text.slice(0, 80)
+  const start = Math.max(0, idx - 20)
+  const end = Math.min(text.length, idx + q.length + 60)
+  return (start > 0 ? '…' : '') + text.slice(start, end) + (end < text.length ? '…' : '')
 }
 
 function close() {
-  emit('update:modelValue', false);
+  emit('update:modelValue', false)
 }
 
 function open(r) {
-  router.push(r.route);
-  close();
+  router.push(r.route)
+  close()
 }
 
 function openActive() {
-  if (results.value[activeIndex.value]) open(results.value[activeIndex.value]);
+  if (results.value[activeIndex.value]) open(results.value[activeIndex.value])
 }
 
 function moveDown() {
-  activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1);
-  scrollActive();
+  activeIndex.value = Math.min(activeIndex.value + 1, results.value.length - 1)
+  scrollActive()
 }
 
 function moveUp() {
-  activeIndex.value = Math.max(activeIndex.value - 1, 0);
-  scrollActive();
+  activeIndex.value = Math.max(activeIndex.value - 1, 0)
+  scrollActive()
 }
 
 function scrollActive() {
   nextTick(() => {
-    const el = resultsRef.value?.querySelector('.search-result.active');
-    el?.scrollIntoView({ block: 'nearest' });
-  });
+    const el = resultsRef.value?.querySelector('.search-result.active')
+    el?.scrollIntoView({ block: 'nearest' })
+  })
 }
 </script>
 
@@ -184,7 +225,10 @@ function scrollActive() {
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border);
 }
-.search-icon { color: var(--text-muted); flex-shrink: 0; }
+.search-icon {
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
 .search-input {
   flex: 1;
   border: none;
@@ -197,7 +241,10 @@ function scrollActive() {
   width: auto;
   box-shadow: none;
 }
-.search-input:focus { border-color: transparent; box-shadow: none; }
+.search-input:focus {
+  border-color: transparent;
+  box-shadow: none;
+}
 .search-esc {
   font-size: 0.75rem;
   color: var(--text-muted);
@@ -227,7 +274,9 @@ function scrollActive() {
   transition: background 0.1s;
 }
 .search-result:hover,
-.search-result.active { background: var(--bg); }
+.search-result.active {
+  background: var(--bg);
+}
 .search-result-type {
   font-size: 0.6875rem;
   font-weight: 700;
@@ -238,7 +287,10 @@ function scrollActive() {
   width: 72px;
   padding-top: 2px;
 }
-.search-result-body { flex: 1; min-width: 0; }
+.search-result-body {
+  flex: 1;
+  min-width: 0;
+}
 .search-result-title {
   display: block;
   font-weight: 500;
