@@ -87,8 +87,8 @@ test('fixture 1: explicit chapters detected via regex, imports to DB', async ({ 
   await page.locator('.title-input').fill('The Clockwork Inheritance')
   await page.locator('button', { hasText: /Analyz/i }).click()
 
-  // Step 2: preview
-  await expect(page.locator('.preview-card')).toBeVisible({ timeout: 15000 })
+  // Step 2: preview (two .preview-card elements exist — chapters + characters)
+  await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
 
   // Should detect 3+ chapters (prologue may be added, but at least 3)
   const chaptersLabel = page.locator('.preview-card-label').first()
@@ -136,7 +136,7 @@ test('fixture 2: *** separators detected, chapters and characters written to DB'
   await page.locator('.novel-textarea').fill(novelText)
   await page.locator('button', { hasText: /Analyz/i }).click()
 
-  await expect(page.locator('.preview-card')).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
 
   // At least one chapter detected
   const chaptersLabel = page.locator('.preview-card-label').first()
@@ -174,7 +174,7 @@ test('fixture 3: ACT markers detected, template set on story', async ({ page }) 
   await page.locator('.title-input').fill('The Last Inheritance')
   await page.locator('button', { hasText: /Analyz/i }).click()
 
-  await expect(page.locator('.preview-card')).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
   await expect(page.locator('.template-badge')).toBeVisible()
 
   // Proceed and confirm
