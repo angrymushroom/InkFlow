@@ -27,8 +27,8 @@
             @click="editCharacter(char)"
           >
             <div class="char-list-item-main">
-              <span class="char-list-item-name">{{ char.name || t('characters.unnamed') }}</span>
-              <p v-if="char.oneSentence" class="char-list-item-summary">{{ char.oneSentence }}</p>
+              <span class="char-list-item-name char-name">{{ char.name || t('characters.unnamed') }}</span>
+              <p v-if="char.oneSentence" class="char-list-item-summary char-one-sentence">{{ char.oneSentence }}</p>
             </div>
             <button
               class="btn btn-ghost btn-sm btn-icon"
