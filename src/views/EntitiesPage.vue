@@ -425,7 +425,22 @@ onUnmounted(() => {
   .entities-list-col {
     width: 100%;
     max-width: none;
-    max-height: 280px;
+    max-height: 320px;
+  }
+  .entity-type-buttons {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    padding-bottom: var(--space-1);
+    margin-bottom: var(--space-1);
+  }
+  .entity-type-buttons::-webkit-scrollbar {
+    display: none;
+  }
+  .entity-type-btn {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 </style>

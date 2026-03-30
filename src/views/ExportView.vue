@@ -126,12 +126,13 @@
         {{ t('export.backupNudge') }}
       </p>
       <p v-if="exportError" class="test-message test-error">{{ exportError }}</p>
+    </div>
 
-      <div class="import-divider"></div>
+    <div class="card card-section">
+      <h2 class="section-title">{{ t('export.importBackup') }}</h2>
       <div class="form-group">
-        <label>{{ t('export.importBackup') }}</label>
         <input type="file" accept=".json,application/json" @change="onFileSelect" />
-        <p class="form-hint">{{ t('export.importHint') }}</p>
+        <p class="form-hint" style="margin-top: var(--space-2)">{{ t('export.importHint') }}</p>
         <p v-if="importError" class="test-message test-error">{{ importError }}</p>
       </div>
     </div>
@@ -563,10 +564,6 @@ async function doImport() {
 .about-version {
   font-size: 0.875rem;
   color: var(--text-muted);
-}
-.import-divider {
-  border-top: 1px solid var(--border);
-  margin: var(--space-5) 0 var(--space-4);
 }
 .shortcuts-section {
   padding: var(--space-3) var(--space-4);

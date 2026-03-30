@@ -40,24 +40,16 @@
           <span class="word-count">{{ wordCountLabel }}</span>
         </div>
         <div v-if="selection.active" class="selection-toolbar">
-          <span class="selection-toolbar-label">{{ t('writeQuick.capture') }}</span>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('idea')">
-            {{ t('writeQuick.saveAsIdea') }}
+          <button type="button" class="selection-action-btn" :class="{ active: popover === 'idea' }" @click="openPopover('idea')" :title="t('writeQuick.saveAsIdea')">
+            💡 {{ t('writeQuick.saveAsIdea') }}
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('character')">
-            {{ t('writeQuick.addToCharacter') }}
+          <button type="button" class="selection-action-btn" :class="{ active: popover === 'character' }" @click="openPopover('character')" :title="t('writeQuick.addToCharacter')">
+            👤 {{ t('writeQuick.addToCharacter') }}
           </button>
-          <button type="button" class="btn btn-ghost btn-sm" @click="openPopover('outline')">
-            {{ t('writeQuick.addToOutline') }}
+          <button type="button" class="selection-action-btn" :class="{ active: popover === 'outline' }" @click="openPopover('outline')" :title="t('writeQuick.addToOutline')">
+            📋 {{ t('writeQuick.addToOutline') }}
           </button>
-          <button
-            type="button"
-            class="btn btn-ghost btn-sm"
-            aria-label="Close"
-            @click="clearSelection"
-          >
-            ×
-          </button>
+          <button type="button" class="selection-close-btn" aria-label="Close" @click="clearSelection">×</button>
         </div>
         <div v-if="popover === 'idea'" class="quick-popover">
           <div class="quick-popover-row">
@@ -705,19 +697,53 @@ onUnmounted(() => {
 }
 .selection-toolbar {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
   margin-bottom: var(--space-2);
   background: var(--bg-elevated);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
+  flex-wrap: wrap;
 }
-.selection-toolbar-label {
+.selection-action-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: var(--space-1) var(--space-2);
+  font: inherit;
   font-size: 0.8125rem;
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
   color: var(--text-muted);
-  margin-right: var(--space-1);
+  white-space: nowrap;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.selection-action-btn:hover {
+  background: var(--bg);
+  color: var(--text);
+}
+.selection-action-btn.active {
+  background: var(--accent-subtle);
+  color: var(--accent);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+.selection-close-btn {
+  margin-left: auto;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 1.125rem;
+  line-height: 1;
+  padding: 2px var(--space-1);
+  border-radius: var(--radius-sm);
+}
+.selection-close-btn:hover {
+  color: var(--text);
+  background: var(--bg);
 }
 .quick-popover {
   padding: var(--space-3);
