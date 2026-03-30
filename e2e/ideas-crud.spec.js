@@ -73,9 +73,10 @@ test('type filter shows only ideas of that type', async ({ page }) => {
   await page.goto('/#/ideas')
   await page.waitForLoadState('networkidle')
 
-  // Both should be visible with "All" filter (default)
+  // The app auto-selects the first type alphabetically ('plot' comes before 'worldbuilding').
+  // So 'Plot twist' is visible and 'Magic system' is not visible initially.
   await expect(page.locator('.entity-list-item-title').filter({ hasText: 'Plot twist' })).toBeVisible({ timeout: 5000 })
-  await expect(page.locator('.entity-list-item-title').filter({ hasText: 'Magic system' })).toBeVisible()
+  await expect(page.locator('.entity-list-item-title').filter({ hasText: 'Magic system' })).not.toBeVisible()
 
   // Click the "worldbuilding" filter chip
   await page.locator('.entity-type-btn', { hasText: /worldbuilding/i }).click()
@@ -113,7 +114,10 @@ test('delete an idea removes it from the list', async ({ page }) => {
 
   // Click the delete button (🗑 icon button in list item actions)
   const ideaItem = page.locator('.entity-list-item').filter({ hasText: 'Doomed idea' })
-  await ideaItem.locator('button', { hasText: /🗑|delete/i }).click()
+  await ideaItem.locator('button', { hasText: /🗑️/ }).click()
+
+  // A ConfirmModal appears — click the danger "Delete" button to confirm
+  await page.locator('[role="dialog"] .btn-danger').click()
 
   // Idea should disappear from list
   await expect(
