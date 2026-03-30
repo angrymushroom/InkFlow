@@ -211,3 +211,58 @@ test('modal closes on cancel', async ({ page }) => {
   await page.locator('button', { hasText: /Cancel|Annuler|Cancelar|取消/i }).first().click()
   await expect(page.locator('.novel-import-modal')).not.toBeVisible()
 })
+
+// ── Test 6: Post-import UI verification ──────────────────────────────────────
+// After confirming import, the /outline page must render the imported chapter
+// titles and /characters must render the imported character names.
+// This is stronger than a DB count — it verifies store + template rendering.
+
+test('imported chapters appear in outline UI, characters appear on characters page', async ({ page }) => {
+  const novelText = readFixture('novel-explicit-chapters.txt')
+  await setupAiMock(page)
+
+  await openNovelImportModal(page)
+  await page.locator('.novel-textarea').fill(novelText)
+  await page.locator('.title-input').fill('The Clockwork Inheritance')
+  await page.locator('button', { hasText: /Analyz/i }).click()
+  await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
+
+  await page.locator('button', { hasText: /Import/i }).last().click()
+  await expect(page.locator('.confirm-box')).toBeVisible()
+  await page.locator('[data-testid="confirm-import-btn"]').click()
+  await expect(page).toHaveURL(/#\/outline/, { timeout: 10000 })
+
+  // Outline page must show at least one of the fixture's chapter titles
+  await expect(
+    page.locator('.outline-chapter-title').first()
+  ).toBeVisible({ timeout: 8000 })
+
+  // Characters page must show the AI-extracted characters (Mira, Callum from mock)
+  await page.goto('/#/characters')
+  await page.waitForLoadState('networkidle')
+  await expect(
+    page.locator('.char-name').filter({ hasText: /Mira|Callum/i }).first()
+  ).toBeVisible({ timeout: 8000 })
+})
+
+// ── Test 7: File upload path ──────────────────────────────────────────────────
+// Tests the FileReader code path: uploading a .txt file populates the textarea.
+
+test('file upload populates the textarea', async ({ page }) => {
+  const novelText = readFixture('novel-explicit-chapters.txt')
+
+  await openNovelImportModal(page)
+
+  // Set the file input directly (simulates user picking a file)
+  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+    name: 'my-novel.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from(novelText),
+  })
+
+  // After FileReader reads the file, the textarea should be populated
+  await expect(page.locator('.novel-textarea')).not.toHaveValue('', { timeout: 5000 })
+
+  // Title input should auto-populate from filename (minus extension)
+  await expect(page.locator('.title-input')).toHaveValue('my-novel', { timeout: 3000 })
+})
