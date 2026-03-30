@@ -221,11 +221,11 @@ async function runAnalysis() {
   inputError.value = ''
   const text = rawText.value.trim()
   if (!text) {
-    inputError.value = t('novelImport.errorNoText')
+    inputError.value = t.value('novelImport.errorNoText')
     return
   }
   if (text.length < 200) {
-    inputError.value = t('novelImport.errorTooShort')
+    inputError.value = t.value('novelImport.errorTooShort')
     return
   }
 
@@ -238,7 +238,7 @@ async function runAnalysis() {
     })
     step.value = 2
   } catch (err) {
-    inputError.value = err?.message || t('novelImport.errorGeneric')
+    inputError.value = err?.message || t.value('novelImport.errorGeneric')
   } finally {
     busy.value = false
     progressPct.value = 0
@@ -253,11 +253,11 @@ async function doImport() {
   try {
     const storyId = getCurrentStoryId()
     await writeIngestionToDb(storyId, result.value, titleInput.value.trim())
-    toastSuccess(t('novelImport.successToast'))
+    toastSuccess(t.value('novelImport.successToast'))
     emit('close')
     router.push('/outline')
   } catch (err) {
-    toastError(err?.message || t('novelImport.errorGeneric'))
+    toastError(err?.message || t.value('novelImport.errorGeneric'))
   } finally {
     busy.value = false
   }
@@ -269,7 +269,7 @@ const templateDisplayName = computed(() => {
   if (!result.value) return ''
   const id = result.value.templateId
   const key = `templates.${id}.name`
-  return t(key) || id
+  return t.value(key) || id
 })
 
 const spineEntries = computed(() => {
@@ -279,7 +279,7 @@ const spineEntries = computed(() => {
   if (!tpl) return []
   return tpl.spineFields.slice(0, 4).map((field) => ({
     key: field.key,
-    label: t(`templates.${id}.fields.${field.key}`) || field.key,
+    label: t.value(`templates.${id}.fields.${field.key}`) || field.key,
     value: result.value.spine[field.key] || '',
   }))
 })
