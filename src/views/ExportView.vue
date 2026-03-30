@@ -137,6 +137,16 @@
       </div>
     </div>
 
+    <div class="card card-section">
+      <h2 class="section-title">{{ t('novelImport.modalTitle') }}</h2>
+      <p class="form-hint">{{ t('novelImport.step1Title') }}</p>
+      <button class="btn btn-primary novel-import-btn" @click="showNovelImport = true">
+        {{ t('novelImport.buttonLabel') }}
+      </button>
+    </div>
+
+    <NovelImportModal v-if="showNovelImport" @close="showNovelImport = false" />
+
     <div class="card card-section about-section">
       <div class="about-row">
         <span class="about-name">InkFlow</span>
@@ -209,11 +219,13 @@ import { useI18n } from '@/composables/useI18n'
 import { LOCALES } from '@/locales'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ChangelogModal from '@/components/ChangelogModal.vue'
+import NovelImportModal from '@/components/NovelImportModal.vue'
 import { APP_VERSION } from '@/data/changelog'
 
 const { locale, t, setLocale } = useI18n()
 const appVersion = APP_VERSION
 const showChangelog = ref(false)
+const showNovelImport = ref(false)
 const { theme, setTheme } = useTheme()
 const { success: toastSuccess, error: toastError } = useToast()
 const localeOptions = LOCALES
