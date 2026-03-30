@@ -95,6 +95,11 @@ test('switch between stories — chapters are isolated per story', async ({ page
   await page.locator('.story-item').filter({ hasText: 'Story Beta' }).click()
   await expect(page.locator('[aria-label="Switch story"]')).not.toBeVisible({ timeout: 3000 })
 
+  // App.vue.switchStory() calls router.push('/story') after the DB awaits —
+  // wait for that navigation to finish so localStorage has story2Id set and
+  // the router push won't interrupt our subsequent goto('#/outline').
+  await page.waitForURL('**/#/story', { timeout: 8000 })
+
   // Navigate to outline — should now show Beta Chapter only
   await page.goto('/#/outline')
   await page.waitForLoadState('networkidle')
