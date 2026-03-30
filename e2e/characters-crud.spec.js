@@ -32,8 +32,8 @@ test('create a character via form — name appears in list and persists', async 
   await page.getByPlaceholder(/character name/i).fill('Elena Voss')
   await page.getByPlaceholder(/this character in one sentence/i).fill('A rogue archivist who knows too much.')
 
-  // Save
-  await page.locator('button', { hasText: /^save$/i }).click()
+  // When creating a new character the button says "Add" (t('ideas.add'))
+  await page.locator('.form-actions .btn-primary').click()
 
   // Name should appear in the character list
   await expect(
@@ -65,20 +65,23 @@ test('edit an existing character — changes persist after reload', async ({ pag
     })
   })
 
+  // Reload so the characters store picks up the seeded data
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+
   await page.goto('/#/characters')
   await page.waitForLoadState('networkidle')
 
   // Select the character to open the edit form
   await page.locator('.char-list-item').filter({ hasText: 'Old Name' }).click()
 
-  // Change the name
+  // Change the name — when editing, the button says "Save" (t('ideas.save'))
   const nameInput = page.getByPlaceholder(/character name/i)
   await expect(nameInput).toHaveValue('Old Name', { timeout: 5000 })
   await nameInput.click({ clickCount: 3 })
   await nameInput.fill('New Name')
 
-  // Save
-  await page.locator('button', { hasText: /^save$/i }).click()
+  await page.locator('.form-actions .btn-primary').click()
 
   // Updated name should appear in list
   await expect(

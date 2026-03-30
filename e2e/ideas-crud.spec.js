@@ -28,11 +28,13 @@ test('create an idea — appears in list and persists after reload', async ({ pa
   // Click "New idea" button
   await page.locator('button', { hasText: /new idea/i }).first().click()
 
-  // Fill the title and body
+  // Fill the title
   await page.getByPlaceholder(/short title/i).fill('The hidden vault')
-  await page.getByPlaceholder(/describe|detail|note/i).first().fill('Beneath the old library lies a sealed chamber.')
 
-  // Save
+  // Fill the body — actual placeholder is "Quick idea..."
+  await page.getByPlaceholder(/Quick idea/i).fill('Beneath the old library lies a sealed chamber.')
+
+  // Save — when creating, the button says "Add" (t('ideas.add'))
   await page.locator('button', { hasText: /^add$/i }).click()
 
   // Idea should appear in the list
@@ -63,6 +65,10 @@ test('type filter shows only ideas of that type', async ({ page }) => {
       { id: crypto.randomUUID(), storyId, title: 'Magic system', body: '', type: 'worldbuilding', createdAt: Date.now(), updatedAt: Date.now() },
     ])
   })
+
+  // Reload so the ideas store picks up the newly seeded data
+  await page.reload()
+  await page.waitForLoadState('networkidle')
 
   await page.goto('/#/ideas')
   await page.waitForLoadState('networkidle')
@@ -95,10 +101,14 @@ test('delete an idea removes it from the list', async ({ page }) => {
     })
   })
 
+  // Reload so the store picks up the seeded idea
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+
   await page.goto('/#/ideas')
   await page.waitForLoadState('networkidle')
 
-  // Select the idea to load it in the detail panel
+  // Select the idea to open it in the detail panel
   await page.locator('.entity-list-item-title').filter({ hasText: 'Doomed idea' }).click()
 
   // Click the delete button (🗑 icon button in list item actions)
