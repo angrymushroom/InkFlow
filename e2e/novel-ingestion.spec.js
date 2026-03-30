@@ -144,7 +144,7 @@ test('fixture 1: explicit chapters detected via regex, imports to DB', async ({ 
   await expect(page.locator('.confirm-box')).toBeVisible()
 
   // Confirm import
-  await page.locator('.confirm-box').locator('..').locator('button', { hasText: /Import/i }).click()
+  await page.locator('[data-testid="confirm-import-btn"]').click()
 
   // Should navigate to /outline
   await expect(page).toHaveURL(/#\/outline/, { timeout: 10000 })
@@ -186,7 +186,7 @@ test('fixture 2: *** separators detected, chapters and characters written to DB'
   // Proceed to confirm
   await page.locator('button', { hasText: /Import/i }).last().click()
   await expect(page.locator('.confirm-box')).toBeVisible()
-  await page.locator('.confirm-box').locator('..').locator('button', { hasText: /Import/i }).click()
+  await page.locator('[data-testid="confirm-import-btn"]').click()
 
   await expect(page).toHaveURL(/#\/outline/, { timeout: 10000 })
 
@@ -222,7 +222,7 @@ test('fixture 3: ACT markers detected, template set on story', async ({ page }) 
   // Proceed and confirm
   await page.locator('button', { hasText: /Import/i }).last().click()
   await expect(page.locator('.confirm-box')).toBeVisible()
-  await page.locator('.confirm-box').locator('..').locator('button', { hasText: /Import/i }).click()
+  await page.locator('[data-testid="confirm-import-btn"]').click()
 
   await expect(page).toHaveURL(/#\/outline/, { timeout: 10000 })
 

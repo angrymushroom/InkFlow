@@ -159,6 +159,7 @@
           v-if="step === 3"
           type="button"
           class="btn btn-primary"
+          data-testid="confirm-import-btn"
           :disabled="busy"
           @click="doImport"
         >
@@ -186,7 +187,7 @@ import { TEMPLATES } from '@/data/templates'
 const emit = defineEmits(['close'])
 
 const { t } = useI18n()
-const { showToast } = useToast()
+const { success: toastSuccess, error: toastError } = useToast()
 const router = useRouter()
 
 const step = ref(1)
@@ -252,11 +253,11 @@ async function doImport() {
   try {
     const storyId = getCurrentStoryId()
     await writeIngestionToDb(storyId, result.value, titleInput.value.trim())
-    showToast(t('novelImport.successToast'), 'success')
+    toastSuccess(t('novelImport.successToast'))
     emit('close')
     router.push('/outline')
   } catch (err) {
-    showToast(err?.message || t('novelImport.errorGeneric'), 'error')
+    toastError(err?.message || t('novelImport.errorGeneric'))
   } finally {
     busy.value = false
   }
