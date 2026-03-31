@@ -8,10 +8,32 @@
  * CHANGELOG_HISTORY — full version history; internal reference only, not rendered in the app
  */
 
-export const APP_VERSION = '0.9.0'
+export const APP_VERSION = '0.10.0'
 
 // Shown in the app — current release only.
 export const CHANGELOG = [
+  {
+    version: '0.10.0',
+    date: '2026-03-31',
+    changes: [
+      {
+        type: 'feat',
+        text: 'Import a novel — upload a .txt or .md file and the AI will extract chapters, scenes, characters, and story spine automatically',
+      },
+      {
+        type: 'feat',
+        text: 'Settings import section consolidated — "Restore from backup" and "Import Novel" are now grouped under a single Import card',
+      },
+      {
+        type: 'fix',
+        text: 'Novel import now accepts file upload only (textarea removed) — matches how authors actually work with manuscript files',
+      },
+    ],
+  },
+]
+
+// Full version history — internal reference, not used in the UI.
+export const CHANGELOG_HISTORY = [
   {
     version: '0.9.0',
     date: '2026-03-27',
@@ -36,10 +58,6 @@ export const CHANGELOG = [
       },
     ],
   },
-]
-
-// Full version history — internal reference, not used in the UI.
-export const CHANGELOG_HISTORY = [
   {
     version: '0.8.0',
     date: '2026-03-27',
