@@ -6,14 +6,12 @@
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
     <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
-    <!-- One-sentence story reference (read-only) -->
-    <div v-if="story" class="outline-spine-ref card">
+    <!-- One-sentence story reference — click to edit in Story page -->
+    <router-link v-if="story" to="/story" class="outline-spine-ref card">
       <span class="outline-spine-ref-label">{{ t('outline.spineRefLabel') }}</span>
       <p class="outline-spine-ref-text">{{ story.oneSentence || t('outline.spineNotFilled') }}</p>
-      <router-link to="/story" class="outline-spine-ref-link">{{
-        t('outline.editInStory')
-      }}</router-link>
-    </div>
+      <span class="outline-spine-ref-link">{{ t('outline.editInStory') }}</span>
+    </router-link>
 
     <!-- Top-level actions -->
     <div class="outline-actions">
@@ -528,6 +526,14 @@ onUnmounted(() => {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  cursor: pointer;
+}
+.outline-spine-ref:hover {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
 }
 .outline-spine-ref-label {
   font-size: 0.75rem;

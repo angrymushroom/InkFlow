@@ -126,15 +126,32 @@
         {{ t('export.backupNudge') }}
       </p>
       <p v-if="exportError" class="test-message test-error">{{ exportError }}</p>
+    </div>
+
+    <div class="card card-section">
+      <h2 class="section-title">{{ t('export.importTitle') }}</h2>
+
+      <div class="import-sub">
+        <div class="import-sub-label">{{ t('export.importBackup') }}</div>
+        <div class="form-group" style="margin-bottom: 0">
+          <input type="file" accept=".json,application/json" @change="onFileSelect" />
+          <p class="form-hint" style="margin-top: var(--space-2)">{{ t('export.importHint') }}</p>
+          <p v-if="importError" class="test-message test-error">{{ importError }}</p>
+        </div>
+      </div>
 
       <div class="import-divider"></div>
-      <div class="form-group">
-        <label>{{ t('export.importBackup') }}</label>
-        <input type="file" accept=".json,application/json" @change="onFileSelect" />
-        <p class="form-hint">{{ t('export.importHint') }}</p>
-        <p v-if="importError" class="test-message test-error">{{ importError }}</p>
+
+      <div class="import-sub">
+        <div class="import-sub-label">{{ t('novelImport.modalTitle') }}</div>
+        <p class="form-hint">{{ t('novelImport.uploadHint') }}</p>
+        <button class="btn btn-primary novel-import-btn" @click="showNovelImport = true">
+          {{ t('novelImport.buttonLabel') }}
+        </button>
       </div>
     </div>
+
+    <NovelImportModal v-if="showNovelImport" @close="showNovelImport = false" />
 
     <div class="card card-section about-section">
       <div class="about-row">
@@ -208,11 +225,13 @@ import { useI18n } from '@/composables/useI18n'
 import { LOCALES } from '@/locales'
 import ConfirmModal from '@/components/ConfirmModal.vue'
 import ChangelogModal from '@/components/ChangelogModal.vue'
+import NovelImportModal from '@/components/NovelImportModal.vue'
 import { APP_VERSION } from '@/data/changelog'
 
 const { locale, t, setLocale } = useI18n()
 const appVersion = APP_VERSION
 const showChangelog = ref(false)
+const showNovelImport = ref(false)
 const { theme, setTheme } = useTheme()
 const { success: toastSuccess, error: toastError } = useToast()
 const localeOptions = LOCALES
@@ -528,6 +547,20 @@ async function doImport() {
   margin-top: var(--space-1);
   font-style: italic;
 }
+.import-sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.import-sub-label {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+.import-divider {
+  border-top: 1px solid var(--border);
+  margin: var(--space-4) 0;
+}
 .export-format-group {
   display: flex;
   gap: var(--space-3);
@@ -563,10 +596,6 @@ async function doImport() {
 .about-version {
   font-size: 0.875rem;
   color: var(--text-muted);
-}
-.import-divider {
-  border-top: 1px solid var(--border);
-  margin: var(--space-5) 0 var(--space-4);
 }
 .shortcuts-section {
   padding: var(--space-3) var(--space-4);

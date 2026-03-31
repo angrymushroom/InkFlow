@@ -27,7 +27,6 @@ yarn.lock
 
 # Electron-builder output
 /dist_electron
-CLAUDE.md
 
 # Playwright E2E test artifacts
 /test-results/

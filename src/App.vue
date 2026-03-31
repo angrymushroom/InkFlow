@@ -25,13 +25,13 @@
         <NavIcon name="write" />
         <span class="nav-link-text">{{ t('nav.write') }}</span>
       </router-link>
-      <router-link to="/settings" class="nav-link" @click="onNavClick">
+      <router-link to="/settings" class="nav-link nav-desktop-only" @click="onNavClick">
         <NavIcon name="settings" />
         <span class="nav-link-text">{{ t('nav.settings') }}</span>
       </router-link>
       <button
         type="button"
-        class="nav-link nav-otter-btn"
+        class="nav-link nav-otter-btn nav-desktop-only"
         :class="{ 'nav-otter-btn--active': otterOpen }"
         :aria-label="otterOpen ? 'Close Pip chat' : 'Open Pip chat'"
         @click="otterOpen = !otterOpen"
@@ -186,8 +186,16 @@
           </section>
         </nav>
 
-        <!-- Sidebar footer: feedback link -->
+        <!-- Sidebar footer: settings (mobile) + feedback link -->
         <div class="sidebar-footer">
+          <router-link
+            to="/settings"
+            class="sidebar-settings-btn sidebar-mobile-only"
+            @click="sidebarOpen = false"
+          >
+            <NavIcon name="settings" :size="13" />
+            {{ t('nav.settings') }}
+          </router-link>
           <button type="button" class="sidebar-feedback-btn" @click="feedbackOpen = true">
             <svg
               width="13"
@@ -231,6 +239,19 @@
           <div v-else class="page"><p class="page-subtitle">Loading…</p></div>
         </router-view>
       </main>
+
+      <!-- Pip FAB: mobile only -->
+      <button
+        v-if="isMobile"
+        type="button"
+        class="pip-fab"
+        :class="{ 'pip-fab--active': otterOpen }"
+        :aria-label="otterOpen ? 'Close Pip chat' : 'Open Pip chat'"
+        @click="otterOpen = !otterOpen"
+      >
+        <span class="pip-fab-icon" aria-hidden="true">🦦</span>
+        <span v-if="pipBadge" class="pip-fab-badge" aria-hidden="true"></span>
+      </button>
 
       <OtterChat :open="otterOpen" :scene-id="currentSceneId" @close="otterOpen = false" />
     </div>
@@ -780,6 +801,96 @@ watch(otterOpen, (open) => {
     transform: none;
   }
   .sidebar-toggle {
+    display: none;
+  }
+}
+
+/* Desktop-only nav items: hidden on mobile */
+.nav-desktop-only {
+  display: none;
+}
+@media (min-width: 768px) {
+  .nav-desktop-only {
+    display: flex;
+  }
+}
+
+/* Mobile-only sidebar items: hidden on desktop */
+.sidebar-mobile-only {
+  display: flex;
+}
+@media (min-width: 768px) {
+  .sidebar-mobile-only {
+    display: none;
+  }
+}
+
+/* Sidebar settings button (mirrors feedback button style) */
+.sidebar-settings-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-2) var(--space-2);
+  border-radius: var(--radius-sm);
+  font: inherit;
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition:
+    color 0.15s,
+    background 0.15s;
+}
+.sidebar-settings-btn:hover {
+  color: var(--text);
+  background: var(--bg);
+}
+.sidebar-settings-btn.router-link-active {
+  color: var(--accent);
+}
+
+/* Pip FAB: mobile floating action button */
+.pip-fab {
+  position: fixed;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px) + var(--space-3));
+  right: var(--space-3);
+  z-index: 98;
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: fixed;
+  transition: background 0.15s;
+}
+.pip-fab:hover {
+  background: var(--bg);
+}
+.pip-fab--active {
+  background: var(--accent-subtle);
+  border-color: var(--accent);
+}
+.pip-fab-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+.pip-fab-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  border: 2px solid var(--bg-elevated);
+}
+@media (min-width: 768px) {
+  .pip-fab {
     display: none;
   }
 }

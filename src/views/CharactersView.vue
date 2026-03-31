@@ -1,145 +1,129 @@
 <template>
-  <div class="page">
+  <div class="page characters-page">
     <h1 class="page-title">{{ t('characters.title') }}</h1>
     <p class="page-subtitle">{{ t('characters.subtitle') }}</p>
 
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
     <p v-if="saveError" class="save-error">{{ saveError }}</p>
 
-    <div v-if="showForm" class="card form-card">
-      <h2 class="form-title">
-        {{ editingId ? t('characters.editCharacter') : t('characters.newCharacter') }}
-      </h2>
-      <div class="form-group">
-        <label>{{ t('characters.name') }}</label>
-        <input v-model="form.name" type="text" :placeholder="t('characters.namePlaceholder')" />
-      </div>
-      <div class="form-group">
-        <label>{{ t('characters.oneSentence') }}</label>
-        <input
-          v-model="form.oneSentence"
-          type="text"
-          :placeholder="t('characters.oneSentencePlaceholder')"
-        />
-        <AiExpandButton
-          :current-value="form.oneSentence"
-          :field-name="t('characters.fieldOneSentence')"
-          @expanded="form.oneSentence = $event"
-        />
-      </div>
-      <div class="form-group">
-        <label>{{ t('characters.goal') }}</label>
-        <input v-model="form.goal" type="text" :placeholder="t('characters.goalPlaceholder')" />
-        <AiExpandButton
-          :current-value="form.goal"
-          :field-name="t('characters.fieldGoal')"
-          @expanded="form.goal = $event"
-        />
-      </div>
-      <div class="form-group">
-        <label>{{ t('characters.motivation') }}</label>
-        <ResizableTextarea
-          v-model="form.motivation"
-          :placeholder="t('characters.motivationPlaceholder')"
-          :rows="2"
-        />
-        <AiExpandButton
-          :current-value="form.motivation"
-          :field-name="t('characters.fieldMotivation')"
-          @expanded="form.motivation = $event"
-        />
-      </div>
-      <div class="form-group">
-        <label>{{ t('characters.conflict') }}</label>
-        <ResizableTextarea
-          v-model="form.conflict"
-          :placeholder="t('characters.conflictPlaceholder')"
-          :rows="2"
-        />
-        <AiExpandButton
-          :current-value="form.conflict"
-          :field-name="t('characters.fieldConflict')"
-          @expanded="form.conflict = $event"
-        />
-      </div>
-      <div class="form-group">
-        <label>{{ t('characters.epiphany') }}</label>
-        <ResizableTextarea
-          v-model="form.epiphany"
-          :placeholder="t('characters.epiphanyPlaceholder')"
-          :rows="2"
-        />
-        <AiExpandButton
-          :current-value="form.epiphany"
-          :field-name="t('characters.fieldEpiphany')"
-          @expanded="form.epiphany = $event"
-        />
-      </div>
-      <div class="form-actions">
-        <button class="btn btn-ghost" @click="cancelForm">{{ t('ideas.cancel') }}</button>
-        <button class="btn btn-primary" @click="saveCharacter">
-          {{ editingId ? t('ideas.save') : t('ideas.add') }}
+    <div class="chars-layout">
+      <!-- Left: character list -->
+      <aside class="chars-list-col">
+        <button class="btn btn-primary chars-new-btn" @click="openNew">
+          + {{ t('characters.newCharacter') }}
         </button>
-      </div>
-    </div>
 
-    <button v-if="!showForm" class="btn btn-primary" @click="openNew">
-      + {{ t('characters.newCharacter') }}
-    </button>
+        <div v-if="!characters.length && !showForm" class="empty-state card chars-empty">
+          <OtterIllustration size="md" variant="idle" class="empty-otter" />
+          <p>{{ t('characters.empty') }}</p>
+        </div>
 
-    <div v-if="!characters.length && !showForm" class="empty-state card">
-      <OtterIllustration size="md" variant="idle" class="empty-otter" />
-      <p>{{ t('characters.empty') }}</p>
-      <button
-        type="button"
-        class="btn btn-primary"
-        style="margin-top: var(--space-3)"
-        @click="openNew"
-      >
-        {{ t('characters.addFirst') }}
-      </button>
-    </div>
-
-    <div v-else class="char-list">
-      <div v-for="char in characters" :key="char.id" class="card char-card">
-        <div class="char-header">
-          <h3 class="char-name">{{ char.name || t('characters.unnamed') }}</h3>
-          <div class="char-actions">
+        <div v-else class="char-list">
+          <div
+            v-for="char in characters"
+            :key="char.id"
+            class="char-list-item"
+            :class="{ active: editingId === char.id }"
+            @click="editCharacter(char)"
+          >
+            <div class="char-list-item-main">
+              <span class="char-list-item-name char-name">{{ char.name || t('characters.unnamed') }}</span>
+              <p v-if="char.oneSentence" class="char-list-item-summary char-one-sentence">{{ char.oneSentence }}</p>
+            </div>
             <button
               class="btn btn-ghost btn-sm btn-icon"
-              @click="editCharacter(char)"
-              :title="t('ideas.edit')"
-            >
-              ✏️
-            </button>
-            <button
-              class="btn btn-ghost btn-sm btn-icon"
-              @click="confirmDelete(char)"
+              @click.stop="confirmDelete(char)"
               :title="t('ideas.delete')"
             >
               🗑️
             </button>
           </div>
         </div>
-        <p v-if="char.oneSentence" class="char-one-sentence">{{ char.oneSentence }}</p>
-        <dl v-if="char.goal || char.motivation || char.conflict || char.epiphany" class="char-dl">
-          <template v-if="char.goal">
-            <dt>{{ t('characters.goal') }}</dt>
-            <dd>{{ char.goal }}</dd>
-          </template>
-          <template v-if="char.motivation">
-            <dt>{{ t('characters.motivation') }}</dt>
-            <dd>{{ char.motivation }}</dd>
-          </template>
-          <template v-if="char.conflict">
-            <dt>{{ t('characters.conflict') }}</dt>
-            <dd>{{ char.conflict }}</dd>
-          </template>
-          <template v-if="char.epiphany">
-            <dt>{{ t('characters.epiphany') }}</dt>
-            <dd>{{ char.epiphany }}</dd>
-          </template>
-        </dl>
+      </aside>
+
+      <!-- Right: edit form or placeholder -->
+      <div class="chars-detail-col">
+        <template v-if="!showForm">
+          <p class="chars-placeholder">{{ t('entities.selectOrAdd') }}</p>
+        </template>
+        <template v-else>
+          <div class="card form-card">
+            <h2 class="form-title">
+              {{ editingId ? t('characters.editCharacter') : t('characters.newCharacter') }}
+            </h2>
+            <div class="form-group">
+              <label>{{ t('characters.name') }}</label>
+              <input v-model="form.name" type="text" :placeholder="t('characters.namePlaceholder')" />
+            </div>
+            <div class="form-group">
+              <label>{{ t('characters.oneSentence') }}</label>
+              <input
+                v-model="form.oneSentence"
+                type="text"
+                :placeholder="t('characters.oneSentencePlaceholder')"
+              />
+              <AiExpandButton
+                :current-value="form.oneSentence"
+                :field-name="t('characters.fieldOneSentence')"
+                @expanded="form.oneSentence = $event"
+              />
+            </div>
+            <div class="form-group">
+              <label>{{ t('characters.goal') }}</label>
+              <input v-model="form.goal" type="text" :placeholder="t('characters.goalPlaceholder')" />
+              <AiExpandButton
+                :current-value="form.goal"
+                :field-name="t('characters.fieldGoal')"
+                @expanded="form.goal = $event"
+              />
+            </div>
+            <div class="form-group">
+              <label>{{ t('characters.motivation') }}</label>
+              <ResizableTextarea
+                v-model="form.motivation"
+                :placeholder="t('characters.motivationPlaceholder')"
+                :rows="2"
+              />
+              <AiExpandButton
+                :current-value="form.motivation"
+                :field-name="t('characters.fieldMotivation')"
+                @expanded="form.motivation = $event"
+              />
+            </div>
+            <div class="form-group">
+              <label>{{ t('characters.conflict') }}</label>
+              <ResizableTextarea
+                v-model="form.conflict"
+                :placeholder="t('characters.conflictPlaceholder')"
+                :rows="2"
+              />
+              <AiExpandButton
+                :current-value="form.conflict"
+                :field-name="t('characters.fieldConflict')"
+                @expanded="form.conflict = $event"
+              />
+            </div>
+            <div class="form-group">
+              <label>{{ t('characters.epiphany') }}</label>
+              <ResizableTextarea
+                v-model="form.epiphany"
+                :placeholder="t('characters.epiphanyPlaceholder')"
+                :rows="2"
+              />
+              <AiExpandButton
+                :current-value="form.epiphany"
+                :field-name="t('characters.fieldEpiphany')"
+                @expanded="form.epiphany = $event"
+              />
+            </div>
+            <div class="form-actions">
+              <button class="btn btn-ghost" @click="cancelForm">{{ t('ideas.cancel') }}</button>
+              <button class="btn btn-primary" @click="saveCharacter">
+                {{ editingId ? t('ideas.save') : t('ideas.add') }}
+              </button>
+            </div>
+          </div>
+        </template>
       </div>
     </div>
 
@@ -404,8 +388,100 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.characters-page {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Split-panel layout */
+.chars-layout {
+  display: flex;
+  gap: var(--space-4);
+  min-height: 400px;
+}
+
+.chars-list-col {
+  min-width: 240px;
+  width: 32%;
+  max-width: 340px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.chars-new-btn {
+  flex-shrink: 0;
+}
+
+.chars-empty {
+  padding: var(--space-5);
+  text-align: center;
+}
+.chars-empty p {
+  margin: 0 0 var(--space-2);
+  color: var(--text-muted);
+}
+
+.chars-detail-col {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+}
+
+.chars-placeholder {
+  color: var(--text-muted);
+  font-size: 0.9375rem;
+  margin: 0;
+  padding: var(--space-4);
+}
+
+/* Compact character list items */
+.char-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  overflow-y: auto;
+}
+
+.char-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  border: 1px solid transparent;
+  transition: background 0.12s, border-color 0.12s;
+}
+.char-list-item:hover {
+  background: var(--bg-elevated);
+}
+.char-list-item.active {
+  background: var(--bg-elevated);
+  border-color: var(--accent);
+}
+.char-list-item-main {
+  flex: 1;
+  min-width: 0;
+}
+.char-list-item-name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  display: block;
+  margin-bottom: 2px;
+}
+.char-list-item-summary {
+  font-size: 0.8125rem;
+  color: var(--text-muted);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Form inside detail col */
 .form-card {
-  margin-bottom: var(--space-5);
+  margin-bottom: 0;
 }
 .form-title {
   font-size: 1.125rem;
@@ -420,53 +496,14 @@ onMounted(() => {
   gap: var(--space-2);
   margin-top: var(--space-4);
 }
-.char-list {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
-  margin-top: var(--space-5);
-}
-.char-card {
-  padding: var(--space-4);
-}
-.char-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: var(--space-2);
-}
-.char-name {
-  font-size: 1.125rem;
-  font-weight: 600;
-  margin: 0;
-}
-.char-actions {
-  display: flex;
-  gap: var(--space-1);
-}
-.char-one-sentence {
-  font-size: 0.9375rem;
-  color: var(--text-muted);
-  margin: 0 0 var(--space-3);
-  font-style: italic;
-}
-.char-dl {
-  margin: 0;
-  font-size: 0.875rem;
-}
-.char-dl dt {
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-top: var(--space-2);
-}
-.char-dl dd {
-  margin: var(--space-1) 0 0;
-}
+
 .save-error {
   margin-bottom: var(--space-2);
   font-size: 0.875rem;
   color: var(--danger);
 }
+
+/* Relationships section */
 .rel-section {
   margin-top: var(--space-7);
 }
@@ -513,5 +550,17 @@ onMounted(() => {
   border-radius: var(--radius-sm);
   background: var(--bg-elevated);
   color: var(--text);
+}
+
+/* Mobile: stack to single column */
+@media (max-width: 767px) {
+  .chars-layout {
+    flex-direction: column;
+  }
+  .chars-list-col {
+    width: 100%;
+    max-width: none;
+    max-height: 300px;
+  }
 }
 </style>
