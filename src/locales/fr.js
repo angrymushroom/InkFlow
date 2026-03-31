@@ -246,6 +246,14 @@ export default {
       'Cette action supprimera définitivement cette histoire et toutes ses idées, personnages, chapitres et scènes. Cette action est irréversible.',
     deleteStoryConfirmButton: "Supprimer l\'histoire",
     cannotDeleteLastStory: 'Vous devez conserver au moins une histoire.',
+    progress: {
+      spine: 'Structure narrative',
+      characters: 'Personnages',
+      outline: 'Plan',
+      writing: 'Écriture',
+      chapters: 'chapitres',
+      scenes: 'scènes',
+    },
   },
   characters: {
     title: 'Personnages',

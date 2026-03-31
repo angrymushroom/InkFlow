@@ -244,6 +244,14 @@ export default {
       'This will permanently delete this story and all its ideas, characters, chapters, and scenes. This cannot be undone.',
     deleteStoryConfirmButton: 'Delete story',
     cannotDeleteLastStory: 'You must have at least one story.',
+    progress: {
+      spine: 'Story spine',
+      characters: 'Characters',
+      outline: 'Outline',
+      writing: 'Writing',
+      chapters: 'chapters',
+      scenes: 'scenes',
+    },
   },
   characters: {
     title: 'Characters',

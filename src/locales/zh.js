@@ -233,6 +233,14 @@ export default {
     deleteStoryConfirmBody: '将永久删除此故事及其所有灵感、角色、章节和场景。此操作无法撤销。',
     deleteStoryConfirmButton: '删除故事',
     cannotDeleteLastStory: '至少需要保留一个故事。',
+    progress: {
+      spine: '故事骨架',
+      characters: '角色',
+      outline: '大纲',
+      writing: '写作',
+      chapters: '章节',
+      scenes: '场景',
+    },
   },
   characters: {
     title: '角色',

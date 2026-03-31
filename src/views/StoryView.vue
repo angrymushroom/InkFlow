@@ -5,6 +5,56 @@
 
     <p v-if="loadError" class="save-error">{{ loadError }}</p>
 
+    <!-- Progress dashboard -->
+    <div class="progress-dashboard">
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>{{ t('story.progress.spine') }}</span>
+          <span class="progress-count">{{ spineProgress.filled }}/{{ spineProgress.total }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" :style="{ width: spineProgress.pct + '%' }" />
+        </div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>{{ t('story.progress.characters') }}</span>
+          <span class="progress-count">{{ characterCount }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div
+            class="progress-bar-fill"
+            :class="characterCount >= 3 ? 'progress-bar-fill--solid' : characterCount >= 1 ? 'progress-bar-fill--started' : ''"
+            :style="{ width: characterCount >= 3 ? '100%' : characterCount >= 1 ? '40%' : '0%' }"
+          />
+        </div>
+      </div>
+      <div class="progress-item">
+        <div class="progress-label">
+          <span>{{ t('story.progress.outline') }}</span>
+          <span class="progress-count">{{ outlineStore.chapters.length }} {{ t('story.progress.chapters') }}, {{ outlineStore.scenes.length }} {{ t('story.progress.scenes') }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div
+            class="progress-bar-fill"
+            :style="{ width: outlineStore.chapters.length ? Math.min(outlineStore.chapters.length * 10, 100) + '%' : '0%' }"
+          />
+        </div>
+      </div>
+      <div class="progress-item" v-if="writingProgress.total > 0">
+        <div class="progress-label">
+          <span>{{ t('story.progress.writing') }}</span>
+          <span class="progress-count">{{ writingProgress.written }}/{{ writingProgress.total }}</span>
+        </div>
+        <div class="progress-bar-track">
+          <div
+            class="progress-bar-fill"
+            :style="{ width: writingProgress.total ? Math.round((writingProgress.written / writingProgress.total) * 100) + '%' : '0%' }"
+          />
+        </div>
+      </div>
+    </div>
+
     <!-- Template selector -->
     <div class="template-selector card">
       <span class="template-selector-label">{{ t('story.templateLabel') }}</span>
@@ -95,9 +145,10 @@
 <script setup>
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { getStory, saveStory, getStories, deleteStory } from '@/db'
+import { getStory, saveStory, getStories, deleteStory, getCharacters } from '@/db'
 import { useI18n } from '@/composables/useI18n'
 import { useStoryStore } from '@/stores/story.js'
+import { useOutlineStore } from '@/stores/outline.js'
 import { useToast } from '@/composables/useToast'
 import { storyDirty } from '@/stores/unsaved'
 import AiExpandButton from '@/components/AiExpandButton.vue'
@@ -108,8 +159,10 @@ const { t } = useI18n()
 const { success: toastSuccess } = useToast()
 const router = useRouter()
 const storyStore = useStoryStore()
+const outlineStore = useOutlineStore()
 
 const storyCount = ref(1)
+const characterCount = ref(0)
 const showDeleteModal = ref(false)
 const deleteInProgress = ref(false)
 
@@ -133,6 +186,17 @@ const beforeUnloadHandler = ref(null)
 
 const templateId = computed(() => story.value.template ?? 'snowflake')
 const currentTemplate = computed(() => TEMPLATES[templateId.value] ?? TEMPLATES.snowflake)
+
+const spineProgress = computed(() => {
+  const fields = currentTemplate.value.spineFields
+  const filled = fields.filter((f) => getSpineFieldValue(story.value, f.prop)?.trim()).length
+  return { filled, total: fields.length, pct: fields.length ? Math.round((filled / fields.length) * 100) : 0 }
+})
+const writingProgress = computed(() => {
+  const scenes = outlineStore.scenes
+  const written = scenes.filter((s) => s.content?.trim()).length
+  return { written, total: scenes.length }
+})
 
 function getFieldValue(prop) {
   return getSpineFieldValue(story.value, prop)
@@ -200,6 +264,8 @@ async function load() {
         disaster3: s.disaster3 ?? '',
         ending: s.ending ?? '',
       }
+      const chars = await getCharacters(s.id ?? 'story')
+      characterCount.value = chars?.length ?? 0
     }
     lastSavedJson.value = storySnapshot()
     storyDirty.value = isDirty()
@@ -312,6 +378,53 @@ onUnmounted(() => {
   margin-top: var(--space-2);
   font-size: 0.875rem;
   color: var(--danger);
+}
+
+/* Progress dashboard */
+.progress-dashboard {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3) var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.progress-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.progress-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+.progress-count {
+  font-variant-numeric: tabular-nums;
+}
+.progress-bar-track {
+  height: 6px;
+  border-radius: 999px;
+  background: var(--border);
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.4s ease;
+  min-width: 0;
+}
+.progress-bar-fill--started {
+  background: color-mix(in srgb, var(--accent) 60%, transparent);
+}
+.progress-bar-fill--solid {
+  background: var(--accent);
+}
+@media (max-width: 500px) {
+  .progress-dashboard {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Template selector */

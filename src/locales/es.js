@@ -246,6 +246,14 @@ export default {
       'Se eliminará permanentemente esta historia y todas sus ideas, personajes, capítulos y escenas. Esta acción no se puede deshacer.',
     deleteStoryConfirmButton: 'Eliminar historia',
     cannotDeleteLastStory: 'Debes tener al menos una historia.',
+    progress: {
+      spine: 'Estructura narrativa',
+      characters: 'Personajes',
+      outline: 'Esquema',
+      writing: 'Escritura',
+      chapters: 'capítulos',
+      scenes: 'escenas',
+    },
   },
   characters: {
     title: 'Personajes',
