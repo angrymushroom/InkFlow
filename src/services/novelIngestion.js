@@ -117,7 +117,7 @@ const SCENE_SEPARATOR_RE = /^[ \t]*(\*\s*){2,}\*[ \t]*$|^[ \t]*-{3,}[ \t]*$|^[ \
  * @param {string} title - Chapter title
  * @param {string} content - Chapter text
  * @param {number} index - Chapter index (for fallback naming)
- * @returns {Promise<{ scenes: string[], characters: {name:string,role:string}[], chapterSummary: string }>}
+ * @returns {Promise<{ scenes: string[], characters: {name:string,role:string,goal?:string,motivation?:string,conflict?:string,epiphany?:string}[], chapterSummary: string }>}
  */
 async function analyzeChapter(title, content, index) {
   const sample = content.slice(0, 4000)
@@ -131,7 +131,7 @@ async function analyzeChapter(title, content, index) {
         'You are a literary analysis assistant. Analyze this chapter excerpt and return ONLY valid JSON — no markdown, no explanation.',
       userPrompt: `Analyze this chapter and return JSON with this exact shape:
 {
-  "characters": [{ "name": "string", "role": "protagonist|supporting|antagonist|minor" }],
+  "characters": [{ "name": "string", "role": "protagonist|supporting|antagonist|minor", "goal": "what they want (1 sentence, omit if unclear)", "motivation": "why they want it (1 sentence, omit if unclear)", "conflict": "main obstacle or internal struggle (1 sentence, omit if unclear)", "epiphany": "key realisation or change (1 sentence, omit if unclear)" }],
   "chapterSummary": "2-3 sentence summary of this chapter"
 }
 
@@ -141,7 +141,7 @@ ${sample}
 
 Return ONLY the JSON object.`,
       tier: TIERS.LIGHT,
-      maxTokens: 400,
+      maxTokens: 600,
     })
 
     const parsed = parseJsonSafe(response, null)
@@ -244,14 +244,14 @@ export async function mergeCharacters(charLists) {
       systemPrompt:
         'You are a literary analysis assistant. Merge character aliases and return ONLY valid JSON — no markdown, no explanation.',
       userPrompt: `These characters were extracted from a novel. Merge aliases (e.g. "Elizabeth" and "Elizabeth Bennet" are the same person). Return a JSON array (max 20) with this shape:
-[{ "canonicalName": "Full Name", "aliases": ["Alias1"], "oneSentence": "brief description", "role": "protagonist|antagonist|supporting|minor" }]
+[{ "canonicalName": "Full Name", "aliases": ["Alias1"], "oneSentence": "brief description", "role": "protagonist|antagonist|supporting|minor", "goal": "what they want", "motivation": "why they want it", "conflict": "main obstacle", "epiphany": "key realisation" }]
 
-Characters:
+Omit goal/motivation/conflict/epiphany if not clearly established. Characters:
 ${charInput}
 
 Return ONLY the JSON array.`,
       tier: TIERS.LIGHT,
-      maxTokens: 400,
+      maxTokens: 600,
     })
 
     const parsed = parseJsonSafe(response, null)
@@ -260,13 +260,59 @@ Return ONLY the JSON array.`,
     // Fall through to basic dedup
   }
 
-  // Fallback: return unique chars as-is
+  // Fallback: return unique chars as-is, preserving any goal/motivation already extracted
   return uniqueChars.slice(0, 20).map((c) => ({
     canonicalName: c.name,
     aliases: [],
     oneSentence: '',
     role: c.role || 'supporting',
+    goal: c.goal || '',
+    motivation: c.motivation || '',
+    conflict: c.conflict || '',
+    epiphany: c.epiphany || '',
   }))
+}
+
+// ─── Layer 3c: Character Relationships ───────────────────────────────────────
+
+/**
+ * Extract character relationships from the merged character list and chapter summaries.
+ * One lightweight AI call on the first 3 chapter summaries.
+ *
+ * @param {Array<{ canonicalName: string }>} characters
+ * @param {string[]} chapterSummaries
+ * @returns {Promise<Array<{ fromName: string, toName: string, label: string, description: string }>>}
+ */
+export async function extractCharacterRelationships(characters, chapterSummaries) {
+  if (characters.length < 2) return []
+
+  const charNames = characters.map((c) => c.canonicalName).join(', ')
+  const summaryText = chapterSummaries.slice(0, 3).join('\n')
+
+  try {
+    const response = await completeWithAi({
+      systemPrompt:
+        'You are a literary analysis assistant. Extract character relationships and return ONLY valid JSON — no markdown, no explanation.',
+      userPrompt: `Given these characters: ${charNames}
+
+And these chapter summaries:
+${summaryText}
+
+Return a JSON array of relationships between characters (max 15):
+[{ "fromName": "Character A", "toName": "Character B", "label": "friend|rival|ally|enemy|romantic|family|mentor|other", "description": "1-sentence description" }]
+
+Only include relationships clearly supported by the text. Return ONLY the JSON array.`,
+      tier: TIERS.LIGHT,
+      maxTokens: 400,
+    })
+
+    const parsed = parseJsonSafe(response, null)
+    if (Array.isArray(parsed)) return parsed.slice(0, 15)
+  } catch {
+    // Not critical — return empty
+  }
+
+  return []
 }
 
 // ─── Layer 3b: Template / Structure Detection ─────────────────────────────────
@@ -314,14 +360,16 @@ The spine keys must match the template's spineFields keys. Return ONLY the JSON.
     })
 
     const parsed = parseJsonSafe(response, null)
-    if (
-      parsed &&
-      typeof parsed.templateId === 'string' &&
-      TEMPLATES[parsed.templateId] &&
-      typeof parsed.confidence === 'number'
-    ) {
+    if (parsed && typeof parsed.templateId === 'string' && typeof parsed.confidence === 'number') {
+      // Normalize: find matching template id even if AI returns e.g. "hero's journey" or "Hero Journey"
+      const VALID_IDS = Object.keys(TEMPLATES)
+      const rawId = parsed.templateId.toLowerCase().replace(/[^a-z_]/g, '')
+      const normalizedId =
+        VALID_IDS.find((id) => rawId === id || rawId.includes(id.replace(/_/g, ''))) ??
+        VALID_IDS.find((id) => parsed.templateId.toLowerCase().includes(id.replace(/_/g, ' '))) ??
+        'snowflake'
       return {
-        templateId: parsed.templateId,
+        templateId: normalizedId,
         confidence: Math.min(1, Math.max(0, parsed.confidence)),
         spine: parsed.spine || {},
       }
@@ -345,7 +393,8 @@ The spine keys must match the template's spineFields keys. Return ONLY the JSON.
  *
  * @typedef {Object} IngestionResult
  * @property {Array<{ title:string, content:string, scenes:string[], chapterSummary:string }>} chapters
- * @property {Array<{ canonicalName:string, aliases:string[], oneSentence:string, role:string }>} characters
+ * @property {Array<{ canonicalName:string, aliases:string[], oneSentence:string, role:string, goal?:string, motivation?:string, conflict?:string, epiphany?:string }>} characters
+ * @property {Array<{ fromName:string, toName:string, label:string, description:string }>} relationships
  * @property {string} templateId
  * @property {number} templateConfidence
  * @property {Record<string,string>} spine
@@ -358,12 +407,15 @@ export async function runIngestionPipeline(text, title = '', onProgress = () => 
   onProgress('analyzing_chapters', 30)
   const analyzedChapters = await analyzeChapters(chapters)
 
-  onProgress('merging_characters', 70)
+  onProgress('merging_characters', 65)
   const charLists = analyzedChapters.map((ch) => ch.characters)
   const characters = await mergeCharacters(charLists)
 
-  onProgress('detecting_structure', 85)
+  onProgress('extracting_relationships', 75)
   const summaries = analyzedChapters.map((ch) => ch.chapterSummary)
+  const relationships = await extractCharacterRelationships(characters, summaries)
+
+  onProgress('detecting_structure', 85)
   const { templateId, confidence, spine } = await detectTemplate(summaries, title)
 
   onProgress('done', 100)
@@ -371,6 +423,7 @@ export async function runIngestionPipeline(text, title = '', onProgress = () => 
   return {
     chapters: analyzedChapters,
     characters,
+    relationships,
     templateId,
     templateConfidence: confidence,
     spine,
@@ -393,6 +446,7 @@ export async function writeIngestionToDb(storyId, result, storyTitle) {
     addChapter,
     addScene,
     addCharacter,
+    addCharacterRelationship,
     saveStory,
     deleteChapter,
     getChapters,
@@ -431,14 +485,38 @@ export async function writeIngestionToDb(storyId, result, storyTitle) {
   })
 
   // Write characters
+  const characterIdByName = new Map()
   for (const char of result.characters) {
-    await addCharacter({
+    const added = await addCharacter({
       storyId,
       name: char.canonicalName,
       oneSentence: char.oneSentence || '',
       role: char.role || '',
+      goal: char.goal || '',
+      motivation: char.motivation || '',
+      conflict: char.conflict || '',
+      epiphany: char.epiphany || '',
       _aiGenerated: true,
     })
+    if (added?.id) characterIdByName.set(char.canonicalName.toLowerCase(), added.id)
+  }
+
+  // Write character relationships (Layer 3c)
+  if (result.relationships?.length) {
+    for (const rel of result.relationships) {
+      const fromId = characterIdByName.get(rel.fromName?.toLowerCase())
+      const toId = characterIdByName.get(rel.toName?.toLowerCase())
+      if (fromId && toId && fromId !== toId) {
+        await addCharacterRelationship({
+          storyId,
+          fromCharId: fromId,
+          toCharId: toId,
+          label: rel.label || 'other',
+          description: rel.description || '',
+          _aiGenerated: true,
+        })
+      }
+    }
   }
 
   // Write chapters + scenes
