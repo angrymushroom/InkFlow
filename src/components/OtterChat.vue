@@ -218,7 +218,8 @@ import {
   saveChatMessage,
   clearChatHistory,
 } from '@/db'
-import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID } from '@/constants/writingTemplates'
+import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID, getTemplateFieldValue } from '@/constants/writingTemplates'
+import { setSpineFieldPatch, getTemplate } from '@/data/templates'
 import { generateSceneProse } from '@/services/generation'
 
 const props = defineProps({
@@ -342,18 +343,23 @@ async function loadStoryContext() {
       computeWelcomeMessage(null)
       return
     }
-    storyTitle.value = truncate(story.oneSentence || t.value('sidebar.untitledStory'), 28)
+    // Use the first filled spine field as the title for any template
+    const titleTemplate =
+      WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ??
+      WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID]
+    const firstFilled = titleTemplate.fields
+      .map((f) => getTemplateFieldValue(story, f))
+      .find((v) => v?.trim())
+    storyTitle.value = truncate(firstFilled || t.value('sidebar.untitledStory'), 28)
 
     const lines = []
 
-    const spineFields = [
-      ['One-sentence summary', story.oneSentence],
-      ['Setup', story.setup],
-      ['Disaster 1', story.disaster1],
-      ['Disaster 2', story.disaster2],
-      ['Disaster 3', story.disaster3],
-      ['Ending', story.ending],
-    ].filter(([, v]) => v?.trim())
+    const activeTemplate =
+      WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ??
+      WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID]
+    const spineFields = activeTemplate.fields
+      .map((f) => [f.label, getTemplateFieldValue(story, f)])
+      .filter(([, v]) => v?.trim())
 
     if (spineFields.length) {
       lines.push('=== STORY SPINE ===')
@@ -409,8 +415,8 @@ async function loadStoryContext() {
     const template =
       WRITING_TEMPLATES[story.templateId ?? story.template ?? DEFAULT_TEMPLATE_ID] ??
       WRITING_TEMPLATES[DEFAULT_TEMPLATE_ID]
-    const filledFields = template.fields.filter((f) => story[f.key]?.trim())
-    const missingFields = template.fields.filter((f) => !story[f.key]?.trim())
+    const filledFields = template.fields.filter((f) => getTemplateFieldValue(story, f)?.trim())
+    const missingFields = template.fields.filter((f) => !getTemplateFieldValue(story, f)?.trim())
     const nextMissingField = missingFields[0] ?? null
     const writtenScenes = (scenes || []).filter((s) => s.content?.trim()).length
     const totalScenes = (scenes || []).length
@@ -570,14 +576,20 @@ async function applySingleAction(actionObj) {
   if (action.type === 'update_spine' && action.fields && typeof action.fields === 'object') {
     const current = await getStoryById(storyId)
     if (!current) throw new Error('No story found')
-    const SPINE_KEYS = ['oneSentence', 'setup', 'disaster1', 'disaster2', 'disaster3', 'ending']
-    const patch = {}
-    for (const key of SPINE_KEYS) {
-      if (action.fields[key] != null) patch[key] = String(action.fields[key])
+    const tpl = getTemplate(current)
+    const validKeys = new Set(tpl.spineFields.map((f) => f.key))
+    let updated = { ...current }
+    const applied = []
+    for (const [key, value] of Object.entries(action.fields)) {
+      if (!validKeys.has(key) || value == null) continue
+      const field = tpl.spineFields.find((f) => f.key === key)
+      const fieldPatch = setSpineFieldPatch(updated, field.prop, String(value))
+      updated = { ...updated, ...fieldPatch }
+      applied.push(key)
     }
-    if (Object.keys(patch).length === 0) throw new Error('No fields to update')
-    await saveStory({ ...current, ...patch })
-    return `Story spine updated (${Object.keys(patch).join(', ')})`
+    if (applied.length === 0) throw new Error('No valid fields to update')
+    await saveStory(updated)
+    return `Story spine updated (${applied.join(', ')})`
   }
   if (action.type === 'upsert_character' && action.name) {
     const name = String(action.name).trim()
@@ -759,8 +771,10 @@ Your role:
 
 ## Available writing templates
 - **snowflake**: Snowflake Method — one sentence → setup → three escalating disasters → ending. Best for plotters who want top-down structure.
-- **save_the_cat**: Save the Cat (Blake Snyder) — logline, Act 1, Act 2A (fun & games), midpoint, Act 2B (all is lost), Act 3. Best for commercial fiction and strongly paced stories.
+- **save_the_cat**: Save the Cat (Blake Snyder) — logline, catalyst (Break Into Two), fun & games, midpoint, all is lost, finale. Best for commercial fiction and strongly paced stories.
 - **story_circle**: Story Circle (Dan Harmon) — 8 segments: you → need → go → search → find → take → return → change. Best for character-driven stories centered on inner transformation.
+- **hero_journey**: Hero's Journey (Campbell/Vogler) — premise, call to adventure, road of trials, supreme ordeal, return with the elixir. Best for epic, mythic, or adventure stories.
+- **kishotenketsu**: 起承转合 (East Asian 4-act structure) — introduction (起), development (承), twist (转), resolution (合). Best for stories that resolve through surprising recontextualization rather than conflict.
 
 Stay focused on the writer's story. If they go off-topic, warmly redirect back to their fiction.
 
@@ -778,7 +792,7 @@ IMPORTANT RULES:
 ### Recommend a writing template
 When you believe a template fits the writer's story better than the current one, emit this. Only emit it once you have enough information about their story to make a confident recommendation.
 <pip-action>{"type":"recommend_template","template":"story_circle","reason":"Your story centers on inner transformation..."}</pip-action>
-template must be one of: snowflake, save_the_cat, story_circle
+template must be one of: snowflake, save_the_cat, story_circle, hero_journey, kishotenketsu
 
 ### Update story spine fields
 Emit this to save one or more spine fields. Use ONLY the field names listed in "Spine field names for update_spine" from the TEMPLATE INFO — different templates have different field names.
