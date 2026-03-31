@@ -539,6 +539,7 @@ export default {
     download: 'T\u00e9l\u00e9charger',
     pdfNote:
       'Une bo\u00eete d’impression s’ouvrira \u2014 choisissez \u00ab Enregistrer en PDF \u00bb dans votre navigateur.',
+    importTitle: 'Importer',
     importBackup: 'Restaurer depuis une sauvegarde',
     importHint:
       'Charge une sauvegarde JSON. Cela remplacera votre projet actuel \u2014 \u00e0 utiliser avec pr\u00e9caution.',
@@ -687,12 +688,13 @@ export default {
   novelImport: {
     buttonLabel: "Importer depuis un texte de roman ✨",
     modalTitle: 'Importer un roman',
-    step1Title: 'Collez ou importez votre roman',
+    step1Title: 'Téléversez votre fichier roman',
     step2Title: 'Vérifier la structure détectée',
     step3Title: "Confirmer l'importation",
-    textareaPlaceholder: 'Collez le texte de votre roman ici…',
-    uploadLabel: 'Ou téléverser un fichier',
+    uploadLabel: 'Choisir un fichier (.txt ou .md)',
+    fileLoaded: 'Fichier chargé — prêt à analyser',
     uploadHint: 'Formats acceptés : .txt et .md',
+    charsLoaded: 'caractères chargés',
     analyzeBtn: 'Analyser',
     analyzing: 'Analyse en cours…',
     backBtn: 'Retour',
@@ -712,7 +714,7 @@ export default {
     confirmTitle: "Ceci remplacera le plan, les personnages et la structure actuels.",
     confirmHint: "Les scènes et personnages existants seront supprimés. Cette action est irréversible.",
     successToast: 'Roman importé avec succès !',
-    errorNoText: 'Veuillez coller du texte ou téléverser un fichier.',
+    errorNoText: 'Veuillez téléverser un fichier.',
     errorTooShort: 'Le texte est trop court pour être analysé (200 caractères minimum).',
     errorGeneric: "Échec de l'importation. Veuillez réessayer.",
     storyTitlePlaceholder: 'Titre du roman (optionnel)',

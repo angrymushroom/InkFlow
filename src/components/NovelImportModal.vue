@@ -25,20 +25,13 @@
             :placeholder="t('novelImport.storyTitlePlaceholder')"
           />
         </div>
-        <div class="form-group">
-          <textarea
-            v-model="rawText"
-            class="novel-textarea"
-            :placeholder="t('novelImport.textareaPlaceholder')"
-            rows="12"
-          />
-        </div>
-        <div class="form-group upload-row">
-          <label class="upload-label">
-            {{ t('novelImport.uploadLabel') }}
+        <div class="form-group upload-area">
+          <label class="upload-btn">
             <input type="file" accept=".txt,.md" class="file-input" @change="onFileUpload" />
+            {{ rawText ? t('novelImport.fileLoaded') : t('novelImport.uploadLabel') }}
           </label>
           <span class="form-hint">{{ t('novelImport.uploadHint') }}</span>
+          <span v-if="rawText" class="file-loaded-hint">✓ {{ charCount }} {{ t('novelImport.charsLoaded') }}</span>
         </div>
         <p v-if="inputError" class="error-msg">{{ inputError }}</p>
       </div>
@@ -193,6 +186,7 @@ const router = useRouter()
 const step = ref(1)
 const rawText = ref('')
 const titleInput = ref('')
+const charCount = computed(() => rawText.value.length.toLocaleString())
 const inputError = ref('')
 const busy = ref(false)
 const progressPct = ref(0)
@@ -375,36 +369,40 @@ const spineEntries = computed(() => {
   font-size: 0.95rem;
 }
 
-.novel-textarea {
-  width: 100%;
-  min-height: 200px;
-  padding: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--bg);
-  color: var(--text);
-  font-size: 0.875rem;
-  font-family: monospace;
-  resize: vertical;
-  line-height: 1.5;
-}
-
-.upload-row {
+.upload-area {
   display: flex;
-  align-items: center;
-  gap: var(--space-3);
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.upload-label {
+.upload-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-3) var(--space-4);
+  border: 2px dashed var(--border);
+  border-radius: var(--radius);
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 0.9375rem;
   color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
+  font-weight: 500;
+  background: var(--bg);
+  transition: border-color 0.15s, background 0.15s;
+  min-height: 80px;
+}
+
+.upload-btn:hover {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
 }
 
 .file-input {
   display: none;
+}
+
+.file-loaded-hint {
+  font-size: 0.8125rem;
+  color: var(--accent);
 }
 
 .error-msg {

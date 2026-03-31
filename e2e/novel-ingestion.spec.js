@@ -22,6 +22,17 @@ function readFixture(name) {
   return readFileSync(join(fixtureDir, name), 'utf-8')
 }
 
+/** Upload a fixture file via the hidden file input in the novel import modal. */
+async function uploadFixture(page, name, content) {
+  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+    name,
+    mimeType: 'text/plain',
+    buffer: Buffer.from(content),
+  })
+  // Wait for the file-loaded hint to confirm FileReader completed
+  await expect(page.locator('.file-loaded-hint')).toBeVisible({ timeout: 5000 })
+}
+
 // ── Universal AI mock ────────────────────────────────────────────────────────
 // Returns the same chapter-analysis shape for EVERY AI call.
 // - analyzeChapter: parses OK → extracts Mira + Callum
@@ -82,9 +93,9 @@ test('fixture 1: explicit chapters detected via regex, imports to DB', async ({ 
 
   await openNovelImportModal(page)
 
-  // Step 1: paste text
-  await page.locator('.novel-textarea').fill(novelText)
+  // Step 1: upload file
   await page.locator('.title-input').fill('The Clockwork Inheritance')
+  await uploadFixture(page, 'novel-explicit-chapters.txt', novelText)
   await page.locator('button', { hasText: /Analyz/i }).click()
 
   // Step 2: preview (two .preview-card elements exist — chapters + characters)
@@ -133,7 +144,7 @@ test('fixture 2: *** separators detected, chapters and characters written to DB'
 
   await openNovelImportModal(page)
 
-  await page.locator('.novel-textarea').fill(novelText)
+  await uploadFixture(page, 'novel-no-chapters.txt', novelText)
   await page.locator('button', { hasText: /Analyz/i }).click()
 
   await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
@@ -170,8 +181,8 @@ test('fixture 3: ACT markers detected, template set on story', async ({ page }) 
 
   await openNovelImportModal(page)
 
-  await page.locator('.novel-textarea').fill(novelText)
   await page.locator('.title-input').fill('The Last Inheritance')
+  await uploadFixture(page, 'novel-acts.txt', novelText)
   await page.locator('button', { hasText: /Analyz/i }).click()
 
   await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
@@ -201,7 +212,11 @@ test('fixture 3: ACT markers detected, template set on story', async ({ page }) 
 
 test('shows error when text is too short', async ({ page }) => {
   await openNovelImportModal(page)
-  await page.locator('.novel-textarea').fill('Too short.')
+  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+    name: 'tiny.txt',
+    mimeType: 'text/plain',
+    buffer: Buffer.from('Too short.'),
+  })
   await page.locator('button', { hasText: /Analyz/i }).click()
   await expect(page.locator('.error-msg')).toBeVisible()
 })
@@ -222,8 +237,8 @@ test('imported chapters appear in outline UI, characters appear on characters pa
   await setupAiMock(page)
 
   await openNovelImportModal(page)
-  await page.locator('.novel-textarea').fill(novelText)
   await page.locator('.title-input').fill('The Clockwork Inheritance')
+  await uploadFixture(page, 'novel-explicit-chapters.txt', novelText)
   await page.locator('button', { hasText: /Analyz/i }).click()
   await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
 
@@ -246,9 +261,9 @@ test('imported chapters appear in outline UI, characters appear on characters pa
 })
 
 // ── Test 7: File upload path ──────────────────────────────────────────────────
-// Tests the FileReader code path: uploading a .txt file populates the textarea.
+// Tests the FileReader code path: uploading a .txt file shows the loaded hint.
 
-test('file upload populates the textarea', async ({ page }) => {
+test('file upload shows loaded hint and auto-populates title', async ({ page }) => {
   const novelText = readFixture('novel-explicit-chapters.txt')
 
   await openNovelImportModal(page)
@@ -260,9 +275,29 @@ test('file upload populates the textarea', async ({ page }) => {
     buffer: Buffer.from(novelText),
   })
 
-  // After FileReader reads the file, the textarea should be populated
-  await expect(page.locator('.novel-textarea')).not.toHaveValue('', { timeout: 5000 })
+  // After FileReader reads the file, the loaded hint and char count should appear
+  await expect(page.locator('.file-loaded-hint')).toBeVisible({ timeout: 5000 })
 
   // Title input should auto-populate from filename (minus extension)
   await expect(page.locator('.title-input')).toHaveValue('my-novel', { timeout: 3000 })
+})
+
+// ── Test 8: Public domain novel fixture ──────────────────────────────────────
+// Uploads a real public-domain novel excerpt (The Time Machine, H.G. Wells)
+// and verifies the modal proceeds past analysis to the preview step.
+
+test('public domain novel (The Time Machine) uploads and reaches preview', async ({ page }) => {
+  const novelText = readFixture('novel-public-domain.txt')
+  await setupAiMock(page)
+
+  await openNovelImportModal(page)
+
+  await page.locator('.title-input').fill('The Time Machine')
+  await uploadFixture(page, 'novel-public-domain.txt', novelText)
+  await page.locator('button', { hasText: /Analyz/i }).click()
+
+  // Should reach step 2 preview with chapters detected
+  await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
+  await expect(page.locator('.preview-card-label').first()).toContainText(/chapter/i)
+  await expect(page.locator('.template-badge')).toBeVisible()
 })

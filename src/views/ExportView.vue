@@ -129,20 +129,26 @@
     </div>
 
     <div class="card card-section">
-      <h2 class="section-title">{{ t('export.importBackup') }}</h2>
-      <div class="form-group">
-        <input type="file" accept=".json,application/json" @change="onFileSelect" />
-        <p class="form-hint" style="margin-top: var(--space-2)">{{ t('export.importHint') }}</p>
-        <p v-if="importError" class="test-message test-error">{{ importError }}</p>
-      </div>
-    </div>
+      <h2 class="section-title">{{ t('export.importTitle') }}</h2>
 
-    <div class="card card-section">
-      <h2 class="section-title">{{ t('novelImport.modalTitle') }}</h2>
-      <p class="form-hint">{{ t('novelImport.step1Title') }}</p>
-      <button class="btn btn-primary novel-import-btn" @click="showNovelImport = true">
-        {{ t('novelImport.buttonLabel') }}
-      </button>
+      <div class="import-sub">
+        <div class="import-sub-label">{{ t('export.importBackup') }}</div>
+        <div class="form-group" style="margin-bottom: 0">
+          <input type="file" accept=".json,application/json" @change="onFileSelect" />
+          <p class="form-hint" style="margin-top: var(--space-2)">{{ t('export.importHint') }}</p>
+          <p v-if="importError" class="test-message test-error">{{ importError }}</p>
+        </div>
+      </div>
+
+      <div class="import-divider"></div>
+
+      <div class="import-sub">
+        <div class="import-sub-label">{{ t('novelImport.modalTitle') }}</div>
+        <p class="form-hint">{{ t('novelImport.uploadHint') }}</p>
+        <button class="btn btn-primary novel-import-btn" @click="showNovelImport = true">
+          {{ t('novelImport.buttonLabel') }}
+        </button>
+      </div>
     </div>
 
     <NovelImportModal v-if="showNovelImport" @close="showNovelImport = false" />
@@ -540,6 +546,20 @@ async function doImport() {
 .backup-nudge {
   margin-top: var(--space-1);
   font-style: italic;
+}
+.import-sub {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.import-sub-label {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  color: var(--text);
+}
+.import-divider {
+  border-top: 1px solid var(--border);
+  margin: var(--space-4) 0;
 }
 .export-format-group {
   display: flex;
