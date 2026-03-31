@@ -1,0 +1,27 @@
+{
+  "description": "Hand-annotated novel corpus for InkFlow eval framework. All texts are public domain from Project Gutenberg.",
+  "novels": [
+    {
+      "id": "pride-and-prejudice",
+      "title": "Pride and Prejudice",
+      "author": "Jane Austen",
+      "source": "Project Gutenberg #1342 (https://www.gutenberg.org/ebooks/1342)",
+      "license": "Public domain",
+      "fixtureScope": "First 3 chapters only (for cost-controlled eval runs)"
+    },
+    {
+      "id": "time-machine",
+      "title": "The Time Machine",
+      "author": "H.G. Wells",
+      "source": "Project Gutenberg #35 (https://www.gutenberg.org/ebooks/35)",
+      "license": "Public domain",
+      "fixtureScope": "First 3 chapters only"
+    }
+  ],
+  "groundTruthSchema": {
+    "title": "Novel title",
+    "templateId": "Expected writing template ID (one of: snowflake, save_the_cat, story_circle, hero_journey, kishotenketsu)",
+    "chapters": [{ "title": "Chapter title as it appears in the text", "index": 0 }],
+    "characters": [{ "name": "Canonical character name", "role": "protagonist|supporting|antagonist|minor" }]
+  }
+}

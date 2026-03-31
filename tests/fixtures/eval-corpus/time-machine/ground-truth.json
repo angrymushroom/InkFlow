@@ -1,0 +1,16 @@
+{
+  "title": "The Time Machine",
+  "author": "H.G. Wells",
+  "templateId": "hero_journey",
+  "chapters": [
+    { "title": "I. Introduction", "index": 0 },
+    { "title": "II. The Machine", "index": 1 },
+    { "title": "III. The Time Traveller Returns", "index": 2 }
+  ],
+  "characters": [
+    { "name": "The Time Traveller", "role": "protagonist" },
+    { "name": "Weena", "role": "supporting" },
+    { "name": "The Narrator", "role": "supporting" }
+  ],
+  "_note": "source.txt should contain Chapters I-III from Project Gutenberg #35. Download from: https://www.gutenberg.org/files/35/35-0.txt"
+}
