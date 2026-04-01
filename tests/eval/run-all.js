@@ -2,8 +2,9 @@
  * Run all eval scripts and output a timestamped JSON results file.
  *
  * Usage:
- *   VITE_RUN_EVALS=true node tests/eval/run-all.js
- *   VITE_RUN_EVALS=true node tests/eval/run-all.js --output tests/eval/results/2026-03-31-baseline.json
+ *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> node tests/eval/run-all.js
+ *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> INKFLOW_PROVIDER=openai node tests/eval/run-all.js
+ *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> node tests/eval/run-all.js --output tests/eval/results/v0.11.0.json
  *
  * This script is NOT run by regular CI (no VITE_RUN_EVALS=true there).
  * It is intended for manual runs and the weekly scheduled eval CI job.
@@ -12,6 +13,24 @@
 if (process.env.VITE_RUN_EVALS !== 'true') {
   console.error('Set VITE_RUN_EVALS=true to run evaluations.')
   process.exit(1)
+}
+
+// Shim localStorage for Node — ai.js reads provider + API key from it.
+// Pass your key via env:  INKFLOW_PROVIDER=gemini INKFLOW_API_KEY=sk-... node run-all.js
+const _store = {}
+if (process.env.INKFLOW_API_KEY) {
+  const provider = process.env.INKFLOW_PROVIDER || 'gemini'
+  const keyMap = { gemini: 'inkflow_ai_gemini_key', openai: 'inkflow_ai_openai_key' }
+  _store['inkflow_ai_provider'] = provider
+  _store[keyMap[provider] || `inkflow_ai_${provider}_key`] = process.env.INKFLOW_API_KEY
+} else {
+  console.error('Set INKFLOW_API_KEY (and optionally INKFLOW_PROVIDER=gemini|openai) to run evals.')
+  process.exit(1)
+}
+global.localStorage = {
+  getItem: k => _store[k] ?? null,
+  setItem: (k, v) => { _store[k] = v },
+  removeItem: k => { delete _store[k] },
 }
 
 import { writeFileSync, mkdirSync, readFileSync } from 'fs'
