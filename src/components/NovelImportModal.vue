@@ -27,10 +27,10 @@
         </div>
         <div class="form-group upload-area">
           <label class="upload-btn">
-            <input type="file" accept=".txt,.md" class="file-input" @change="onFileUpload" />
+            <input type="file" accept=".txt,.md,.epub" class="file-input" @change="onFileUpload" />
             {{ rawText ? t('novelImport.fileLoaded') : t('novelImport.uploadLabel') }}
           </label>
-          <span class="form-hint">{{ t('novelImport.uploadHint') }}</span>
+          <span class="form-hint">{{ t('novelImport.uploadHintWithEpub') }}</span>
           <span v-if="rawText" class="file-loaded-hint">✓ {{ charCount }} {{ t('novelImport.charsLoaded') }}</span>
         </div>
         <p v-if="inputError" class="error-msg">{{ inputError }}</p>
@@ -176,6 +176,7 @@ import { useToast } from '@/composables/useToast'
 import { getCurrentStoryId } from '@/db'
 import { runIngestionPipeline, writeIngestionToDb } from '@/services/novelIngestion'
 import { TEMPLATES } from '@/data/templates'
+import { parseEpub } from '@/services/epubParser'
 
 const emit = defineEmits(['close'])
 
@@ -196,15 +197,32 @@ const result = ref(null)
 
 // ── File upload ──────────────────────────────────────────────────────────────
 
-function onFileUpload(e) {
+async function onFileUpload(e) {
   const file = e.target.files?.[0]
   if (!file) return
+  if (file.name.toLowerCase().endsWith('.epub')) {
+    busy.value = true
+    inputError.value = ''
+    try {
+      rawText.value = await parseEpub(file)
+      if (!titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '')
+    } catch (err) {
+      const msgKey =
+        err?.message === 'epub_invalid'
+          ? 'novelImport.epubInvalid'
+          : err?.message === 'epub_empty'
+            ? 'novelImport.epubEmpty'
+            : null
+      inputError.value = msgKey ? t.value(msgKey) : (err?.message || t.value('novelImport.errorGeneric'))
+    } finally {
+      busy.value = false
+    }
+    return
+  }
   const reader = new FileReader()
   reader.onload = (ev) => {
     rawText.value = ev.target.result || ''
-    if (!titleInput.value) {
-      titleInput.value = file.name.replace(/\.[^.]+$/, '')
-    }
+    if (!titleInput.value) titleInput.value = file.name.replace(/\.[^.]+$/, '')
   }
   reader.readAsText(file, 'utf-8')
 }

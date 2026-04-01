@@ -24,7 +24,7 @@ function readFixture(name) {
 
 /** Upload a fixture file via the hidden file input in the novel import modal. */
 async function uploadFixture(page, name, content) {
-  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+  await page.locator('input[type="file"][accept*=".txt"]').setInputFiles({
     name,
     mimeType: 'text/plain',
     buffer: Buffer.from(content),
@@ -212,7 +212,7 @@ test('fixture 3: ACT markers detected, template set on story', async ({ page }) 
 
 test('shows error when text is too short', async ({ page }) => {
   await openNovelImportModal(page)
-  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+  await page.locator('input[type="file"][accept*=".txt"]').setInputFiles({
     name: 'tiny.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from('Too short.'),
@@ -269,7 +269,7 @@ test('file upload shows loaded hint and auto-populates title', async ({ page }) 
   await openNovelImportModal(page)
 
   // Set the file input directly (simulates user picking a file)
-  await page.locator('input[type="file"][accept=".txt,.md"]').setInputFiles({
+  await page.locator('input[type="file"][accept*=".txt"]').setInputFiles({
     name: 'my-novel.txt',
     mimeType: 'text/plain',
     buffer: Buffer.from(novelText),
@@ -300,4 +300,28 @@ test('public domain novel (The Time Machine) uploads and reaches preview', async
   await expect(page.locator('.preview-card').first()).toBeVisible({ timeout: 15000 })
   await expect(page.locator('.preview-card-label').first()).toContainText(/chapter/i)
   await expect(page.locator('.template-badge')).toBeVisible()
+})
+
+// ── Test 9: EPUB file upload ──────────────────────────────────────────────────
+// Verifies that uploading an .epub file is accepted by the file input.
+// We can't build a real EPUB in Playwright easily, so we verify the accept
+// attribute includes .epub and that an invalid EPUB shows a user-friendly error.
+
+test('EPUB file input is accepted and invalid epub shows error', async ({ page }) => {
+  await openNovelImportModal(page)
+
+  // Verify file input accepts .epub
+  const accept = await page.locator('input[type="file"][accept*=".epub"]').getAttribute('accept')
+  expect(accept).toContain('.epub')
+
+  // Upload a fake (invalid) EPUB — should show epubInvalid error, not crash
+  await page.locator('input[type="file"][accept*=".epub"]').setInputFiles({
+    name: 'test.epub',
+    mimeType: 'application/epub+zip',
+    buffer: Buffer.from('not a real epub'),
+  })
+
+  // Should show an error message (not navigate away or crash)
+  await expect(page.locator('.error-msg')).toBeVisible({ timeout: 5000 })
+  await expect(page.locator('.novel-import-modal')).toBeVisible()
 })
