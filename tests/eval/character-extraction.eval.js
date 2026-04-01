@@ -38,8 +38,14 @@ export async function runCharacterExtractionEval() {
     }
 
     const chapters = await detectChapters(source)
+    console.log(`[character-extraction] ${novel}: detected ${chapters.length} chapter(s)`)
+
     const analyzed = await analyzeChapters(chapters)
+    const rawChars = analyzed.flatMap((c) => c.characters)
+    console.log(`[character-extraction] ${novel}: raw chars from AI: [${rawChars.map(c => c.name).join(', ') || 'none'}]`)
+
     const characters = await mergeCharacters(analyzed.map((c) => c.characters))
+    console.log(`[character-extraction] ${novel}: merged chars: [${characters.map(c => c.canonicalName).join(', ') || 'none'}]`)
 
     const predictedNames = characters.map((c) => c.canonicalName)
     const groundTruthNames = gt.characters.map((c) => c.name)

@@ -61,12 +61,12 @@ console.log('Pre-flight AI check...')
 try {
   const { completeWithAi, TIERS } = await import('../../src/services/ai.js')
   const reply = await completeWithAi({
-    systemPrompt: 'You are a test assistant. Reply with exactly: OK',
-    userPrompt: 'Reply with exactly: OK',
+    systemPrompt: 'You are a test assistant.',
+    userPrompt: 'List two character names in JSON: [{"name":"Alice"},{"name":"Bob"}]. Return ONLY the JSON array.',
     tier: TIERS.LIGHT,
-    maxTokens: 10,
+    maxTokens: 100,
   })
-  console.log(`AI check passed — response: "${reply.slice(0, 40)}"`)
+  console.log(`AI check passed — raw response: ${reply.slice(0, 120)}`)
 } catch (err) {
   console.error(`AI check FAILED: ${err.message}`)
   console.error('Character extraction and template detection will score 0.')
