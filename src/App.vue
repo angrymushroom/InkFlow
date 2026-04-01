@@ -120,9 +120,6 @@
             </template>
             <div v-else class="sidebar-empty-inline">
               <span>{{ t('sidebar.noStories') }}</span>
-              <router-link to="/story" class="sidebar-link" @click="sidebarOpen = false">{{
-                t('sidebar.goToStory')
-              }}</router-link>
             </div>
             <button
               type="button"

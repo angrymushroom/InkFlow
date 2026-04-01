@@ -218,7 +218,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, watch, onMounted } from 'vue'
 import {
   getCharacters,
   addCharacter,
@@ -382,9 +382,13 @@ async function doDelete() {
 
 onMounted(() => {
   load()
-  watch(() => storyStore.activeStoryId, load)
-  watch(() => charactersStore.characters, async () => { await load() }, { deep: true })
 })
+
+// Reload when active story changes (e.g. user switches story)
+watch(() => storyStore.activeStoryId, load)
+
+// Reload when Pip or another component updates characters through the store
+watch(() => charactersStore.characters, () => { load() }, { deep: true })
 </script>
 
 <style scoped>
