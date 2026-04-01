@@ -4,7 +4,7 @@
  * 4-layer pipeline to extract structure from raw novel text:
  *   Layer 1: Chapter detection (regex-first, AI fallback)
  *   Layer 2: Per-chapter analysis (characters, scenes, summary) — up to 5 concurrent LIGHT calls
- *   Layer 3: Global merge (character dedup + structure/template detection)
+ *   Layer 3: Global merge (character dedup + relationship extraction + template detection)
  *   Layer 4: Deferred (extractFactsFromProse, generateSceneSummary triggered on first open)
  */
 
@@ -260,7 +260,7 @@ Return ONLY the JSON array.`,
     // Fall through to basic dedup
   }
 
-  // Fallback: return unique chars as-is, preserving any goal/motivation already extracted
+  // Fallback: return unique chars as-is, preserving any fields already extracted
   return uniqueChars.slice(0, 20).map((c) => ({
     canonicalName: c.name,
     aliases: [],
@@ -273,11 +273,10 @@ Return ONLY the JSON array.`,
   }))
 }
 
-// ─── Layer 3c: Character Relationships ───────────────────────────────────────
+// ─── Layer 3b: Character Relationships ───────────────────────────────────────
 
 /**
  * Extract character relationships from the merged character list and chapter summaries.
- * One lightweight AI call on the first 3 chapter summaries.
  *
  * @param {Array<{ canonicalName: string }>} characters
  * @param {string[]} chapterSummaries
@@ -315,7 +314,7 @@ Only include relationships clearly supported by the text. Return ONLY the JSON a
   return []
 }
 
-// ─── Layer 3b: Template / Structure Detection ─────────────────────────────────
+// ─── Layer 3c: Template / Structure Detection ─────────────────────────────────
 
 const TEMPLATE_DESCRIPTIONS = Object.entries(TEMPLATES)
   .map(([id, t]) => `${id}: ${t.aiDescription}`)

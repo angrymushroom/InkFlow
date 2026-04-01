@@ -58,6 +58,7 @@ src/
 │   ├── FeedbackModal.vue    # User feedback form
 │   ├── ChangelogModal.vue   # What's new modal
 │   ├── AppToast.vue         # Toast notification display
+│   ├── NovelImportModal.vue # Novel import wizard (sidebar entry point)
 │   ├── EntitySuggestionBanner.vue   # Auto-detected entity suggestions
 │   └── ConsistencyWarningBanner.vue # Story consistency alerts
 │
@@ -81,6 +82,16 @@ src/
 │
 ├── db/index.js              # Dexie DB schema and initialization
 ├── services/                # Business logic (AI calls, export, etc.)
+│   ├── ai.js                # LLM provider abstraction (OpenAI/Gemini/DeepSeek/…)
+│   ├── novelIngestion.js    # Novel import pipeline (chapter detect → analyze → merge → DB write)
+│   ├── epubParser.js        # EPUB → plain text extraction (uses JSZip)
+│   ├── generation.js        # Scene prose generation
+│   ├── summarization.js     # Scene/chapter AI summarization
+│   ├── consistency.js       # Story consistency checks
+│   ├── outlineAi.js         # AI outline drafting
+│   ├── retrieval.js         # RAG retrieval helpers
+│   ├── entityExtraction.js  # Auto-detect new characters/ideas from prose
+│   └── pipActions.js        # Pip (AI chat) action handlers
 ├── styles/global.css        # Design tokens + all global CSS
 ├── i18n/index.js            # Vue i18n setup
 ├── locales/                 # Translation JSON files (en, es, fr, de, ...)
@@ -127,7 +138,7 @@ src/
 
 - **Breakpoint**: 768px. Below = mobile layout.
 - **Mobile sidebar**: full-width overlay, toggled via hamburger button.
-- **Sidebar content**: story switcher, chapter/scene outline navigation, search, feedback.
+- **Sidebar content**: story switcher, "Import novel" button, chapter/scene outline navigation, search, feedback.
 - **OtterChat** (`Pip`): slides in from the right as a separate panel.
 
 ---
@@ -206,6 +217,30 @@ All user-facing strings must use `t('key')` via `useI18n()` composable. Translat
 When adding new strings:
 1. Add the key to `src/locales/en.json` first
 2. Run the `add-locale` skill to propagate to all other locale files: `/add-locale`
+
+---
+
+## Novel Import Pipeline
+
+Entry point: sidebar "Import novel" button → `NovelImportModal.vue` → `src/services/novelIngestion.js`.
+
+**4-layer pipeline** (`runIngestionPipeline`):
+
+| Layer | Function | Description |
+|-------|----------|-------------|
+| 1 | `detectChapters` | Regex patterns first; AI fallback if < 2 found |
+| 2 | `analyzeChapters` | Per-chapter: scenes, characters (with goal/motivation/conflict/epiphany), summary — 5 concurrent LIGHT calls |
+| 3a | `mergeCharacters` | Dedup + alias merge across all chapters |
+| 3b | `extractCharacterRelationships` | Relationship graph from merged chars + summaries |
+| 3c | `detectTemplate` | Match to a spine template; fill spine fields |
+| Write | `writeIngestionToDb` | Clear old data, write new story spine/chars/chapters/scenes/relationships |
+
+**Import flow** in `NovelImportModal.vue`:
+1. User uploads `.txt`, `.md`, or `.epub` — EPUB parsed by `src/services/epubParser.js` (JSZip-based)
+2. `runIngestionPipeline` runs → preview shown (chapters, characters, template)
+3. On confirm: `storyStore.create()` makes a **new** story (existing stories untouched), then `writeIngestionToDb` writes everything
+
+**Test fixtures**: `tests/fixtures/test-novel.txt` — 3-chapter synthetic mystery with named characters, used by `src/services/__tests__/novelIngestion.test.js`.
 
 ---
 
