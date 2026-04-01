@@ -51,7 +51,7 @@ jobs:
 
       # Run the eval pipeline — writes a timestamped JSON to tests/eval/results/.
       - name: Run eval pipeline
-        run: node tests/eval/run-all.js
+        run: node --import ./tests/eval/node-register.js tests/eval/run-all.js
         continue-on-error: true   # A threshold failure records the drop but never blocks deploy.
         env:
           VITE_RUN_EVALS: 'true'

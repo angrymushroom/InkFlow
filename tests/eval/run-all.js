@@ -1,10 +1,10 @@
 /**
  * Run all eval scripts and output a timestamped JSON results file.
  *
- * Usage:
- *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> node tests/eval/run-all.js
- *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> INKFLOW_PROVIDER=openai node tests/eval/run-all.js
- *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> node tests/eval/run-all.js --output tests/eval/results/v0.11.0.json
+ * Usage (--import flag resolves Vite's @/ alias in Node):
+ *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> node --import ./tests/eval/node-register.js tests/eval/run-all.js
+ *   VITE_RUN_EVALS=true INKFLOW_API_KEY=<key> INKFLOW_PROVIDER=openai node --import ./tests/eval/node-register.js tests/eval/run-all.js
+ *   ... node --import ./tests/eval/node-register.js tests/eval/run-all.js --output tests/eval/results/v0.11.0.json
  *
  * This script is NOT run by regular CI (no VITE_RUN_EVALS=true there).
  * It is intended for manual runs and the weekly scheduled eval CI job.
