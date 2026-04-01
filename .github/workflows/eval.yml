@@ -12,6 +12,8 @@ on:
 
 jobs:
   eval:
+    permissions:
+      contents: write   # needed to push eval results back to main
     # Only run when CI succeeded and the API key secret is configured.
     if: >
       github.event.workflow_run.conclusion == 'success' &&
