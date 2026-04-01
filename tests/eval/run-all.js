@@ -14,7 +14,7 @@ if (process.env.VITE_RUN_EVALS !== 'true') {
   process.exit(1)
 }
 
-import { writeFileSync, mkdirSync } from 'fs'
+import { writeFileSync, mkdirSync, readFileSync } from 'fs'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { runChapterDetectionEval } from './chapter-detection.eval.js'
@@ -23,6 +23,10 @@ import { runTemplateDetectionEval } from './template-detection.eval.js'
 import { checkThresholds } from './metrics.js'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+
+// Read app version from package.json
+const pkgPath = resolve(__dirname, '../../package.json')
+const appVersion = JSON.parse(readFileSync(pkgPath, 'utf-8')).version
 
 const outputArg = process.argv.indexOf('--output')
 const outputPath =
@@ -37,6 +41,7 @@ const charResult = await runCharacterExtractionEval()
 const templateResult = await runTemplateDetectionEval()
 
 const summary = {
+  version: appVersion,
   runAt: new Date().toISOString(),
   chapterDetection: { f1: chapterResult.f1, details: chapterResult.results },
   characterExtraction: {
