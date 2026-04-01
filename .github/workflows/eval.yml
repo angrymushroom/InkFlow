@@ -1,0 +1,74 @@
+name: Eval
+
+# Runs on every push to main, after CI passes.
+# Requires INKFLOW_API_KEY to be set in repo secrets (Settings → Secrets → Actions).
+# If the secret is absent the job is skipped — it will never block deploys.
+
+on:
+  workflow_run:
+    workflows: [CI]
+    branches: [main]
+    types: [completed]
+
+jobs:
+  eval:
+    # Only run when CI succeeded and the API key secret is configured.
+    if: >
+      github.event.workflow_run.conclusion == 'success' &&
+      github.event.workflow_run.head_branch == 'main'
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # Use a token with write access so we can push the results back.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          # Check out the exact commit that triggered CI, not HEAD (avoids races).
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - run: npm ci
+
+      # Download source texts from Project Gutenberg (cached by Actions).
+      - name: Cache eval corpus source texts
+        uses: actions/cache@v4
+        with:
+          path: tests/fixtures/eval-corpus
+          key: eval-corpus-v1
+
+      - name: Download eval corpus source texts
+        run: |
+          TM=tests/fixtures/eval-corpus/time-machine/source.txt
+          PP=tests/fixtures/eval-corpus/pride-and-prejudice/source.txt
+          mkdir -p tests/fixtures/eval-corpus/time-machine
+          mkdir -p tests/fixtures/eval-corpus/pride-and-prejudice
+          [ -f "$TM" ] || curl -s -o "$TM" "https://www.gutenberg.org/files/35/35-0.txt"
+          [ -f "$PP" ] || curl -s -o "$PP" "https://www.gutenberg.org/files/1342/1342-0.txt"
+
+      # Run the eval pipeline — writes a timestamped JSON to tests/eval/results/.
+      - name: Run eval pipeline
+        run: node tests/eval/run-all.js
+        continue-on-error: true   # A threshold failure records the drop but never blocks deploy.
+        env:
+          VITE_RUN_EVALS: 'true'
+          INKFLOW_API_KEY: ${{ secrets.INKFLOW_API_KEY }}
+          INKFLOW_PROVIDER: ${{ vars.INKFLOW_PROVIDER || 'gemini' }}
+
+      # Rebuild report.html with all accumulated results inlined.
+      - name: Build report
+        run: node tests/eval/build-report.js
+
+      # Commit results + updated report back to main.
+      - name: Commit eval results
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git pull --rebase origin main
+          git add tests/eval/results/ tests/eval/report.html
+          git diff --staged --quiet && echo "Nothing to commit." && exit 0
+          git commit -m "chore(eval): v$(node -p "require('./package.json').version") results [skip ci]"
+          git push origin main

@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>InkFlow Eval Report</title>
+<!-- Injected by build-report.js — do not edit this block manually -->
+<script id="eval-data">window.EVAL_HISTORY=null;</script>
 <style>
   :root {
     --bg: #0f0f13;
@@ -621,6 +623,23 @@ window.addEventListener('resize', () => {
     renderChart(sorted)
   }
 })
+
+// ── Auto-load injected history (set by build-report.js in CI) ─────────────────
+if (Array.isArray(window.EVAL_HISTORY) && window.EVAL_HISTORY.length) {
+  window.EVAL_HISTORY.forEach(data => {
+    runs.push({
+      version:       data.version || 'unknown',
+      runAt:         data.runAt   || new Date(0).toISOString(),
+      chapterF1:     data.chapterDetection?.f1              ?? null,
+      charRecall:    data.characterExtraction?.recall       ?? null,
+      charPrecision: data.characterExtraction?.precision    ?? null,
+      charF1:        data.characterExtraction?.f1           ?? null,
+      templateAcc:   data.templateDetection?.accuracy      ?? null,
+      _file:         `v${data.version || '?'} · ${(data.runAt || '').slice(0,10)}`,
+    })
+  })
+  render()
+}
 </script>
 </body>
 </html>

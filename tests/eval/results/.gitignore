@@ -1,3 +1,2 @@
-# Eval result JSON files are not committed — they accumulate locally across runs.
-# Use report.html to visualize them.
-*.json
+# Result JSON files ARE committed — CI adds one per run and rebuilds report.html.
+# Nothing to ignore here.
