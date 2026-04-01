@@ -55,6 +55,25 @@ const outputPath =
 
 console.log('\n=== InkFlow Eval Framework ===\n')
 
+// Pre-flight: verify AI is reachable before running evals.
+// If this fails, character/template evals will be all-zero — surface the error early.
+console.log('Pre-flight AI check...')
+try {
+  const { completeWithAi, TIERS } = await import('../../src/services/ai.js')
+  const reply = await completeWithAi({
+    systemPrompt: 'You are a test assistant. Reply with exactly: OK',
+    userPrompt: 'Reply with exactly: OK',
+    tier: TIERS.LIGHT,
+    maxTokens: 10,
+  })
+  console.log(`AI check passed — response: "${reply.slice(0, 40)}"`)
+} catch (err) {
+  console.error(`AI check FAILED: ${err.message}`)
+  console.error('Character extraction and template detection will score 0.')
+  console.error('Fix: verify INKFLOW_API_KEY and INKFLOW_PROVIDER are correct.')
+}
+console.log()
+
 const chapterResult = await runChapterDetectionEval()
 const charResult = await runCharacterExtractionEval()
 const templateResult = await runTemplateDetectionEval()
