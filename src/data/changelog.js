@@ -8,10 +8,52 @@
  * CHANGELOG_HISTORY — full version history; internal reference only, not rendered in the app
  */
 
-export const APP_VERSION = '0.10.0'
+export const APP_VERSION = '0.11.0'
 
 // Shown in the app — current release only.
 export const CHANGELOG = [
+  {
+    version: '0.11.0',
+    date: '2026-04-01',
+    changes: [
+      {
+        type: 'feat',
+        text: 'EPUB import — upload .epub files directly; the parser extracts prose from all spine items automatically',
+      },
+      {
+        type: 'feat',
+        text: 'Novel import now extracts character depth — goal, motivation, conflict, and epiphany are populated for each character',
+      },
+      {
+        type: 'feat',
+        text: 'Character relationship graph built automatically during import — rival, ally, family, and other relationship types',
+      },
+      {
+        type: 'feat',
+        text: 'Story progress dashboard on the Story page — word counts, scene stats, and chapter completion at a glance',
+      },
+      {
+        type: 'feat',
+        text: "Pip now gives template-aware coaching — advice is tailored to your chosen story structure (Save the Cat, Hero's Journey, etc.)",
+      },
+      {
+        type: 'fix',
+        text: 'Fixed DB version error that caused Outline and Write pages to crash on first load for some users',
+      },
+      {
+        type: 'fix',
+        text: 'Example story now seeds correctly on first visit after a failed earlier attempt',
+      },
+      {
+        type: 'fix',
+        text: 'Characters tab no longer locks navigation after switching stories',
+      },
+    ],
+  },
+]
+
+// Full version history — internal reference, not used in the UI.
+export const CHANGELOG_HISTORY = [
   {
     version: '0.10.0',
     date: '2026-03-31',
@@ -30,10 +72,6 @@ export const CHANGELOG = [
       },
     ],
   },
-]
-
-// Full version history — internal reference, not used in the UI.
-export const CHANGELOG_HISTORY = [
   {
     version: '0.9.0',
     date: '2026-03-27',

@@ -19,7 +19,7 @@ InkFlow (branded as "OtterFlow" in UI) is a browser-based novel-writing assistan
 | Router | Vue Router 4 (hash history) |
 | State | Pinia 3 |
 | Database | Dexie 3 (IndexedDB wrapper) |
-| i18n | Vue i18n 9 |
+| i18n | Custom `useI18n` composable (CSP-safe, no vue-i18n) |
 | Unit tests | Vitest |
 | E2E tests | Playwright |
 | Styling | Custom CSS with design tokens (no Tailwind, no component library) |
@@ -70,7 +70,7 @@ src/
 │   └── unsaved.js           # Dirty state for navigation guards
 │
 ├── composables/             # Vue composition utilities
-│   ├── useI18n.js           # Thin wrapper around vue-i18n
+│   ├── useI18n.js           # CSP-safe i18n composable (no vue-i18n — see Known Architectural Notes)
 │   ├── useTheme.js          # Theme (light/dark/system) management
 │   ├── useIdeaTypes.js      # Built-in + custom idea type logic
 │   ├── useOutline.js        # Outline data utilities
@@ -93,8 +93,7 @@ src/
 │   ├── entityExtraction.js  # Auto-detect new characters/ideas from prose
 │   └── pipActions.js        # Pip (AI chat) action handlers
 ├── styles/global.css        # Design tokens + all global CSS
-├── i18n/index.js            # Vue i18n setup
-├── locales/                 # Translation JSON files (en, es, fr, de, ...)
+├── locales/                 # Translation JS files (en.js, es.js, fr.js, zh.js) + index.js
 ├── utils/                   # Utility functions
 ├── constants/               # App-wide constants
 ├── data/                    # Static data (story templates, built-in idea types)
@@ -212,10 +211,12 @@ When adding a new entity type:
 
 ## i18n
 
-All user-facing strings must use `t('key')` via `useI18n()` composable. Translation files are in `src/locales/*.json`.
+All user-facing strings must use `t('key')` via `useI18n()` composable (`src/composables/useI18n.js`). Translation files are in `src/locales/*.js` (plain JS objects, not JSON — avoids CSP issues with the vue-i18n runtime compiler).
+
+**Do NOT install vue-i18n.** Its runtime compiler calls `new Function()`, which is blocked by the production Content-Security-Policy and causes a blank page. The custom composable calls `getMessage(locale, key)` directly and is the only viable path.
 
 When adding new strings:
-1. Add the key to `src/locales/en.json` first
+1. Add the key to `src/locales/en.js` first
 2. Run the `add-locale` skill to propagate to all other locale files: `/add-locale`
 
 ---
@@ -313,9 +314,41 @@ Defined in `.github/workflows/`:
 
 ---
 
+## AI Quality Eval Framework
+
+Offline evaluation suite for the ingestion pipeline. Lives in `tests/eval/` — **not** run by regular CI (too slow/expensive).
+
+```
+tests/eval/
+├── metrics.js                    # Pure functions: F1, ROUGE-L, fuzzyMatch, threshold checks
+├── chapter-detection.eval.js     # Precision/recall for detectChapters()
+├── character-extraction.eval.js  # Full detect→analyze→merge pipeline character accuracy
+├── template-detection.eval.js    # Template classification accuracy
+├── run-all.js                    # Orchestrator — outputs JSON to tests/eval/results/
+├── compare.js                    # Regression diff between two result JSON files (fails if any metric drops >5%)
+└── __tests__/metrics.test.js     # 24 unit tests for pure metric functions (run in regular CI)
+
+tests/fixtures/eval-corpus/
+├── corpus-manifest.json          # Ground-truth schema documentation
+├── pride-and-prejudice/ground-truth.json
+└── time-machine/ground-truth.json
+```
+
+To run evals (requires `VITE_RUN_EVALS=true` and an AI API key):
+```bash
+VITE_RUN_EVALS=true node tests/eval/run-all.js
+# Compare two result files for regression:
+node tests/eval/compare.js tests/eval/results/baseline.json tests/eval/results/new.json
+```
+
+Source texts are not committed (gitignored). See `_note` in each `ground-truth.json` for Project Gutenberg download links.
+
+---
+
 ## Known Architectural Notes
 
 - **Hash routing**: The app uses `createWebHashHistory()`, so URLs look like `/#/ideas`. This is intentional for static hosting compatibility.
 - **`ExportView.vue`** is the Settings page (named before settings was expanded beyond export).
 - **Sidebar** is context-aware: on `/outline` it emits scroll events; on `/write` it renders router-links to scene editors.
 - **Pip (🦦)**: The AI chat assistant. The `OtterChat.vue` component manages its own conversation state. `pipBadge` in `App.vue` shows a dot indicator for unread messages.
+- **vue-i18n is NOT installed and must NOT be added.** Its runtime compiler calls `new Function()`, which is blocked by the production CSP and causes a blank white page. Use the custom `useI18n.js` composable exclusively.
