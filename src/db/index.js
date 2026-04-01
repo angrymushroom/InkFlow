@@ -118,6 +118,24 @@ db.version(6).stores({
   chat_messages: '++id, storyId, createdAt',
 })
 
+// v7: RAG foundation tables + userId indexes on stories and idea_custom_types.
+db.version(7).stores({
+  story: 'id, updatedAt',
+  stories: 'id, updatedAt, createdAt, userId',
+  ideas: 'id, storyId, type, createdAt',
+  characters: 'id, storyId, createdAt',
+  chapters: 'id, storyId, order, createdAt',
+  scenes: 'id, chapterId, order, createdAt',
+  idea_custom_types: 'id, userId, createdAt',
+  story_facts: 'id, storyId, factType, createdAt',
+  character_relationships: 'id, storyId, fromCharId, toCharId, createdAt',
+  chat_messages: '++id, storyId, createdAt',
+  embeddings: 'id, entityType, entityId, storyId, model, createdAt',
+  character_states: 'id, storyId, characterId, sceneId, createdAt',
+  plot_decisions: 'id, storyId, sceneId, characterId, createdAt',
+  source_chunks: 'id, storyId, chunkIndex, createdAt',
+})
+
 function createStorageError(message, cause) {
   const err = new Error(message)
   err.code = 'STORAGE_ERROR'
@@ -656,10 +674,9 @@ export async function seedExampleStoryOnce(locale = 'en') {
     const existing = await db.stories.get(EXAMPLE_STORY_ID)
     if (!existing) await insertExampleStory(locale)
     setCurrentStoryId(EXAMPLE_STORY_ID)
-  } catch (_) {
-    // Non-fatal — app works without the example story
-  } finally {
     localStorage.setItem(EXAMPLE_SEEDED_KEY, '1')
+  } catch (_) {
+    // Non-fatal — will retry on next visit (key not set on failure)
   }
 }
 
