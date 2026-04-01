@@ -27,8 +27,11 @@ export async function runCharacterExtractionEval() {
 
     let source, gt
     try {
-      source = readFileSync(sourcePath, 'utf-8')
       gt = JSON.parse(readFileSync(gtPath, 'utf-8'))
+      const resolvedSource = gt._sourceFile
+        ? resolve(dirname(gtPath), gt._sourceFile)
+        : sourcePath
+      source = readFileSync(resolvedSource, 'utf-8')
     } catch {
       console.warn(`[character-extraction] Skipping ${novel} — fixture files not found`)
       continue

@@ -35,21 +35,7 @@ jobs:
 
       - run: npm ci
 
-      # Download source texts from Project Gutenberg (cached by Actions).
-      - name: Cache eval corpus source texts
-        uses: actions/cache@v4
-        with:
-          path: tests/fixtures/eval-corpus
-          key: eval-corpus-v1
-
-      - name: Download eval corpus source texts
-        run: |
-          TM=tests/fixtures/eval-corpus/time-machine/source.txt
-          PP=tests/fixtures/eval-corpus/pride-and-prejudice/source.txt
-          mkdir -p tests/fixtures/eval-corpus/time-machine
-          mkdir -p tests/fixtures/eval-corpus/pride-and-prejudice
-          [ -f "$TM" ] || curl -s -o "$TM" "https://www.gutenberg.org/files/35/35-0.txt"
-          [ -f "$PP" ] || curl -s -o "$PP" "https://www.gutenberg.org/files/1342/1342-0.txt"
+      # Source texts are in-repo fixtures — no download needed.
 
       # Run the eval pipeline — writes a timestamped JSON to tests/eval/results/.
       - name: Run eval pipeline

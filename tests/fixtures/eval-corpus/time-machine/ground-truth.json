@@ -2,6 +2,8 @@
   "title": "The Time Machine",
   "author": "H.G. Wells",
   "templateId": "hero_journey",
+  "_sourceFile": "../../../../e2e/fixtures/novel-public-domain.txt",
+  "_note": "Public-domain excerpt — source is already in the repo at e2e/fixtures/novel-public-domain.txt, no download needed. Chapter headings use ' I.' format (leading space) so regex won't find them; AI fallback is expected.",
   "chapters": [
     { "title": "I. Introduction", "index": 0 },
     { "title": "II. The Machine", "index": 1 },
@@ -9,8 +11,8 @@
   ],
   "characters": [
     { "name": "The Time Traveller", "role": "protagonist" },
-    { "name": "Weena", "role": "supporting" },
-    { "name": "The Narrator", "role": "supporting" }
-  ],
-  "_note": "source.txt should contain Chapters I-III from Project Gutenberg #35. Download from: https://www.gutenberg.org/files/35/35-0.txt"
+    { "name": "The Narrator", "role": "supporting" },
+    { "name": "Filby", "role": "supporting" },
+    { "name": "The Psychologist", "role": "supporting" }
+  ]
 }
