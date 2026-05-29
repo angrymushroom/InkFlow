@@ -282,10 +282,7 @@ export async function generateSceneProse({ storyId, sceneId }) {
   })
 
   const draftTrimmed = (draft || '').trim()
-  if (!draftTrimmed) {
-    await updateScene(sceneId, { content: '' })
-    return ''
-  }
+  if (!draftTrimmed) return ''
 
   // Agent 2 + 3: critic loop — only when user has opted into Best quality
   if (getQualityBias() !== QUALITY_BIAS.BEST) {
@@ -311,8 +308,8 @@ export async function generateSceneProse({ storyId, sceneId }) {
 
   const critiqueTrimmed = (critique || '').trim()
 
-  // Skip revision if the editor approved the draft
-  if (!critiqueTrimmed || critiqueTrimmed === 'APPROVED') {
+  // Skip revision if the editor approved the draft (case-insensitive, strip trailing punctuation)
+  if (!critiqueTrimmed || critiqueTrimmed.toUpperCase().replace(/[^A-Z]/g, '') === 'APPROVED') {
     await updateScene(sceneId, { content: draftTrimmed })
     return draftTrimmed
   }

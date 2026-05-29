@@ -769,20 +769,20 @@ async function onAnalyzeOutline() {
   const storyId = contextStoryId.value || getCurrentStoryId()
   if (!storyId) return
   isLoading.value = true
-  const msg = { role: 'assistant', content: '', actions: [], streaming: true }
-  messages.value.push(msg)
+  messages.value.push({ role: 'assistant', content: '', actions: [], streaming: true })
+  const msgIdx = messages.value.length - 1
   await nextTick()
   await scrollToBottom()
   try {
     const result = await analyzeOutlineStructure(storyId)
-    msg.content = result
-    msg.actions = []
-    delete msg.streaming
-    await saveChatMessage(storyId, 'assistant', result)
+    messages.value[msgIdx].content = result
+    messages.value[msgIdx].actions = []
+    delete messages.value[msgIdx].streaming
+    saveChatMessage(storyId, 'assistant', result).catch(() => {})
   } catch (e) {
-    msg.content = pipErrorMessage(e)
-    msg.actions = []
-    delete msg.streaming
+    messages.value[msgIdx].content = pipErrorMessage(e)
+    messages.value[msgIdx].actions = []
+    delete messages.value[msgIdx].streaming
   } finally {
     isLoading.value = false
     await nextTick()

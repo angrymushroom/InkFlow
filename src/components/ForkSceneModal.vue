@@ -27,6 +27,8 @@
         />
       </div>
 
+      <p v-if="createError" class="fork-error">{{ createError }}</p>
+
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost" @click="$emit('close')">
           {{ t('fork.cancel') }}
@@ -59,15 +61,17 @@ const emit = defineEmits(['close', 'created'])
 const { t } = useI18n()
 const description = ref('')
 const creating = ref(false)
+const createError = ref('')
 
 watch(
   () => props.show,
-  (val) => { if (!val) description.value = '' }
+  (val) => { if (!val) { description.value = ''; createError.value = '' } }
 )
 
 async function onCreate() {
   if (!props.scene || !description.value.trim() || creating.value) return
   creating.value = true
+  createError.value = ''
   try {
     const newScene = await addScene({
       chapterId: props.scene.chapterId,
@@ -77,6 +81,8 @@ async function onCreate() {
       forkDescription: description.value.trim(),
     })
     emit('created', newScene.id)
+  } catch (e) {
+    createError.value = e?.message || 'Failed to create fork.'
   } finally {
     creating.value = false
   }
@@ -140,6 +146,12 @@ async function onCreate() {
   width: 100%;
   resize: vertical;
   min-height: 80px;
+}
+
+.fork-error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin: var(--space-3) 0 0;
 }
 
 .modal-actions {

@@ -16,7 +16,7 @@ import {
   getStoryFacts,
   getOpenThreads,
 } from '@/db'
-import { TEMPLATES, getTemplate, setSpineFieldPatch, getSpineFieldValue } from '@/data/templates'
+import { TEMPLATES, getTemplate, setSpineFieldPatch, getSpineFieldValue, buildSpineSummary } from '@/data/templates'
 import { useStoryStore } from '@/stores/story.js'
 import { useOutlineStore } from '@/stores/outline.js'
 import { useCharactersStore } from '@/stores/characters.js'
@@ -273,16 +273,10 @@ export async function analyzeOutlineStructure(storyId) {
   const lines = []
 
   if (story) {
-    const tpl = getTemplate(story)
-    const spineLines = tpl.spineFields
-      .map((f) => {
-        const val = getSpineFieldValue(story, f.prop)
-        return val.trim() ? `${f.key}: ${val.slice(0, 300)}` : null
-      })
-      .filter(Boolean)
-    if (spineLines.length) {
+    const spineSummary = buildSpineSummary(story)
+    if (spineSummary !== '(Story spine not filled yet)') {
       lines.push('=== STORY SPINE ===')
-      lines.push(...spineLines)
+      lines.push(spineSummary)
     }
   }
 

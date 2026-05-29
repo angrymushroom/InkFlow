@@ -331,6 +331,7 @@ const saveTimeout = ref(null)
 const beforeUnloadHandler = ref(null)
 const rewriteInstructions = ref('')
 const rewriteResult = ref('')
+const rewriteSnap = ref(null)
 const rewritingProse = ref(false)
 const generatingScene = ref(false)
 
@@ -410,7 +411,9 @@ function clearSelection() {
 }
 
 function openPopover(which) {
-  if (which !== 'rewrite') { rewriteResult.value = ''; rewriteInstructions.value = '' }
+  rewriteResult.value = ''
+  rewriteInstructions.value = ''
+  rewriteSnap.value = null
   popover.value = which
   if (which === 'character') characterAction.value = 'new'
   if (which === 'outline') outlineAction.value = 'scene'
@@ -502,17 +505,23 @@ async function onRewriteProse() {
   if (!selection.value.active || rewritingProse.value) return
   rewritingProse.value = true
   saveError.value = ''
+  // Snapshot indices now — before the async call — so applyRewrite is safe even
+  // if the textarea is somehow mutated while the AI call is in flight.
+  const snapStart = selection.value.start
+  const snapEnd = selection.value.end
+  const snapText = selection.value.text
   try {
     const fullText = content.value || ''
-    const before = fullText.slice(Math.max(0, selection.value.start - 200), selection.value.start)
-    const after = fullText.slice(selection.value.end, selection.value.end + 200)
+    const before = fullText.slice(Math.max(0, snapStart - 200), snapStart)
+    const after = fullText.slice(snapEnd, snapEnd + 200)
     const result = await rewriteProse({
-      selectedText: selection.value.text,
+      selectedText: snapText,
       instructions: rewriteInstructions.value,
       contextBefore: before,
       contextAfter: after,
     })
     rewriteResult.value = (result || '').trim()
+    rewriteSnap.value = { start: snapStart, end: snapEnd }
     if (!rewriteResult.value) saveError.value = 'Rewrite failed'
   } catch (e) {
     saveError.value = friendlyAiError(e)
@@ -522,11 +531,13 @@ async function onRewriteProse() {
 }
 
 function applyRewrite() {
-  if (!rewriteResult.value || !selection.value.active) return
+  const snap = rewriteSnap.value
+  if (!rewriteResult.value || !snap) return
   const full = content.value || ''
-  content.value = full.slice(0, selection.value.start) + rewriteResult.value + full.slice(selection.value.end)
+  content.value = full.slice(0, snap.start) + rewriteResult.value + full.slice(snap.end)
   rewriteResult.value = ''
   rewriteInstructions.value = ''
+  rewriteSnap.value = null
   popover.value = null
   clearSelection()
 }
@@ -534,8 +545,10 @@ function applyRewrite() {
 function cancelRewrite() {
   rewriteResult.value = ''
   rewriteInstructions.value = ''
+  rewriteSnap.value = null
   saveError.value = ''
   popover.value = null
+  clearSelection()
 }
 
 async function load() {
