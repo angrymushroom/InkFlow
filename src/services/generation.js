@@ -10,7 +10,7 @@ import {
   getCharacterStateMap,
   updateScene,
 } from '@/db'
-import { completeWithAi, TIERS, CONTEXTS, tierForContext } from '@/services/ai'
+import { completeWithAi, TIERS, CONTEXTS, tierForContext, getQualityBias, QUALITY_BIAS } from '@/services/ai'
 import { buildSpineSummary } from '@/data/templates'
 import { selectRelevantScenes } from '@/services/retrieval'
 
@@ -271,16 +271,75 @@ export async function generateSceneProse({ storyId, sceneId }) {
     .filter(Boolean)
     .join('\n\n')
 
-  const text = await completeWithAi({
+  const proseTier = tierForContext(CONTEXTS.SCENE_PROSE)
+
+  // Agent 1: generate draft
+  const draft = await completeWithAi({
     systemPrompt,
     userPrompt,
-    tier: tierForContext(CONTEXTS.SCENE_PROSE),
+    tier: proseTier,
     maxTokens: SCENE_GENERATION_MAX_TOKENS,
   })
 
-  const trimmed = (text || '').trim()
-  if (trimmed) await updateScene(sceneId, { content: trimmed })
-  return trimmed
+  const draftTrimmed = (draft || '').trim()
+  if (!draftTrimmed) {
+    await updateScene(sceneId, { content: '' })
+    return ''
+  }
+
+  // Agent 2 + 3: critic loop — only when user has opted into Best quality
+  if (getQualityBias() !== QUALITY_BIAS.BEST) {
+    await updateScene(sceneId, { content: draftTrimmed })
+    return draftTrimmed
+  }
+
+  const critiqueSystemPrompt =
+    'You are a fiction editor reviewing a scene draft. Identify 2–3 specific, concrete problems only — weak opening/closing hook, continuity break with prior scene, character voice inconsistency, or pacing issue. Be terse: one sentence per problem, no praise, no preamble. If the draft is strong, output the single word: APPROVED'
+
+  const critiqueUserPrompt = [
+    context,
+    '---',
+    `Scene draft:\n${draftTrimmed}`,
+  ].join('\n\n')
+
+  const critique = await completeWithAi({
+    systemPrompt: critiqueSystemPrompt,
+    userPrompt: critiqueUserPrompt,
+    tier: tierForContext(CONTEXTS.SCENE_CRITIQUE),
+    maxTokens: 250,
+  })
+
+  const critiqueTrimmed = (critique || '').trim()
+
+  // Skip revision if the editor approved the draft
+  if (!critiqueTrimmed || critiqueTrimmed === 'APPROVED') {
+    await updateScene(sceneId, { content: draftTrimmed })
+    return draftTrimmed
+  }
+
+  // Agent 3: revise incorporating the critique
+  const revisedUserPrompt = [
+    context,
+    '---',
+    'Write the prose for the current scene only.',
+    continuityInstruction,
+    closingInstruction,
+    `Editor notes on previous draft (address each point):\n${critiqueTrimmed}`,
+    'Output only the improved scene prose.',
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+
+  const revised = await completeWithAi({
+    systemPrompt,
+    userPrompt: revisedUserPrompt,
+    tier: proseTier,
+    maxTokens: SCENE_GENERATION_MAX_TOKENS,
+  })
+
+  const finalTrimmed = (revised || '').trim() || draftTrimmed
+  await updateScene(sceneId, { content: finalTrimmed })
+  return finalTrimmed
 }
 
 /**

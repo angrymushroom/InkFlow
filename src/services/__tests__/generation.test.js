@@ -25,10 +25,13 @@ vi.mock('@/db', () => ({
 vi.mock('@/services/ai', () => ({
   completeWithAi: vi.fn(() => Promise.resolve('Generated scene prose.')),
   TIERS: { LIGHT: 'light', ADVANCED: 'advanced' },
+  QUALITY_BIAS: { FASTER: 'faster', BEST: 'best' },
+  getQualityBias: vi.fn(() => 'faster'),
   CONTEXTS: {
     CONSISTENCY: 'consistency',
     CHAT: 'chat',
     SCENE_PROSE: 'scene_prose',
+    SCENE_CRITIQUE: 'scene_critique',
     EXPAND_SHORT: 'expand_short',
     OUTLINE_DRAFT_FULL: 'outline_draft_full',
     OUTLINE_DRAFT_SECTION: 'outline_draft_section',
