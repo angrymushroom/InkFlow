@@ -206,12 +206,20 @@
                     "
                   ></span>
                   <div class="outline-scene-info">
-                    <span class="outline-scene-title">{{
-                      scene.title || t('outline.untitledScene')
-                    }}</span>
+                    <span class="outline-scene-title">
+                      {{  scene.title || t('outline.untitledScene') }}
+                      <span
+                        v-if="scene.forkFromSceneId"
+                        class="scene-fork-badge"
+                        :title="t('fork.badgeTitle')"
+                      >⑂</span>
+                    </span>
                     <span v-if="scene.oneSentenceSummary" class="outline-scene-summary">{{
                       scene.oneSentenceSummary
                     }}</span>
+                    <span v-if="scene.forkDescription" class="outline-scene-fork-desc">
+                      {{ scene.forkDescription }}
+                    </span>
                   </div>
                   <div class="outline-scene-actions">
                     <router-link :to="`/write/${scene.id}`" class="btn btn-primary btn-sm">{{
@@ -224,6 +232,14 @@
                       @click.stop="openEditScenePanel(scene)"
                     >
                       ✏️
+                    </button>
+                    <button
+                      type="button"
+                      class="btn btn-ghost btn-sm btn-icon"
+                      :title="t('fork.button')"
+                      @click.stop="openForkModal(scene)"
+                    >
+                      ⑂
                     </button>
                     <button
                       type="button"
@@ -296,11 +312,20 @@
       :danger="true"
       @confirm="doDeleteScene"
     />
+
+    <!-- Fork scene modal -->
+    <ForkSceneModal
+      :show="forkModal.show"
+      :scene="forkModal.scene"
+      @close="forkModal.show = false"
+      @created="onForkCreated"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import Sortable from 'sortablejs'
 import {
   getCharacters,
@@ -320,11 +345,15 @@ import ConfirmModal from '@/components/ConfirmModal.vue'
 import OtterIllustration from '@/components/OtterIllustration.vue'
 import OutlineEditPanel from '@/components/OutlineEditPanel.vue'
 import OutlineDraftModal from '@/components/OutlineDraftModal.vue'
+import ForkSceneModal from '@/components/ForkSceneModal.vue'
 import { getTemplate, getSpineTextForBeat, getBeatColor } from '@/data/templates'
 
 const { t } = useI18n()
+const router = useRouter()
 const storyStore = useStoryStore()
 const outlineStore = useOutlineStore()
+
+const forkModal = ref({ show: false, scene: null })
 const charactersStore = useCharactersStore()
 const { chapters, load, loadError, getScenesForChapter } = useOutline()
 
@@ -423,6 +452,16 @@ const {
   confirmDeleteScene,
   doDeleteScene,
 } = useOutlinePanel({ chapters, beats, story, collapsedBeats, getScenesForChapter, onAfterChange })
+
+function openForkModal(scene) {
+  forkModal.value = { show: true, scene }
+}
+
+async function onForkCreated(newSceneId) {
+  forkModal.value = { show: false, scene: null }
+  await outlineStore.load()
+  router.push(`/write/${newSceneId}`)
+}
 
 // --- AI outline draft (via composable) ---
 const { draftOpen, drafting, draftData, draftScope, draftForBeat, draftAll, applyDraft } =
@@ -878,6 +917,25 @@ onUnmounted(() => {
   overflow: hidden;
   text-overflow: ellipsis;
   margin-top: 1px;
+}
+
+.scene-fork-badge {
+  font-size: 0.8rem;
+  color: var(--accent);
+  margin-left: var(--space-1);
+  vertical-align: middle;
+  opacity: 0.85;
+}
+
+.outline-scene-fork-desc {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--accent);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-top: 1px;
+  opacity: 0.8;
 }
 
 .outline-scene-actions {

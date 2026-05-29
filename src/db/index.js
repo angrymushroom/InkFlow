@@ -136,6 +136,11 @@ db.version(7).stores({
   source_chunks: 'id, storyId, chunkIndex, createdAt',
 })
 
+// v8: scene forking — index forkFromSceneId so we can query all forks of a scene
+db.version(8).stores({
+  scenes: 'id, chapterId, forkFromSceneId, order, createdAt',
+})
+
 function createStorageError(message, cause) {
   const err = new Error(message)
   err.code = 'STORAGE_ERROR'

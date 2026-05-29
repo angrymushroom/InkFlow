@@ -740,4 +740,15 @@ export default {
     errorGeneric: 'Error al importar. Por favor, inténtalo de nuevo.',
     storyTitlePlaceholder: 'Título de la novela (opcional)',
   },
+  fork: {
+    button: 'Bifurcar escena',
+    modalTitle: 'Crear una bifurcación',
+    modalSubtitle: 'La escena original queda intacta. Esto crea una versión alternativa desde este punto.',
+    descriptionLabel: '¿Qué cambia en este punto de bifurcación?',
+    descriptionPlaceholder: 'p.ej. "Alice rechaza el caso" o "La carta nunca llega"',
+    create: 'Crear bifurcación',
+    cancel: 'Cancelar',
+    bannerPrefix: 'Bifurcación de',
+    badgeTitle: 'Esta escena es una bifurcación',
+  },
 }

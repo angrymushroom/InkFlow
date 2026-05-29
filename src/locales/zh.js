@@ -694,4 +694,15 @@ export default {
     errorGeneric: '导入失败，请重试。',
     storyTitlePlaceholder: '小说标题（可选）',
   },
+  fork: {
+    button: '分叉此场景',
+    modalTitle: '创建分叉',
+    modalSubtitle: '原始场景保持不变，这里会创建一个从此处分叉的平行版本。',
+    descriptionLabel: '这个分叉点发生了什么改变？',
+    descriptionPlaceholder: '例如："Alice 拒绝接受案子" 或 "那封信从未送达"',
+    create: '创建分叉',
+    cancel: '取消',
+    bannerPrefix: '分叉自',
+    badgeTitle: '该场景是分叉版本',
+  },
 }

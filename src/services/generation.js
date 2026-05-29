@@ -4,6 +4,7 @@ import {
   getIdeas,
   getChapters,
   getScenes,
+  getScene,
   getStoryFacts,
   getOpenThreads,
   getCharacterStateMap,
@@ -168,6 +169,27 @@ export async function buildSceneContext(storyId, sceneId) {
     .filter(Boolean)
     .join('\n')
 
+  // --- Fork context: injected when this scene diverges from an original ---
+  let forkBlock = ''
+  if (currentScene.forkFromSceneId) {
+    const originalScene = await getScene(currentScene.forkFromSceneId)
+    if (originalScene) {
+      const originalExcerpt = (originalScene.content || '').slice(0, 600).trim()
+      forkBlock = [
+        'FORK POINT — this scene diverges from the original story:',
+        currentScene.forkDescription
+          ? `Change: ${currentScene.forkDescription}`
+          : null,
+        originalExcerpt
+          ? `Original scene (for reference only — do NOT follow its events):\n"${originalExcerpt}${originalExcerpt.length >= 600 ? '…' : '"'}`
+          : null,
+        'Write this scene as if the change above happened instead. The original events no longer occur.',
+      ]
+        .filter(Boolean)
+        .join('\n')
+    }
+  }
+
   const sections = [
     spineBlock,
     charsBlock,
@@ -178,6 +200,7 @@ export async function buildSceneContext(storyId, sceneId) {
     lastLinesBlock,
     nextSceneBlock,
     currentBlock,
+    forkBlock,
   ].filter(Boolean)
 
   return sections.join('\n\n---\n\n')

@@ -732,4 +732,15 @@ export default {
     errorGeneric: 'Import failed. Please try again.',
     storyTitlePlaceholder: 'Novel title (optional)',
   },
+  fork: {
+    button: 'Fork scene',
+    modalTitle: 'Create a fork',
+    modalSubtitle: 'The original scene stays untouched. This creates an alternative version from this point.',
+    descriptionLabel: 'What changes at this fork point?',
+    descriptionPlaceholder: 'e.g. "Alice refuses the case" or "The letter never arrives"',
+    create: 'Create fork',
+    cancel: 'Cancel',
+    bannerPrefix: 'Fork of',
+    badgeTitle: 'This scene is a fork',
+  },
 }

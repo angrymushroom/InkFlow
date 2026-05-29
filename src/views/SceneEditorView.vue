@@ -34,6 +34,14 @@
         <p v-if="scene.notes" class="scene-meta-notes">{{ scene.notes }}</p>
       </div>
 
+      <div v-if="scene.forkFromSceneId && !focusMode" class="fork-banner">
+        <span class="fork-banner-icon">⑂</span>
+        <span class="fork-banner-text">
+          {{ t('fork.bannerPrefix') }}<span v-if="forkSourceTitle"> "{{ forkSourceTitle }}"</span>
+          <span v-if="scene.forkDescription"> — {{ scene.forkDescription }}</span>
+        </span>
+      </div>
+
       <div class="form-group prose-wrap">
         <div class="prose-label-row">
           <label>{{ t('scene.prose') }}</label>
@@ -265,6 +273,7 @@ const outlineStore = useOutlineStore()
 const route = useRoute()
 const sceneId = computed(() => route.params.sceneId)
 const scene = ref(null)
+const forkSourceTitle = ref('')
 const content = ref('')
 const loading = ref(true)
 const characters = ref([])
@@ -446,6 +455,10 @@ async function load() {
     scene.value = s
     content.value = s.content ?? ''
     lastSavedContent.value = content.value
+    if (s.forkFromSceneId) {
+      const original = await getScene(s.forkFromSceneId)
+      forkSourceTitle.value = original?.title || ''
+    }
   } else {
     scene.value = null
   }
@@ -679,6 +692,32 @@ onUnmounted(() => {
   color: var(--text-muted);
   margin: 0;
 }
+
+.fork-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  margin-bottom: var(--space-4);
+  background: var(--accent-subtle);
+  border: 1px solid rgba(99, 102, 241, 0.2);
+  border-radius: var(--radius-sm);
+  font-size: 0.85rem;
+  color: var(--accent);
+  line-height: 1.5;
+}
+.fork-banner-icon {
+  flex-shrink: 0;
+  font-size: 1rem;
+  margin-top: 1px;
+}
+.fork-banner-text {
+  color: var(--text-muted);
+}
+.fork-banner-text span {
+  color: var(--accent);
+}
+
 .prose-wrap {
   position: relative;
 }

@@ -748,4 +748,15 @@ export default {
     errorGeneric: "Échec de l'importation. Veuillez réessayer.",
     storyTitlePlaceholder: 'Titre du roman (optionnel)',
   },
+  fork: {
+    button: 'Bifurquer la scène',
+    modalTitle: 'Créer une bifurcation',
+    modalSubtitle: "La scène originale reste intacte. Cela crée une version alternative à partir de ce point.",
+    descriptionLabel: 'Qu\'est-ce qui change à ce point de bifurcation ?',
+    descriptionPlaceholder: 'ex. "Alice refuse l\'affaire" ou "La lettre n\'arrive jamais"',
+    create: 'Créer la bifurcation',
+    cancel: 'Annuler',
+    bannerPrefix: 'Bifurcation de',
+    badgeTitle: 'Cette scène est une bifurcation',
+  },
 }
