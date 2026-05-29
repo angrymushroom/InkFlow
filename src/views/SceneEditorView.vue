@@ -57,6 +57,9 @@
           <button type="button" class="selection-action-btn" :class="{ active: popover === 'outline' }" @click="openPopover('outline')" :title="t('writeQuick.addToOutline')">
             📋 {{ t('writeQuick.addToOutline') }}
           </button>
+          <button type="button" class="selection-action-btn" :class="{ active: popover === 'rewrite' }" @click="openPopover('rewrite')" :title="t('writeQuick.rewriteProse')">
+            ✏️ {{ t('writeQuick.rewriteProse') }}
+          </button>
           <button type="button" class="selection-close-btn" aria-label="Close" @click="clearSelection">×</button>
         </div>
         <div v-if="popover === 'idea'" class="quick-popover">
@@ -184,6 +187,50 @@
             </button>
           </div>
         </div>
+        <div v-if="popover === 'rewrite'" class="quick-popover">
+          <div v-if="!rewriteResult" class="quick-popover-row">
+            <label>{{ t('writeQuick.rewriteInstructions') }}</label>
+            <textarea
+              v-model="rewriteInstructions"
+              :placeholder="t('writeQuick.rewriteInstructionsPlaceholder')"
+              class="quick-input"
+              rows="2"
+              style="min-height:60px;resize:vertical;"
+            />
+          </div>
+          <div v-if="rewriteResult" class="quick-popover-row">
+            <label>{{ t('writeQuick.rewriteResult') }}</label>
+            <textarea
+              v-model="rewriteResult"
+              class="quick-input"
+              rows="5"
+              style="min-height:100px;resize:vertical;"
+            />
+          </div>
+          <p v-if="saveError && popover === 'rewrite'" class="quick-error">{{ saveError }}</p>
+          <div class="quick-popover-actions">
+            <button type="button" class="btn btn-ghost btn-sm" @click="cancelRewrite">
+              {{ t('writeQuick.rewriteCancel') }}
+            </button>
+            <button
+              v-if="!rewriteResult"
+              type="button"
+              class="btn btn-primary btn-sm"
+              :disabled="rewritingProse"
+              @click="onRewriteProse"
+            >
+              {{ rewritingProse ? t('writeQuick.rewriteGenerating') : t('writeQuick.rewriteButton') }}
+            </button>
+            <button
+              v-if="rewriteResult"
+              type="button"
+              class="btn btn-primary btn-sm"
+              @click="applyRewrite"
+            >
+              {{ t('writeQuick.rewriteApply') }}
+            </button>
+          </div>
+        </div>
         <ResizableTextarea
           ref="proseTextareaRef"
           v-model="content"
@@ -247,7 +294,7 @@ import {
   getCurrentStoryId,
 } from '@/db'
 import { generateSceneProse } from '@/services/generation'
-import { friendlyAiError } from '@/services/ai'
+import { friendlyAiError, rewriteProse } from '@/services/ai'
 import { checkConsistency, quickConsistencyCheck, updateSceneFacts } from '@/services/consistency'
 import { extractNewEntities } from '@/services/entityExtraction'
 import { runSummaryPipeline } from '@/services/summarization'
@@ -282,6 +329,9 @@ const savedHint = ref(false)
 const saveError = ref('')
 const saveTimeout = ref(null)
 const beforeUnloadHandler = ref(null)
+const rewriteInstructions = ref('')
+const rewriteResult = ref('')
+const rewritingProse = ref(false)
 const generatingScene = ref(false)
 
 const checkingConsistency = ref(false)
@@ -360,6 +410,7 @@ function clearSelection() {
 }
 
 function openPopover(which) {
+  if (which !== 'rewrite') { rewriteResult.value = ''; rewriteInstructions.value = '' }
   popover.value = which
   if (which === 'character') characterAction.value = 'new'
   if (which === 'outline') outlineAction.value = 'scene'
@@ -445,6 +496,46 @@ async function saveToOutline() {
   } catch (e) {
     saveError.value = e?.message || t.value('story.saveError')
   }
+}
+
+async function onRewriteProse() {
+  if (!selection.value.active || rewritingProse.value) return
+  rewritingProse.value = true
+  saveError.value = ''
+  try {
+    const fullText = content.value || ''
+    const before = fullText.slice(Math.max(0, selection.value.start - 200), selection.value.start)
+    const after = fullText.slice(selection.value.end, selection.value.end + 200)
+    const result = await rewriteProse({
+      selectedText: selection.value.text,
+      instructions: rewriteInstructions.value,
+      contextBefore: before,
+      contextAfter: after,
+    })
+    rewriteResult.value = (result || '').trim()
+    if (!rewriteResult.value) saveError.value = 'Rewrite failed'
+  } catch (e) {
+    saveError.value = friendlyAiError(e)
+  } finally {
+    rewritingProse.value = false
+  }
+}
+
+function applyRewrite() {
+  if (!rewriteResult.value || !selection.value.active) return
+  const full = content.value || ''
+  content.value = full.slice(0, selection.value.start) + rewriteResult.value + full.slice(selection.value.end)
+  rewriteResult.value = ''
+  rewriteInstructions.value = ''
+  popover.value = null
+  clearSelection()
+}
+
+function cancelRewrite() {
+  rewriteResult.value = ''
+  rewriteInstructions.value = ''
+  saveError.value = ''
+  popover.value = null
 }
 
 async function load() {
@@ -816,6 +907,11 @@ onUnmounted(() => {
   display: flex;
   gap: var(--space-2);
   margin-top: var(--space-3);
+}
+.quick-error {
+  font-size: 0.8125rem;
+  color: var(--danger);
+  margin: 0 0 var(--space-2);
 }
 .prose-textarea {
   min-height: 400px;

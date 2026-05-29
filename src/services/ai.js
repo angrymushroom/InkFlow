@@ -30,6 +30,8 @@ export const CONTEXTS = Object.freeze({
   OUTLINE_DRAFT_SECTION: 'outline_draft_section',
   SCENE_PROSE: 'scene_prose',
   CONSISTENCY: 'consistency',
+  REWRITE_PROSE: 'rewrite_prose',
+  OUTLINE_ANALYSIS: 'outline_analysis',
 })
 
 const CONTEXT_BASE_TIER = Object.freeze({
@@ -40,6 +42,8 @@ const CONTEXT_BASE_TIER = Object.freeze({
   [CONTEXTS.OUTLINE_DRAFT_SECTION]: TIERS.LIGHT,
   [CONTEXTS.SCENE_PROSE]: TIERS.LIGHT,
   [CONTEXTS.CONSISTENCY]: TIERS.LIGHT,
+  [CONTEXTS.REWRITE_PROSE]: TIERS.LIGHT,
+  [CONTEXTS.OUTLINE_ANALYSIS]: TIERS.ADVANCED,
 })
 
 const BIAS_LOCKED = new Set([CONTEXTS.CHAT, CONTEXTS.CHAT_WITH_TOOLS, CONTEXTS.OUTLINE_DRAFT_FULL])
@@ -1011,4 +1015,21 @@ export function friendlyAiError(error) {
   if (type === 'empty') return 'The AI returned an empty response. Try again.'
   const raw = (error?.message || 'please try again').replace(/[.!?]+$/, '')
   return `Something went wrong — ${raw}.`
+}
+
+/**
+ * Rewrite a selected prose passage with optional instructions.
+ * @param {{ selectedText: string, instructions?: string, contextBefore?: string, contextAfter?: string }}
+ * @returns {Promise<string>}
+ */
+export async function rewriteProse({ selectedText, instructions = '', contextBefore = '', contextAfter = '' }) {
+  const systemPrompt = 'You are a creative fiction editor. Rewrite the provided passage preserving all story beats, character motivations, and narrative continuity. Match the tone and style of the surrounding prose. Output only the rewritten passage — no preamble, no commentary, no quotes.'
+  const parts = []
+  if (contextBefore || contextAfter) {
+    parts.push(`Surrounding context:\n[…${contextBefore.slice(-200)}] *** PASSAGE *** [${contextAfter.slice(0, 200)}…]`)
+  }
+  parts.push(`Passage to rewrite:\n${selectedText}`)
+  if (instructions.trim()) parts.push(`Rewrite instructions: ${instructions.trim()}`)
+  const userPrompt = parts.join('\n\n')
+  return completeWithAi({ systemPrompt, userPrompt, tier: tierForContext(CONTEXTS.REWRITE_PROSE), maxTokens: 600 })
 }

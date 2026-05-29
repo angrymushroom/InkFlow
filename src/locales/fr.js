@@ -469,6 +469,14 @@ export default {
     sceneSaved: 'Scène ajoutée',
     chapterSaved: 'Chapitre ajouté',
     noteSaved: 'Note ajoutée à la scène',
+    rewriteProse: 'Réécrire',
+    rewriteInstructions: 'Instructions (optionnel)',
+    rewriteInstructionsPlaceholder: 'ex. plus de tension, plus court, moins d\'adverbes',
+    rewriteButton: 'Réécrire',
+    rewriteApply: 'Appliquer',
+    rewriteCancel: 'Annuler',
+    rewriteResult: 'Passage réécrit',
+    rewriteGenerating: 'Réécriture…',
   },
   scene: {
     loading: 'Chargement…',
@@ -682,6 +690,8 @@ export default {
         change: "En quoi votre protagoniste est-il fondamentalement différent à la fin ? Qu'est-il vraiment devenu ?",
       },
     },
+    analyzeOutline: 'Analyser le plan',
+    analyzingOutline: 'Analyse de la structure en cours…',
   },
   entitySuggestion: {
     found: 'Pip a trouvé {count} nouveaux éléments',

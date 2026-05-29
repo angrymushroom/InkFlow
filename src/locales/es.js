@@ -467,6 +467,14 @@ export default {
     sceneSaved: 'Escena añadida',
     chapterSaved: 'Capítulo añadido',
     noteSaved: 'Nota añadida a la escena',
+    rewriteProse: 'Reescribir',
+    rewriteInstructions: 'Instrucciones (opcional)',
+    rewriteInstructionsPlaceholder: 'p.ej. más tenso, más corto, menos adverbios',
+    rewriteButton: 'Reescribir',
+    rewriteApply: 'Aplicar',
+    rewriteCancel: 'Cancelar',
+    rewriteResult: 'Pasaje reescrito',
+    rewriteGenerating: 'Reescribiendo…',
   },
   scene: {
     loading: 'Cargando…',
@@ -657,6 +665,8 @@ export default {
         change: '¿En qué es fundamentalmente diferente tu protagonista al final? ¿En qué se ha convertido realmente?',
       },
     },
+    analyzeOutline: 'Analizar estructura',
+    analyzingOutline: 'Analizando estructura del guión…',
   },
   feedback: {
     button: 'Enviar comentarios',

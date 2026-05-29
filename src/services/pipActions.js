@@ -13,12 +13,15 @@ import {
   updateScene,
   addIdea,
   getCurrentStoryId,
+  getStoryFacts,
+  getOpenThreads,
 } from '@/db'
-import { TEMPLATES, getTemplate, setSpineFieldPatch } from '@/data/templates'
+import { TEMPLATES, getTemplate, setSpineFieldPatch, getSpineFieldValue } from '@/data/templates'
 import { useStoryStore } from '@/stores/story.js'
 import { useOutlineStore } from '@/stores/outline.js'
 import { useCharactersStore } from '@/stores/characters.js'
 import { useIdeasStore } from '@/stores/ideas.js'
+import { completeWithAi, tierForContext, CONTEXTS } from '@/services/ai'
 
 const ACTION_RE = /<pip-action>([\s\S]*?)<\/pip-action>/g
 
@@ -251,4 +254,78 @@ export async function applySingleAction(actionObj) {
   }
 
   throw new Error(`Unknown action: ${action.type}`)
+}
+
+/**
+ * Analyze the story outline for structural issues and return AI analysis.
+ * @param {string} storyId
+ * @returns {Promise<string>}
+ */
+export async function analyzeOutlineStructure(storyId) {
+  const [story, chapters, scenes, storyFacts, openThreads] = await Promise.all([
+    getStoryById(storyId),
+    getChapters(storyId),
+    getScenes(storyId),
+    getStoryFacts(storyId),
+    getOpenThreads(storyId),
+  ])
+
+  const lines = []
+
+  if (story) {
+    const tpl = getTemplate(story)
+    const spineLines = tpl.spineFields
+      .map((f) => {
+        const val = getSpineFieldValue(story, f.prop)
+        return val.trim() ? `${f.key}: ${val.slice(0, 300)}` : null
+      })
+      .filter(Boolean)
+    if (spineLines.length) {
+      lines.push('=== STORY SPINE ===')
+      lines.push(...spineLines)
+    }
+  }
+
+  if (chapters?.length) {
+    lines.push('\n=== OUTLINE ===')
+    const byChapter = new Map()
+    for (const s of scenes || []) {
+      const list = byChapter.get(s.chapterId) || []
+      list.push(s)
+      byChapter.set(s.chapterId, list)
+    }
+    for (const ch of chapters) {
+      lines.push(`Chapter: ${ch.title || 'Untitled'}${ch.beat ? ` [${ch.beat}]` : ''}`)
+      if (ch.summary) lines.push(`  Summary: ${ch.summary.slice(0, 200)}`)
+      const scs = byChapter.get(ch.id) || []
+      for (const sc of scs) {
+        lines.push(`  Scene: ${sc.title || 'Untitled'}${sc.content?.trim() ? ' ✓' : ''}`)
+        if (sc.oneSentenceSummary) lines.push(`    ${sc.oneSentenceSummary.slice(0, 120)}`)
+      }
+    }
+  }
+
+  if (storyFacts?.length) {
+    lines.push('\n=== ESTABLISHED FACTS ===')
+    storyFacts.slice(0, 10).forEach((f) => lines.push(`- [${f.factType}] ${f.content.slice(0, 120)}`))
+  }
+
+  if (openThreads?.length) {
+    lines.push('\n=== OPEN THREADS ===')
+    openThreads.forEach((t) => lines.push(`- ${t.content.slice(0, 120)}`))
+  }
+
+  if (lines.length === 0) return '📋 **Outline Analysis**\n\nNot enough outline data to analyze. Add chapters and scenes with summaries first.'
+
+  const systemPrompt = 'You are an experienced story editor reviewing a novel outline. Analyze the structure for: plot holes, unresolved open threads, missing cause-effect logic, pacing issues, and character motivation gaps. Be specific and constructive. Reference actual chapter/scene titles. Aim for 3–5 focused, actionable observations.'
+  const userPrompt = `Here is the current outline:\n\n${lines.join('\n')}\n\nProvide a structural analysis.`
+
+  const result = await completeWithAi({
+    systemPrompt,
+    userPrompt,
+    tier: tierForContext(CONTEXTS.OUTLINE_ANALYSIS),
+    maxTokens: 1200,
+  })
+
+  return `📋 **Outline Analysis**\n\n${(result || '').trim() || 'No structural issues found.'}`
 }

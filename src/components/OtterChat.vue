@@ -134,6 +134,16 @@
 
     <!-- Input resize handle + input (shown when API key is set) -->
     <template v-if="hasApiKey">
+      <div v-if="scenesWithSummaries >= 2" class="otter-quickactions">
+        <button
+          type="button"
+          class="otter-quickaction-btn"
+          :disabled="isLoading"
+          @click="onAnalyzeOutline"
+        >
+          {{ isLoading ? t('pip.analyzingOutline') : t('pip.analyzeOutline') }}
+        </button>
+      </div>
       <div
         class="otter-input-drag-bar"
         @mousedown.prevent="startTextareaResize"
@@ -221,6 +231,7 @@ import {
 import { WRITING_TEMPLATES, DEFAULT_TEMPLATE_ID, getTemplateFieldValue } from '@/constants/writingTemplates'
 import { setSpineFieldPatch, getTemplate } from '@/data/templates'
 import { generateSceneProse } from '@/services/generation'
+import { analyzeOutlineStructure } from '@/services/pipActions'
 
 const props = defineProps({
   open: Boolean,
@@ -247,6 +258,7 @@ const welcomeWithContext = ref('')
 const contextStoryId = ref(null)
 const storyGaps = ref(null)
 const currentSceneInfo = ref(null) // { title, wordCount, hasContent }
+const scenesWithSummaries = ref(0)
 
 function truncate(s, n) {
   return s && s.length > n ? s.slice(0, n) + '…' : s || ''
@@ -420,6 +432,7 @@ async function loadStoryContext() {
     const nextMissingField = missingFields[0] ?? null
     const writtenScenes = (scenes || []).filter((s) => s.content?.trim()).length
     const totalScenes = (scenes || []).length
+    scenesWithSummaries.value = (scenes || []).filter((s) => s.oneSentenceSummary?.trim()).length
 
     storyGaps.value = {
       template,
@@ -749,6 +762,32 @@ async function clearChat() {
   if (storyId) await clearChatHistory(storyId)
   messages.value = []
   computeWelcomeMessage(storyGaps.value)
+}
+
+async function onAnalyzeOutline() {
+  if (isLoading.value) return
+  const storyId = contextStoryId.value || getCurrentStoryId()
+  if (!storyId) return
+  isLoading.value = true
+  const msg = { role: 'assistant', content: '', actions: [], streaming: true }
+  messages.value.push(msg)
+  await nextTick()
+  await scrollToBottom()
+  try {
+    const result = await analyzeOutlineStructure(storyId)
+    msg.content = result
+    msg.actions = []
+    delete msg.streaming
+    await saveChatMessage(storyId, 'assistant', result)
+  } catch (e) {
+    msg.content = pipErrorMessage(e)
+    msg.actions = []
+    delete msg.streaming
+  } finally {
+    isLoading.value = false
+    await nextTick()
+    await scrollToBottom()
+  }
 }
 
 // ---- System prompt (Phase 3) ----
@@ -1429,5 +1468,32 @@ async function send() {
   z-index: 209;
   background: rgba(0, 0, 0, 0.25);
   cursor: pointer;
+}
+
+/* ---- Quick actions (analyze outline etc.) ---- */
+.otter-quickactions {
+  flex-shrink: 0;
+  padding: var(--space-1) var(--space-4) 0;
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+.otter-quickaction-btn {
+  font-size: 0.75rem;
+  padding: 3px var(--space-3);
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.otter-quickaction-btn:hover:not(:disabled) {
+  background: var(--border);
+  color: var(--text);
+}
+.otter-quickaction-btn:disabled {
+  opacity: 0.45;
+  cursor: default;
 }
 </style>

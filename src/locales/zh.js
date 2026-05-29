@@ -434,6 +434,14 @@ export default {
     sceneSaved: '已添加场景',
     chapterSaved: '已添加章节',
     noteSaved: '已添加到场景备注',
+    rewriteProse: '改写',
+    rewriteInstructions: '指令（可选）',
+    rewriteInstructionsPlaceholder: '例如：更紧张、更简短、少用副词',
+    rewriteButton: '改写',
+    rewriteApply: '应用',
+    rewriteCancel: '取消',
+    rewriteResult: '改写结果',
+    rewriteGenerating: '改写中…',
   },
   scene: {
     loading: '加载中…',
@@ -612,6 +620,8 @@ export default {
         change: '主角在故事结束时有了怎样根本性的转变？他们真正成了什么样的人？',
       },
     },
+    analyzeOutline: '分析大纲',
+    analyzingOutline: '正在分析大纲结构…',
   },
   feedback: {
     button: '发送反馈',

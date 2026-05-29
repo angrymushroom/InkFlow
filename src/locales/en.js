@@ -461,6 +461,14 @@ export default {
     sceneSaved: 'Scene added',
     chapterSaved: 'Chapter added',
     noteSaved: 'Note added to scene',
+    rewriteProse: 'Rewrite',
+    rewriteInstructions: 'Instructions (optional)',
+    rewriteInstructionsPlaceholder: 'e.g. more tense, shorter, less adverbs',
+    rewriteButton: 'Rewrite',
+    rewriteApply: 'Apply',
+    rewriteCancel: 'Cancel',
+    rewriteResult: 'Rewritten passage',
+    rewriteGenerating: 'Rewriting…',
   },
   scene: {
     loading: 'Loading…',
@@ -618,6 +626,8 @@ export default {
         change: 'How is your protagonist fundamentally different by the end? What have they truly become?',
       },
     },
+    analyzeOutline: 'Analyze outline',
+    analyzingOutline: 'Analyzing outline structure…',
   },
   storySwitcher: {
     current: 'Current',
