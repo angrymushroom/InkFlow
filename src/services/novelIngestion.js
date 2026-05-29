@@ -20,6 +20,8 @@ const CHAPTER_PATTERNS = [
   /^第[零一二三四五六七八九十百千\d]+[章节回篇][^\n]*/gm,
   // Act / Part: Act I / Part 1 / ACT TWO
   /^(Part|PART|ACT|Act|PART|SCENE|Scene)\s+\S[^\n]*/gm,
+  // Standalone Roman numeral heading: " I." " II." " XIV." (Gutenberg style)
+  /^[ \t]*[IVXLCDM]{1,6}\.[ \t]*$/gm,
   // All-caps standalone title line (e.g. "PROLOGUE", "EPILOGUE", min 3 chars)
   /^[A-Z][A-Z\s]{2,30}$/gm,
   // Scene/section separators: ---, ***, * * *
@@ -40,7 +42,14 @@ function detectChaptersWithRegex(text) {
     while ((m = pattern.exec(text)) !== null) {
       if (!seen.has(m.index)) {
         seen.add(m.index)
-        matches.push({ title: m[0].trim(), startIndex: m.index })
+        let title = m[0].trim()
+        // Roman numeral-only heading (e.g. "I."): look at next non-empty line for the subtitle
+        if (/^[IVXLCDM]{1,6}\.$/.test(title)) {
+          const rest = text.slice(m.index + m[0].length)
+          const sub = rest.match(/^[\r\n]+[ \t]*([^\r\n]{2,60})/)
+          if (sub) title = `${title} ${sub[1].trim()}`
+        }
+        matches.push({ title, startIndex: m.index })
       }
     }
   }
@@ -141,7 +150,7 @@ ${sample}
 
 Return ONLY the JSON object.`,
       tier: TIERS.LIGHT,
-      maxTokens: 600,
+      maxTokens: 1200,
     })
 
     const parsed = parseJsonSafe(response, null)
@@ -251,7 +260,7 @@ ${charInput}
 
 Return ONLY the JSON array.`,
       tier: TIERS.LIGHT,
-      maxTokens: 600,
+      maxTokens: 900,
     })
 
     const parsed = parseJsonSafe(response, null)
@@ -360,12 +369,18 @@ The spine keys must match the template's spineFields keys. Return ONLY the JSON.
 
     const parsed = parseJsonSafe(response, null)
     if (parsed && typeof parsed.templateId === 'string' && typeof parsed.confidence === 'number') {
-      // Normalize: find matching template id even if AI returns e.g. "hero's journey" or "Hero Journey"
+      // Normalize: match even if AI returns "hero's journey", "Hero Journey", "save_the_cat", etc.
       const VALID_IDS = Object.keys(TEMPLATES)
+      // Strip to letters+underscores, then strip underscores for slug comparison
+      // Also strip possessives ("hero's" → "heros" → strip trailing s before keyword)
       const rawId = parsed.templateId.toLowerCase().replace(/[^a-z_]/g, '')
+      const rawSlug = rawId.replace(/_/g, '')
+      // Collapse possessive: "heros" → "hero" by removing trailing-s glue between keywords
+      const rawNorm = rawSlug.replace(/s(?=[a-z])/g, '')
       const normalizedId =
-        VALID_IDS.find((id) => rawId === id || rawId.includes(id.replace(/_/g, ''))) ??
-        VALID_IDS.find((id) => parsed.templateId.toLowerCase().includes(id.replace(/_/g, ' '))) ??
+        VALID_IDS.find((id) => rawId === id) ??
+        VALID_IDS.find((id) => rawSlug === id.replace(/_/g, '')) ??
+        VALID_IDS.find((id) => rawNorm.includes(id.replace(/_/g, ''))) ??
         'snowflake'
       return {
         templateId: normalizedId,
